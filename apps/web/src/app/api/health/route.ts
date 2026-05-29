@@ -1,6 +1,5 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
-import { prisma } from '@sitenexis/db';
 import net from 'net';
 
 function checkRedis(url: string): Promise<boolean> {
@@ -28,6 +27,7 @@ export async function GET(): Promise<NextResponse> {
   };
 
   try {
+    const { prisma } = await import('@sitenexis/db');
     await prisma.$queryRaw`SELECT 1`;
     checks.db = true;
   } catch {
