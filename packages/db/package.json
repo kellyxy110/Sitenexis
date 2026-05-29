@@ -11,7 +11,7 @@
     }
   },
   "scripts": {
-    "build": "tsc",
+    "build": "prisma generate --schema=./schema.prisma && tsc",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext .ts",
     "db:push": "prisma db push",
@@ -26,6 +26,7 @@
     "@sitenexis/shared": "workspace:*"
   },
   "devDependencies": {
+    "@types/node": "^22.0.0",
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
     "eslint": "^9.0.0",
