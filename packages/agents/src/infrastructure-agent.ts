@@ -119,7 +119,7 @@ export async function runInfrastructureAgent(input: AuditJobInput): Promise<void
     const errorMessage = err instanceof Error ? err.message : String(err);
     await emitAgentEvent({ auditId, agentId: 'infrastructure', event: 'failed', errorMessage });
     // Partial results are preserved — only status is updated to failed
-    await updateAuditStatus(auditId, 'failed');
+    await updateAuditStatus(auditId, 'failed', { errorMessage });
     throw err;
   }
 }
