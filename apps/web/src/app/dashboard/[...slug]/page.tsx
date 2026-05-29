@@ -17,7 +17,7 @@ import {
 const ROUTE_META: Record<string, {
   title: string;
   description: string;
-  icon: React.ElementType;
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
   badge?: string;
   group: string;
 }> = {

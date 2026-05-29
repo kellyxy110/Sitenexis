@@ -52,11 +52,11 @@ function UserMenu({ userName, plan }: { userName?: string | null | undefined; pl
             )}
           </div>
           <div className="py-1.5">
-            {[
+            {([
               { icon: User, label: 'Profile', href: '/dashboard/settings' },
               { icon: CreditCard, label: 'Billing', href: '/dashboard/settings/billing' },
               { icon: Settings, label: 'Settings', href: '/dashboard/settings' },
-            ].map(({ icon: Icon, label, href }) => (
+            ] as Array<{ icon: React.ComponentType<{ className?: string; strokeWidth?: number }>; label: string; href: string }>).map(({ icon: Icon, label, href }) => (
               <Link
                 key={href}
                 href={href}

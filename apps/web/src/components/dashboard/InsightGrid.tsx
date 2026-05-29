@@ -38,7 +38,7 @@ function CardShell({ children, className = '' }: { children: React.ReactNode; cl
   );
 }
 
-function CardHeader({ icon: Icon, title }: { icon: React.ElementType; title: string }) {
+function CardHeader({ icon: Icon, title }: { icon: React.ComponentType<{ className?: string; strokeWidth?: number }>; title: string }) {
   return (
     <div className="flex items-center gap-2.5 border-b border-white/[0.06] px-5 py-3.5">
       <Icon className="h-4 w-4 text-[#4A6280]" strokeWidth={1.6} />
