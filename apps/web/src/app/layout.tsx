@@ -1,17 +1,32 @@
 import type { Metadata } from 'next';
+import { Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import { Providers } from '@/components/Providers';
 
+const inter = Inter({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700', '800'],
+  variable: '--font-inter',
+  display: 'swap',
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500', '600'],
+  variable: '--font-mono',
+  display: 'swap',
+});
+
 export const metadata: Metadata = {
-  title: 'SiteNexis — Website Intelligence Platform',
+  title: 'SiteNexis — AI Retrieval & Machine Trust Intelligence',
   description:
-    'Audit any domain across SEO, AI readability, schema, link graph, and performance from a single platform.',
+    'SiteNexis models how AI systems retrieve, interpret, trust, and recommend your website — across every layer from semantic structure to machine trust formation.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body className="antialiased" style={{ background: 'linear-gradient(180deg, #030907 0%, #081410 100%)', minHeight: '100vh', color: '#E2EDE9' }} suppressHydrationWarning>
+    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
+      <body className="antialiased font-sans" suppressHydrationWarning>
         <Providers>{children}</Providers>
       </body>
     </html>

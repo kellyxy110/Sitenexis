@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path . -Directory)",
+      "Bash(Select-Object Name)",
+      "Bash(for f in crawl-agent seo-agent schema-agent retrieval-agent entity-agent performance-agent citation-agent semantic-trust-agent visualization-agent reporting-agent; do *)",
+      "Read(//c/Users/user/Desktop/SiteNexis/packages/agents/**)",
+      "Bash(Remove-Item -Recurse -Force \"c:\\\\Users\\\\user\\\\Desktop\\\\SiteNexis\\\\apps\\\\web\\\\.next\" -ErrorAction SilentlyContinue)",
+      "Bash(Write-Host \"cleared\")",
+      "PowerShell(Get-Content \"C:\\\\Users\\\\user\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-user-Desktop-SiteNexis\\\\fe213ee7-da4a-4d43-8cc9-5e6b7f816b57\\\\tasks\\\\bcmetdyvr.output\" -Wait -TotalCount 30 2>&1)",
+      "PowerShell(exit 0)",
+      "PowerShell($f = \"C:\\\\Users\\\\user\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-user-Desktop-SiteNexis\\\\fe213ee7-da4a-4d43-8cc9-5e6b7f816b57\\\\tasks\\\\bcmetdyvr.output\"; \\(Get-Item $f\\).Length)",
+      "Bash(xargs -I {} sh -c 'echo \"$\\(wc -l < \"{}\"\\) $\\(basename {}\\)\" | awk \"{printf \\\\\"%5d  %s\\\\n\\\\\", \\\\$1, \\\\$2}\"')",
+      "Bash(pnpm --filter @sitenexis/shared tsc --noEmit)",
+      "Bash(pnpm typecheck *)",
+      "Bash(Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue)",
+      "Bash(pnpm dev *)",
+      "Bash(npx tsx *)"
+    ]
+  }
+}

@@ -24,12 +24,11 @@ interface HeroCinematicProps {
 // ── Animation variants ────────────────────────────────────────────────────────
 
 const fadeUp = {
-  hidden:  { opacity: 0, y: 28, filter: 'blur(4px)' },
+  hidden:  { opacity: 0, y: 20 },
   visible: (i: number) => ({
     opacity: 1,
     y: 0,
-    filter: 'blur(0px)',
-    transition: { duration: 0.75, ease: [0.16, 1, 0.3, 1], delay: i * 0.12 },
+    transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: i * 0.12 },
   }),
 }
 
@@ -174,12 +173,14 @@ export function HeroCinematic({ onSubmit, loading }: HeroCinematicProps) {
   const [isMobile, setIsMobile]               = useState(false)
   const [reducedMotion, setReducedMotion]     = useState(false)
   const [sceneLoaded, setSceneLoaded]         = useState(false)
+  const [mounted, setMounted]                 = useState(false)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const lenisRef = useRef<any>(null)
 
   // ── Device detection ───────────────────────────────────────────────────────
 
   useEffect(() => {
+    setMounted(true)
     setIsMobile(window.innerWidth < 768)
     setReducedMotion(window.matchMedia('(prefers-reduced-motion: reduce)').matches)
 
@@ -199,22 +200,20 @@ export function HeroCinematic({ onSubmit, loading }: HeroCinematicProps) {
     return () => window.removeEventListener('mousemove', onMove)
   }, [])
 
-  // ── Lenis smooth scroll + scroll progress ──────────────────────────────────
+  // ── Lenis smooth scroll ────────────────────────────────────────────────────
+  // Note: GSAP ScrollTrigger is intentionally NOT used here — it conflicts
+  // with Framer Motion's MotionValues by snapshotting opacity:0 before the
+  // fade-in animation completes. Framer Motion's useTransform handles the
+  // scroll-driven opacity fade instead.
 
   useEffect(() => {
     if (reducedMotion) return
 
     let lenis: import('lenis').default
-    let gsapLoaded = false
+    let rafId: number
 
     async function init() {
-      const [{ default: Lenis }, { gsap }, { ScrollTrigger }] = await Promise.all([
-        import('lenis'),
-        import('gsap'),
-        import('gsap/ScrollTrigger'),
-      ])
-
-      gsap.registerPlugin(ScrollTrigger)
+      const { default: Lenis } = await import('lenis')
 
       lenis = new Lenis({
         duration: 1.25,
@@ -226,42 +225,20 @@ export function HeroCinematic({ onSubmit, loading }: HeroCinematicProps) {
       lenis.on('scroll', ({ scroll }: { scroll: number }) => {
         const maxScroll = document.body.scrollHeight - window.innerHeight
         scrollRef.current = maxScroll > 0 ? scroll / maxScroll : 0
-        ScrollTrigger.update()
       })
 
-      gsap.ticker.add((time: number) => lenis.raf(time * 1000))
-      gsap.ticker.lagSmoothing(0)
-      gsapLoaded = true
-
-      // Hero content scroll animation
-      if (heroRef.current) {
-        const contentEl = heroRef.current.querySelector('[data-hero-content]')
-        if (contentEl) {
-          gsap.to(contentEl, {
-            scrollTrigger: {
-              trigger: heroRef.current,
-              start: 'top top',
-              end: '60% top',
-              scrub: 1.2,
-            },
-            y: -60,
-            opacity: 0,
-            scale: 0.97,
-            ease: 'none',
-          })
-        }
+      function raf(time: number) {
+        lenis.raf(time)
+        rafId = requestAnimationFrame(raf)
       }
+      rafId = requestAnimationFrame(raf)
     }
 
     init()
 
     return () => {
-      if (lenis) {
-        import('gsap').then(({ gsap }) => {
-          if (gsapLoaded) gsap.ticker.remove(() => {})
-        })
-        lenis.destroy()
-      }
+      cancelAnimationFrame(rafId)
+      if (lenis) lenis.destroy()
     }
   }, [reducedMotion])
 
@@ -323,7 +300,7 @@ export function HeroCinematic({ onSubmit, loading }: HeroCinematicProps) {
       <motion.div
         data-hero-content
         className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 flex-col justify-center px-6 pt-28 pb-24 lg:px-10"
-        style={reducedMotion ? {} : { y: contentY, opacity: contentOp }}
+        style={mounted && !reducedMotion ? { y: contentY, opacity: contentOp } : {}}
       >
         <div className="grid grid-cols-1 items-center gap-16 lg:grid-cols-2">
 
@@ -393,7 +370,7 @@ export function HeroCinematic({ onSubmit, loading }: HeroCinematicProps) {
               className="mt-10 w-full max-w-[540px]"
             >
               <DomainInput onSubmit={onSubmit} loading={loading} />
-              <p className="mt-4 text-[12px] tracking-wide text-slate-700">
+              <p className="mt-4 text-[12px] tracking-wide text-slate-500">
                 Free&nbsp;&nbsp;·&nbsp;&nbsp;No account required&nbsp;&nbsp;·&nbsp;&nbsp;Results in ~60s
               </p>
             </motion.div>
@@ -407,8 +384,8 @@ export function HeroCinematic({ onSubmit, loading }: HeroCinematicProps) {
               className="mt-12 flex flex-wrap gap-x-7 gap-y-3"
             >
               {PROOF_ITEMS.map((item) => (
-                <span key={item} className="flex items-center gap-2 text-[12px] text-slate-600">
-                  <span className="h-px w-4 bg-slate-800" />
+                <span key={item} className="flex items-center gap-2 text-[12px] text-slate-500">
+                  <span className="h-px w-4 bg-slate-700" />
                   {item}
                 </span>
               ))}

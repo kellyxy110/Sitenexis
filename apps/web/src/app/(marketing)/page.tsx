@@ -568,12 +568,6 @@ export default function HomePage() {
                 body: 'Core Web Vitals, LCP, CLS, INP, TTFB, mobile performance benchmarks.',
               },
             ].map((card) => {
-              const borderColor =
-                card.color === 'cyan'    ? 'group-hover:border-cyan/30 group-hover:shadow-[0_0_32px_rgba(0,200,255,0.07)]' :
-                card.color === 'teal'    ? 'group-hover:border-teal/30 group-hover:shadow-[0_0_32px_rgba(11,206,188,0.07)]' :
-                card.color === 'sapphire'? 'group-hover:border-sapphire/30 group-hover:shadow-[0_0_32px_rgba(59,130,246,0.07)]' :
-                card.color === 'purple'  ? 'group-hover:border-purple/30 group-hover:shadow-[0_0_32px_rgba(139,92,246,0.07)]' :
-                                           'group-hover:border-amber/30 group-hover:shadow-[0_0_32px_rgba(245,158,11,0.07)]';
               const iconColor =
                 card.color === 'cyan'     ? 'text-cyan'     :
                 card.color === 'teal'     ? 'text-teal'     :
@@ -583,7 +577,7 @@ export default function HomePage() {
                 <motion.div
                   key={card.label}
                   variants={fadeUp}
-                  className={`group relative flex flex-col gap-4 rounded-card border border-white/[0.06] bg-[#07111F] p-6 transition-all duration-300 ${borderColor}`}
+                  className={`card-glow group relative flex flex-col gap-4 rounded-card border border-white/[0.06] bg-[#07111F] p-6`}
                 >
                   {/* Top */}
                   <div className="flex items-start justify-between">
@@ -607,7 +601,7 @@ export default function HomePage() {
 
           {/* Layer 4 callout */}
           <Reveal className="mt-10">
-            <div className="relative overflow-hidden rounded-card border border-purple/[0.2] bg-[#07111F] p-8">
+            <div className="card-glow card-glow-purple relative overflow-hidden rounded-card border border-purple/[0.2] bg-[#07111F] p-8">
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-purple/[0.04] via-transparent to-transparent" />
               <div className="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
@@ -858,7 +852,7 @@ export default function HomePage() {
             <Reveal delay={0.15}>
               <div
                 className={[
-                  'rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6',
+                  'card-glow card-glow-teal rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6',
                   'shadow-[0_4px_32px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.04)]',
                   'backdrop-blur-xl',
                 ].join(' ')}
@@ -985,10 +979,10 @@ export default function HomePage() {
                 key={plan.name}
                 variants={fadeUp}
                 className={[
-                  'relative flex flex-col rounded-card p-6 transition-all duration-300',
+                  'card-glow relative flex flex-col rounded-card p-6',
                   plan.pro
-                    ? 'border border-cyan/[0.25] bg-[#0A1628] shadow-[0_0_48px_rgba(0,200,255,0.08),inset_0_1px_0_rgba(0,200,255,0.08)] animate-glow-pulse'
-                    : 'border border-white/[0.06] bg-[#0A1628] hover:border-white/[0.12] hover:bg-[#111827]',
+                    ? 'card-glow-border border border-cyan/[0.25] bg-[#0A1628] shadow-[0_0_48px_rgba(0,200,255,0.08),inset_0_1px_0_rgba(0,200,255,0.08)] animate-glow-pulse'
+                    : 'border border-white/[0.06] bg-[#0A1628]',
                 ].join(' ')}
               >
                 {plan.pro && (

@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;1,14..32,400&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -48,14 +46,14 @@
   }
 
   body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+    font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
     background: #07111F;
     min-height: 100vh;
     color: var(--text-primary);
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
     letter-spacing: -0.02em;
   }
 
@@ -180,6 +178,91 @@
   .score-fair      { color: #F59E0B; }
   .score-poor      { color: #EF4444; }
 }
+
+/* ── Glow Card System ─────────────────────────────────────────────────────── */
+/* Apply .card-glow to any card element to get the hover glow effect.
+   Pair with .card-glow-teal / -purple / -amber for colored variants. */
+.card-glow {
+  position: relative;
+  transition:
+    transform     0.4s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow    0.4s ease;
+}
+
+.card-glow::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(0, 200, 255, 0.12), transparent 65%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+
+.card-glow:hover {
+  box-shadow:
+    0 0 0 1px rgba(0, 200, 255, 0.18),
+    0 0 40px rgba(0, 200, 255, 0.1),
+    0 20px 60px rgba(0, 0, 0, 0.55);
+  transform: translateY(-4px);
+}
+
+.card-glow:hover::before { opacity: 1; }
+
+/* Teal variant */
+.card-glow-teal::before {
+  background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(11, 206, 188, 0.12), transparent 65%);
+}
+.card-glow-teal:hover {
+  box-shadow:
+    0 0 0 1px rgba(11, 206, 188, 0.18),
+    0 0 40px rgba(11, 206, 188, 0.1),
+    0 20px 60px rgba(0, 0, 0, 0.55);
+}
+
+/* Purple variant */
+.card-glow-purple::before {
+  background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(139, 92, 246, 0.12), transparent 65%);
+}
+.card-glow-purple:hover {
+  box-shadow:
+    0 0 0 1px rgba(139, 92, 246, 0.18),
+    0 0 40px rgba(139, 92, 246, 0.1),
+    0 20px 60px rgba(0, 0, 0, 0.55);
+}
+
+/* Amber variant */
+.card-glow-amber::before {
+  background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(245, 158, 11, 0.12), transparent 65%);
+}
+.card-glow-amber:hover {
+  box-shadow:
+    0 0 0 1px rgba(245, 158, 11, 0.18),
+    0 0 40px rgba(245, 158, 11, 0.1),
+    0 20px 60px rgba(0, 0, 0, 0.55);
+}
+
+/* Gradient shimmer border — wraps the card in a visible gradient ring on hover */
+.card-glow-border {
+  position: relative;
+}
+.card-glow-border::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: calc(20px + 1px);
+  background: linear-gradient(
+    135deg,
+    rgba(0, 200, 255, 0.3) 0%,
+    rgba(11, 206, 188, 0.25) 40%,
+    transparent 70%
+  );
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  z-index: -1;
+}
+.card-glow-border:hover::after { opacity: 1; }
 
 /* ── Utilities ────────────────────────────────────────────────────────────── */
 @layer utilities {

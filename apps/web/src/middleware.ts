@@ -5,7 +5,11 @@ import type { ResponseCookie } from 'next/dist/compiled/@edge-runtime/cookies';
 const PROTECTED_PATHS = ['/dashboard', '/audit', '/api/audit', '/api/audits', '/api/usage'];
 
 // Public paths that never need auth checks (avoids unnecessary Supabase calls)
-const PUBLIC_PATHS = ['/', '/login', '/signup', '/auth', '/api/health', '/api/webhooks'];
+const PUBLIC_PATHS = [
+  '/', '/login', '/signup', '/auth', '/reset-password', '/blog',
+  '/platform', '/docs', '/pricing', '/about', '/privacy', '/terms', '/changelog', '/status',
+  '/api/health', '/api/webhooks', '/api/quick-audit',
+];
 
 export async function middleware(req: NextRequest): Promise<NextResponse> {
   // E2E test mode or explicit demo mode — bypass all auth
