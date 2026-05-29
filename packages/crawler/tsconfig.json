@@ -8,5 +8,6 @@
     "sourceMap": true,
     "lib": ["ES2022"]
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["node_modules", "dist", ".next", "src/worker.ts"]
 }
