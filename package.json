@@ -17,6 +17,7 @@
     "db:studio": "pnpm --filter @sitenexis/db db:studio"
   },
   "devDependencies": {
+    "next": "15.2.4",
     "prettier": "^3.3.3",
     "turbo": "^2.1.3",
     "typescript": "^5.5.4"
