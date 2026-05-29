@@ -567,7 +567,7 @@ export default function HomePage() {
                 color: 'amber',
                 body: 'Core Web Vitals, LCP, CLS, INP, TTFB, mobile performance benchmarks.',
               },
-            ].map((card, i) => {
+            ].map((card) => {
               const borderColor =
                 card.color === 'cyan'    ? 'group-hover:border-cyan/30 group-hover:shadow-[0_0_32px_rgba(0,200,255,0.07)]' :
                 card.color === 'teal'    ? 'group-hover:border-teal/30 group-hover:shadow-[0_0_32px_rgba(11,206,188,0.07)]' :
