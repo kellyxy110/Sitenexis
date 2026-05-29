@@ -161,7 +161,8 @@ export default function StubPage() {
   const slug    = slugArr.join('/');
   const meta    = ROUTE_META[slug];
 
-  const Icon = meta?.icon ?? Construction;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const Icon = (meta?.icon ?? Construction) as React.ComponentType<any>;
 
   const handleAudit = (domain: string) => {
     router.push(`/audit/${encodeURIComponent(domain)}`);
