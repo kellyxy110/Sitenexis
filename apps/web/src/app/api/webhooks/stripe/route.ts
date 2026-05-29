@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { type NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { updateUserPlan, updateStripeCustomerId } from '@sitenexis/db';
