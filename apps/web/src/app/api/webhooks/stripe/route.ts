@@ -1,7 +1,6 @@
 export const dynamic = 'force-dynamic';
 import { type NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { updateUserPlan, updateStripeCustomerId } from '@sitenexis/db';
 import { type Plan } from '@sitenexis/shared';
 import { logger } from '@/lib/logger';
 
@@ -37,6 +36,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
         const customer = await stripe.customers.retrieve(customerId);
         if (!customer.deleted && customer.metadata['userId']) {
+          const { updateUserPlan } = await import('@sitenexis/db');
           await updateUserPlan(customer.metadata['userId'], plan);
         }
         break;
@@ -47,6 +47,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         const customerId = typeof sub.customer === 'string' ? sub.customer : sub.customer.id;
         const customer = await stripe.customers.retrieve(customerId);
         if (!customer.deleted && customer.metadata['userId']) {
+          const { updateUserPlan } = await import('@sitenexis/db');
           await updateUserPlan(customer.metadata['userId'], 'free');
         }
         break;
@@ -57,6 +58,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         const userId = session.metadata?.['userId'];
         const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id;
         if (userId && customerId) {
+          const { updateStripeCustomerId } = await import('@sitenexis/db');
           await updateStripeCustomerId(userId, customerId);
         }
         break;
