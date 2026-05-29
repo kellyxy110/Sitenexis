@@ -1,0 +1,384 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Plan {
+  free
+  starter
+  pro
+  agency
+  enterprise
+}
+
+enum AuditStatus {
+  queued
+  running
+  complete
+  failed
+}
+
+enum IssueSeverity {
+  critical
+  warning
+  info
+}
+
+// ─── v1 models ───────────────────────────────────────────────────────────────
+
+model User {
+  id               String    @id @default(cuid())
+  email            String    @unique
+  name             String?
+  avatarUrl        String?   @map("avatar_url")
+  plan             Plan      @default(free)
+  stripeCustomerId String?   @unique @map("stripe_customer_id")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  archivedAt       DateTime? @map("archived_at")
+
+  audits    Audit[]
+  apiKeys   ApiKey[]
+  usageLogs UsageLog[]
+
+  @@map("users")
+}
+
+model Audit {
+  id              String      @id @default(cuid())
+  userId          String      @map("user_id")
+  domain          String
+  status          AuditStatus @default(queued)
+  startedAt       DateTime?   @map("started_at")
+  completedAt     DateTime?   @map("completed_at")
+  errorMessage    String?     @map("error_message")
+  pageCount       Int?        @map("page_count")
+  crawlDurationMs Int?        @map("crawl_duration_ms")
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+  archivedAt      DateTime?   @map("archived_at")
+
+  user                     User                      @relation(fields: [userId], references: [id])
+  pages                    Page[]
+  issues                   Issue[]
+  scores                   AuditScore?
+  report                   Report?
+  usageLogs                UsageLog[]
+  aiVisibilityScores       AIVisibilityScore?
+  perceptionGraphSnapshot  PerceptionGraphSnapshot?
+  retrievalSimulations     RetrievalSimulation[]
+  machineTrustScore        MachineTrustScore?
+  temporalAuthorityRecord  TemporalAuthorityRecord?
+  recommendationSurfaceMap RecommendationSurfaceMap?
+  syntheticEntityFlags     SyntheticEntityFlag[]
+
+  @@index([userId])
+  @@index([domain])
+  @@index([status])
+  @@map("audits")
+}
+
+model Page {
+  id               String    @id @default(cuid())
+  auditId          String    @map("audit_id")
+  url              String
+  statusCode       Int       @map("status_code")
+  title            String?
+  metaDescription  String?   @map("meta_description")
+  h1               String?
+  canonicalUrl     String?   @map("canonical_url")
+  wordCount        Int       @default(0) @map("word_count")
+  isIndexable      Boolean   @default(true) @map("is_indexable")
+  robotsDirective  String?   @map("robots_directive")
+  internalLinks    Int       @default(0) @map("internal_links")
+  externalLinks    Int       @default(0) @map("external_links")
+  internalLinksOut Json      @default("[]") @map("internal_links_out")
+  pageRank         Float     @default(0) @map("page_rank")
+  seoScore         Float?    @map("seo_score")
+  seoIssues        Json      @default("[]") @map("seo_issues")
+  aiScore          Float?    @map("ai_score")
+  aiStatus         String    @default("pending") @map("ai_status")
+  schemaData       Json      @default("[]") @map("schema_data")
+  crawledAt        DateTime  @map("crawled_at")
+  archivedAt       DateTime? @map("archived_at")
+
+  audit  Audit        @relation(fields: [auditId], references: [id])
+  issues Issue[]
+  chunks PageChunk[]
+
+  @@index([auditId])
+  @@map("pages")
+}
+
+model Issue {
+  id             String        @id @default(cuid())
+  auditId        String        @map("audit_id")
+  pageId         String?       @map("page_id")
+  pageUrl        String?       @map("page_url")
+  module         String
+  type           String
+  severity       IssueSeverity
+  message        String
+  recommendation String
+  createdAt      DateTime      @default(now()) @map("created_at")
+
+  audit  Audit  @relation(fields: [auditId], references: [id])
+  page   Page?  @relation(fields: [pageId], references: [id])
+
+  @@index([auditId])
+  @@index([severity])
+  @@map("issues")
+}
+
+model AuditScore {
+  id               String   @id @default(cuid())
+  auditId          String   @unique @map("audit_id")
+  overall          Float
+  seoScore         Float    @map("seo_score")
+  aiScore          Float    @map("ai_score")
+  schemaScore      Float    @map("schema_score")
+  linkGraphScore   Float    @map("link_graph_score")
+  performanceScore Float    @map("performance_score")
+  breakdown        Json
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  audit  Audit @relation(fields: [auditId], references: [id])
+
+  @@map("audit_scores")
+}
+
+model Report {
+  id          String    @id @default(cuid())
+  auditId     String    @unique @map("audit_id")
+  pdfUrl      String    @map("pdf_url")
+  generatedAt DateTime  @default(now()) @map("generated_at")
+  expiresAt   DateTime  @map("expires_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  audit  Audit @relation(fields: [auditId], references: [id])
+
+  @@map("reports")
+}
+
+model ApiKey {
+  id         String    @id @default(cuid())
+  userId     String    @map("user_id")
+  keyHash    String    @unique @map("key_hash")
+  label      String
+  lastUsed   DateTime? @map("last_used")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  archivedAt DateTime? @map("archived_at")
+
+  user  User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("api_keys")
+}
+
+model UsageLog {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  auditId   String?  @map("audit_id")
+  event     String
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user   User   @relation(fields: [userId], references: [id])
+  audit  Audit? @relation(fields: [auditId], references: [id])
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("usage_logs")
+}
+
+// ─── v2 models ───────────────────────────────────────────────────────────────
+
+model PageChunk {
+  id        String   @id @default(cuid())
+  pageId    String   @map("page_id")
+  auditId   String   @map("audit_id")
+  index     Int
+  text      String
+  tokenCount Int     @map("token_count")
+  embedding Float[]
+  createdAt DateTime @default(now()) @map("created_at")
+
+  page  Page @relation(fields: [pageId], references: [id])
+
+  @@index([pageId])
+  @@index([auditId])
+  @@map("page_chunks")
+}
+
+model Entity {
+  id                   String   @id @default(cuid())
+  auditId              String   @map("audit_id")
+  name                 String
+  normalizedName       String   @map("normalized_name")
+  type                 String
+  description          String?
+  sameAsUrls           String[] @map("same_as_urls")
+  mentionCount         Int      @default(0) @map("mention_count")
+  consistencyScore     Float    @default(0) @map("consistency_score")
+  disambiguationScore  Float    @default(0) @map("disambiguation_score")
+  createdAt            DateTime @default(now()) @map("created_at")
+
+  relationships EntityRelationship[] @relation("sourceEntity")
+
+  @@index([auditId])
+  @@index([normalizedName])
+  @@map("entities")
+}
+
+model EntityRelationship {
+  id               String   @id @default(cuid())
+  auditId          String   @map("audit_id")
+  sourceEntityId   String   @map("source_entity_id")
+  targetEntityId   String   @map("target_entity_id")
+  relationshipType String   @map("relationship_type")
+  strength         Float    @default(0.5)
+  evidencedByUrls  String[] @map("evidenced_by_urls")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  sourceEntity  Entity @relation("sourceEntity", fields: [sourceEntityId], references: [id])
+
+  @@index([auditId])
+  @@index([sourceEntityId])
+  @@map("entity_relationships")
+}
+
+model AIVisibilityScore {
+  id                         String   @id @default(cuid())
+  auditId                    String   @unique @map("audit_id")
+  aiVisibilityScore          Float    @map("ai_visibility_score")
+  machineReadabilityScore    Float    @map("machine_readability_score")
+  entityConfidenceScore      Float    @map("entity_confidence_score")
+  retrievalReadinessScore    Float    @map("retrieval_readiness_score")
+  citationProbabilityScore   Float    @map("citation_probability_score")
+  semanticTrustScore         Float    @map("semantic_trust_score")
+  recommendationConfidence   Float    @map("recommendation_confidence")
+  providerScores             Json     @map("provider_scores")
+  breakdown                  Json
+  createdAt                  DateTime @default(now()) @map("created_at")
+
+  audit  Audit @relation(fields: [auditId], references: [id])
+
+  @@map("ai_visibility_scores")
+}
+
+model PerceptionGraphSnapshot {
+  id        String   @id @default(cuid())
+  auditId   String   @unique @map("audit_id")
+  nodesJson Json     @map("nodes_json")
+  edgesJson Json     @map("edges_json")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  audit  Audit @relation(fields: [auditId], references: [id])
+
+  @@map("perception_graph_snapshots")
+}
+
+// ─── v3 models ───────────────────────────────────────────────────────────────
+
+model RetrievalSimulation {
+  id                         String   @id @default(cuid())
+  auditId                    String   @map("audit_id")
+  pageUrl                    String   @map("page_url")
+  simulated                  Boolean  @default(true)
+  simulationErrorReason      String?  @map("simulation_error_reason")
+  retrievalQualityScore      Float?   @map("retrieval_quality_score")
+  chunkStabilityIndex        Float?   @map("chunk_stability_index")
+  answerFormationProbability Float?   @map("answer_formation_probability")
+  summarisationLossScore     Float?   @map("summarisation_loss_score")
+  citationEligibilityScore   Float?   @map("citation_eligibility_score")
+  fragileClaimsCount         Int      @default(0) @map("fragile_claims_count")
+  retrievalFailures          Json     @default("[]") @map("retrieval_failures")
+  truncationZoneWarnings     String[] @map("truncation_zone_warnings")
+  createdAt                  DateTime @default(now()) @map("created_at")
+
+  audit  Audit @relation(fields: [auditId], references: [id])
+
+  @@index([auditId])
+  @@map("retrieval_simulations")
+}
+
+model MachineTrustScore {
+  id                          String   @id @default(cuid())
+  auditId                     String   @unique @map("audit_id")
+  overall                     Float
+  entityCredibilityScore      Float    @map("entity_credibility_score")
+  schemaTrustAlignmentScore   Float    @map("schema_trust_alignment_score")
+  externalValidationScore     Float    @map("external_validation_score")
+  contradictionAbsenceScore   Float?   @map("contradiction_absence_score")
+  trustDegradationResistance  Float    @map("trust_degradation_resistance")
+  crossSourceValidationIndex  Float    @map("cross_source_validation_index")
+  trustIssues                 Json     @default("[]") @map("trust_issues")
+  degradationSignals          Json     @default("[]") @map("degradation_signals")
+  createdAt                   DateTime @default(now()) @map("created_at")
+
+  audit  Audit @relation(fields: [auditId], references: [id])
+
+  @@map("machine_trust_scores")
+}
+
+model TemporalAuthorityRecord {
+  id                              String   @id @default(cuid())
+  auditId                         String   @unique @map("audit_id")
+  isBaseline                      Boolean  @default(false) @map("is_baseline")
+  authorityVelocityScore          Float?   @map("authority_velocity_score")
+  trustStabilityIndex             Float    @default(1.0) @map("trust_stability_index")
+  contentFreshnessImpactFactor    Float    @default(1.0) @map("content_freshness_impact_factor")
+  semanticDriftIndex              Float    @default(0) @map("semantic_drift_index")
+  updateFrequencyClassification   String   @map("update_frequency_classification")
+  stalePagesAtRisk                String[] @map("stale_pages_at_risk")
+  driftedPages                    Json     @default("[]") @map("drifted_pages")
+  temporalIssues                  Json     @default("[]") @map("temporal_issues")
+  createdAt                       DateTime @default(now()) @map("created_at")
+
+  audit  Audit @relation(fields: [auditId], references: [id])
+
+  @@map("temporal_authority_records")
+}
+
+model RecommendationSurfaceMap {
+  id                        String   @id @default(cuid())
+  auditId                   String   @unique @map("audit_id")
+  overallSurfaceScore       Float    @map("overall_surface_score")
+  aiOverviewsProbability    Float    @map("ai_overviews_probability")
+  aiOverviewsStatus         String   @map("ai_overviews_status")
+  chatProbability           Float    @map("chat_probability")
+  chatStatus                String   @map("chat_status")
+  voiceProbability          Float    @map("voice_probability")
+  voiceStatus               String   @map("voice_status")
+  agentProbability          Float    @map("agent_probability")
+  agentStatus               String   @map("agent_status")
+  coverageGaps              Json     @default("[]") @map("coverage_gaps")
+  missingChannels           String[] @map("missing_channels")
+  createdAt                 DateTime @default(now()) @map("created_at")
+
+  audit  Audit @relation(fields: [auditId], references: [id])
+
+  @@map("recommendation_surface_maps")
+}
+
+model SyntheticEntityFlag {
+  id                         String   @id @default(cuid())
+  auditId                    String   @map("audit_id")
+  syntheticRiskScore         Float    @map("synthetic_risk_score")
+  entityAuthenticityConfidence Float  @map("entity_authenticity_confidence")
+  networkIntegrityScore      Float    @map("network_integrity_score")
+  detectedPatterns           Json     @default("[]") @map("detected_patterns")
+  flaggedEntities            Json     @default("[]") @map("flagged_entities")
+  recommendations            String[] @map("recommendations")
+  createdAt                  DateTime @default(now()) @map("created_at")
+
+  audit  Audit @relation(fields: [auditId], references: [id])
+
+  @@index([auditId])
+  @@map("synthetic_entity_flags")
+}

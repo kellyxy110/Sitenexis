@@ -1,0 +1,29 @@
+{
+  "name": "sitenexis",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "test:e2e": "turbo run test:e2e",
+    "test:coverage": "turbo run test:coverage",
+    "typecheck": "turbo run typecheck",
+    "lint": "turbo run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\"",
+    "db:push": "pnpm --filter @sitenexis/db db:push",
+    "db:migrate": "pnpm --filter @sitenexis/db db:migrate",
+    "db:seed": "pnpm --filter @sitenexis/db db:seed",
+    "db:studio": "pnpm --filter @sitenexis/db db:studio"
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3",
+    "turbo": "^2.1.3",
+    "typescript": "^5.5.4"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@9.9.0"
+}

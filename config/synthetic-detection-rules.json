@@ -1,0 +1,113 @@
+{
+  "_comment": "Synthetic entity detection rules (v3, Section 26). All findings must include confidence (0–1). Never make definitive fraud claims. Update rules here — never in code.",
+  "version": "1.0",
+  "rules": {
+    "fakeEntityPatterns": [
+      {
+        "id": "no-external-presence",
+        "description": "Entity claims authority but has no verifiable external presence",
+        "checkType": "external_resolve",
+        "confidenceIfTriggered": 0.6,
+        "severity": "warning"
+      },
+      {
+        "id": "identical-bio-cross-domain",
+        "description": "Author bio text appears word-for-word on multiple unrelated domains",
+        "checkType": "text_similarity",
+        "similarityThreshold": 0.95,
+        "confidenceIfTriggered": 0.75,
+        "severity": "critical"
+      },
+      {
+        "id": "no-attribution-history",
+        "description": "Author entity has no external attribution history",
+        "checkType": "external_resolve",
+        "confidenceIfTriggered": 0.5,
+        "severity": "warning"
+      }
+    ],
+    "aiAuthorityNetworkPatterns": [
+      {
+        "id": "same-as-cluster-recent",
+        "description": "Multiple sameAs links pointing to recently created external profiles",
+        "checkType": "creation_date_clustering",
+        "maxDaysSinceCreation": 90,
+        "minClusterSize": 3,
+        "confidenceIfTriggered": 0.65,
+        "severity": "warning"
+      },
+      {
+        "id": "reciprocal-citation-density",
+        "description": "Citation network with abnormally high reciprocal link density",
+        "checkType": "graph_density",
+        "densityThreshold": 0.8,
+        "confidenceIfTriggered": 0.70,
+        "severity": "warning"
+      }
+    ],
+    "schemaManipulationPatterns": [
+      {
+        "id": "review-schema-no-content",
+        "description": "Schema claims aggregate review rating but no review content detected on page",
+        "checkType": "schema_body_alignment",
+        "confidenceIfTriggered": 0.80,
+        "severity": "critical"
+      },
+      {
+        "id": "date-published-mismatch",
+        "description": "datePublished schema value significantly earlier than content metadata",
+        "checkType": "date_consistency",
+        "maxDaysDelta": 365,
+        "confidenceIfTriggered": 0.70,
+        "severity": "warning"
+      },
+      {
+        "id": "author-not-in-body",
+        "description": "Author schema entity not mentioned anywhere in body text",
+        "checkType": "entity_body_presence",
+        "confidenceIfTriggered": 0.75,
+        "severity": "warning"
+      },
+      {
+        "id": "speakable-no-direct-answers",
+        "description": "speakable schema on page with no concise retrievable answers",
+        "checkType": "speakable_content_quality",
+        "confidenceIfTriggered": 0.65,
+        "severity": "warning"
+      }
+    ],
+    "citationFarmingPatterns": [
+      {
+        "id": "self-citation-only",
+        "description": "All factual claim citations point only to other pages on the same domain",
+        "checkType": "citation_domain_diversity",
+        "confidenceIfTriggered": 0.60,
+        "severity": "warning"
+      },
+      {
+        "id": "sudden-fact-density-spike",
+        "description": "Page gained 50+ specific facts in a single audit cycle",
+        "checkType": "fact_density_delta",
+        "threshold": 50,
+        "confidenceIfTriggered": 0.65,
+        "severity": "warning"
+      }
+    ],
+    "unnaturalClusteringPatterns": [
+      {
+        "id": "single-hub-topology",
+        "description": "All entities on domain connected through one hub entity",
+        "checkType": "graph_topology",
+        "confidenceIfTriggered": 0.55,
+        "severity": "info"
+      },
+      {
+        "id": "implausible-topic-breadth",
+        "description": "Entity claims coverage of topics implausibly broad for its identity",
+        "checkType": "topic_breadth_ratio",
+        "confidenceIfTriggered": 0.60,
+        "severity": "warning"
+      }
+    ]
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "_comment": "Citation probability factor weights. Must sum to 1.0. Edit here — never hardcode in analyzers.",
+  "factors": {
+    "factualDensity": 0.20,
+    "claimSpecificity": 0.15,
+    "primaryEntityAuthority": 0.15,
+    "topicalAuthorityDepth": 0.15,
+    "structuralCitationReadiness": 0.15,
+    "temporalFreshness": 0.10,
+    "trustSignalDensity": 0.10
+  }
+}

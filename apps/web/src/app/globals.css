@@ -1,0 +1,199 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;1,14..32,400&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Design tokens ────────────────────────────────────────────────────────── */
+:root {
+  /* Navy system */
+  --midnight:    #07111F;
+  --deepspace:   #0A1628;
+  --surface-dark:#111827;
+  --surface-3:   #1E293B;
+  --surface-4:   #334155;
+
+  /* Accents */
+  --cyan:    #00C8FF;
+  --teal:    #0BCEBC;
+  --purple:  #8B5CF6;
+  --sapphire:#3B82F6;
+  --amber:   #F59E0B;
+  --success: #10B981;
+  --critical:#EF4444;
+
+  /* Text */
+  --text-primary:  #F1F5F9;
+  --text-secondary:#94A3B8;
+  --text-muted:    #475569;
+  --text-faint:    #334155;
+
+  /* Border */
+  --border-subtle: rgba(255,255,255,0.06);
+  --border-mid:    rgba(255,255,255,0.1);
+  --border-strong: rgba(255,255,255,0.16);
+
+  /* Radius */
+  --radius-card:   20px;
+  --radius-button: 14px;
+  --radius-pill:   999px;
+}
+
+/* ── Base ─────────────────────────────────────────────────────────────────── */
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+    background: #07111F;
+    min-height: 100vh;
+    color: var(--text-primary);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    letter-spacing: -0.02em;
+  }
+
+  ::selection {
+    background: rgba(0, 200, 255, 0.2);
+    color: #fff;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.08) transparent;
+  }
+
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 99px; }
+}
+
+/* ── Components ───────────────────────────────────────────────────────────── */
+@layer components {
+  /* Dark glass card */
+  .card-glass {
+    background: rgba(10, 22, 40, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: var(--radius-card);
+  }
+
+  /* Elevated card variant */
+  .card-elevated {
+    background: rgba(17, 24, 39, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-card);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+
+  /* Intelligence card with hover illuminate */
+  .card-intelligence {
+    background: rgba(10, 22, 40, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: var(--radius-card);
+    transition: all 0.3s ease;
+  }
+
+  .card-intelligence:hover {
+    background: rgba(17, 24, 39, 0.9);
+    border-color: rgba(0, 200, 255, 0.2);
+    box-shadow: 0 0 32px rgba(0, 200, 255, 0.06), 0 8px 32px rgba(0, 0, 0, 0.4);
+    transform: translateY(-2px);
+  }
+
+  /* Frosted input */
+  .input-glass {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-radius: var(--radius-button);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .input-glass:focus-within {
+    border-color: rgba(0, 200, 255, 0.35);
+    box-shadow: 0 0 0 1px rgba(0, 200, 255, 0.1);
+  }
+
+  /* Gradient text */
+  .text-gradient-cyan {
+    background: linear-gradient(135deg, #00C8FF 0%, #0BCEBC 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .text-gradient-purple {
+    background: linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Glowing CTA button */
+  .btn-primary {
+    background: linear-gradient(135deg, #00C8FF 0%, #0BCEBC 100%);
+    color: #07111F;
+    font-weight: 700;
+    border-radius: var(--radius-button);
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-primary:hover {
+    box-shadow: 0 0 24px rgba(0, 200, 255, 0.35);
+    transform: translateY(-1px);
+  }
+
+  .btn-ghost {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-secondary);
+    border-radius: var(--radius-button);
+    transition: all 0.2s ease;
+  }
+
+  .btn-ghost:hover {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(255, 255, 255, 0.18);
+    color: var(--text-primary);
+  }
+
+  /* Severity badge */
+  .badge-critical { background: rgba(239,68,68,0.12); color: #F87171; border: 1px solid rgba(239,68,68,0.2); }
+  .badge-warning  { background: rgba(245,158,11,0.12); color: #FBB040; border: 1px solid rgba(245,158,11,0.2); }
+  .badge-info     { background: rgba(59,130,246,0.12); color: #60A5FA; border: 1px solid rgba(59,130,246,0.2); }
+  .badge-success  { background: rgba(16,185,129,0.12); color: #34D399; border: 1px solid rgba(16,185,129,0.2); }
+
+  /* Score chip colors */
+  .score-excellent { color: #10B981; }
+  .score-good      { color: #0BCEBC; }
+  .score-fair      { color: #F59E0B; }
+  .score-poor      { color: #EF4444; }
+}
+
+/* ── Utilities ────────────────────────────────────────────────────────────── */
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+  .scrollbar-none { scrollbar-width: none; }
+  .scrollbar-none::-webkit-scrollbar { display: none; }
+
+  /* Marquee pause on hover */
+  .marquee-container:hover .marquee-track {
+    animation-play-state: paused;
+  }
+
+  /* Section grid overlay */
+  .section-grid {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cpath d='M 60 0 L 0 0 0 60' fill='none' stroke='rgba(0,200,255,0.04)' stroke-width='1'/%3E%3C/svg%3E");
+  }
+}

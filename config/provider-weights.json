@@ -1,0 +1,88 @@
+{
+  "_comment": "AI provider behavior weight configuration. All scores are probabilistic estimates. Add new providers here — never in code.",
+  "providers": {
+    "google-ai-overviews": {
+      "primarySignals": ["eeeat", "structured_data", "featured_snippet_eligibility"],
+      "trustMechanism": ["domain_authority", "schema"],
+      "citationBehaviour": "direct_answer_extraction",
+      "weights": {
+        "schemaCompleteness": 0.25,
+        "retrievalReadiness": 0.20,
+        "entityConfidence": 0.20,
+        "citationProbability": 0.15,
+        "semanticTrust": 0.10,
+        "performanceScore": 0.10
+      }
+    },
+    "chatgpt-browsing": {
+      "primarySignals": ["semantic_similarity", "query_embedding"],
+      "trustMechanism": ["recency", "factual_density"],
+      "citationBehaviour": "chunk_level_quotation",
+      "weights": {
+        "aiExtractability": 0.30,
+        "entityConfidence": 0.25,
+        "retrievalReadiness": 0.20,
+        "semanticTrust": 0.15,
+        "schemaCompleteness": 0.10
+      }
+    },
+    "perplexity": {
+      "primarySignals": ["real_time_crawl", "semantic_ranking"],
+      "trustMechanism": ["source_diversity", "answer_directness"],
+      "citationBehaviour": "inline_citation_with_url",
+      "weights": {
+        "retrievalReadiness": 0.30,
+        "citationProbability": 0.25,
+        "aiExtractability": 0.20,
+        "entityConfidence": 0.15,
+        "semanticTrust": 0.10
+      }
+    },
+    "gemini": {
+      "primarySignals": ["knowledge_graph_integration"],
+      "trustMechanism": ["entity_consistency", "schema"],
+      "citationBehaviour": "knowledge_panel_association",
+      "weights": {
+        "entityConfidence": 0.35,
+        "schemaCompleteness": 0.25,
+        "semanticTrust": 0.20,
+        "retrievalReadiness": 0.10,
+        "citationProbability": 0.10
+      }
+    },
+    "claude-web-search": {
+      "primarySignals": ["semantic_clarity", "factual_structure"],
+      "trustMechanism": ["authoritativeness", "entity_clarity"],
+      "citationBehaviour": "summarisation_with_attribution",
+      "weights": {
+        "aiExtractability": 0.25,
+        "semanticTrust": 0.25,
+        "entityConfidence": 0.20,
+        "retrievalReadiness": 0.20,
+        "schemaCompleteness": 0.10
+      }
+    },
+    "voice-assistants": {
+      "primarySignals": ["answer_directness", "schema"],
+      "trustMechanism": ["structured_data", "authority"],
+      "citationBehaviour": "single_answer_extraction",
+      "weights": {
+        "schemaCompleteness": 0.40,
+        "speakablePresence": 0.30,
+        "answerDirectness": 0.20,
+        "entityConfidence": 0.10
+      }
+    },
+    "autonomous-agents": {
+      "primarySignals": ["entity_graph_density", "trust_score"],
+      "trustMechanism": ["validation_chain_depth"],
+      "citationBehaviour": "programmatic_consumption",
+      "weights": {
+        "entityConfidence": 0.30,
+        "schemaCompleteness": 0.25,
+        "externalValidation": 0.25,
+        "machineReadability": 0.20
+      }
+    }
+  }
+}

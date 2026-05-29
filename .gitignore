@@ -1,0 +1,25 @@
+# dependencies
+node_modules
+.pnpm-store
+nex_env
+
+# build outputs
+dist
+.next
+.turbo
+
+# environment
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# testing
+coverage
+playwright-report
+test-results
+
+# misc
+.DS_Store
+*.log

@@ -1,0 +1,38 @@
+{
+  "_comment": "Recommendation surface weight config (v3, Section 25). All scores are estimates — label as such in UI.",
+  "surfaceWeights": {
+    "aiOverviews": 0.30,
+    "chatRecommendation": 0.30,
+    "voiceRetrieval": 0.20,
+    "agentDiscovery": 0.20
+  },
+  "surfaces": {
+    "aiOverviews": {
+      "inputScores": ["retrievalQualityScore", "schemaCompleteness", "citationProbability"],
+      "inputWeights": [0.40, 0.35, 0.25],
+      "minimumThreshold": 50,
+      "blockers": ["noindex", "missingSchema", "lowCitationProbability"]
+    },
+    "chatRecommendation": {
+      "inputScores": ["aiExtractability", "entityConfidence", "semanticTrust"],
+      "inputWeights": [0.35, 0.35, 0.30],
+      "minimumThreshold": 40,
+      "blockers": ["entityAmbiguity", "contradictionDetected", "thinContent"]
+    },
+    "voiceRetrieval": {
+      "inputScores": ["schemaCompleteness", "speakablePresence", "answerDirectness"],
+      "inputWeights": [0.40, 0.35, 0.25],
+      "minimumThreshold": 60,
+      "blockers": ["noSpeakableSchema", "noLocalBusinessSchema", "longAnswers"]
+    },
+    "agentDiscovery": {
+      "inputScores": ["entityConfidence", "schemaCompleteness", "externalValidation"],
+      "inputWeights": [0.35, 0.35, 0.30],
+      "probeTargets": ["/.well-known/", "/openapi.json", "/api-docs"],
+      "probeTimeoutMs": 5000,
+      "fallbackProbability": 0.20,
+      "minimumThreshold": 30,
+      "blockers": ["noMachineReadableEndpoints", "noEntityDisambiguation"]
+    }
+  }
+}

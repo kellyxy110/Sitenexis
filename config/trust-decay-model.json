@@ -1,0 +1,30 @@
+{
+  "_comment": "Trust decay curve parameters for Temporal Authority Model (v3, Section 24). Loaded by temporal-authority-agent at startup.",
+  "decayCurve": "exponential",
+  "halfLifeDays": {
+    "productPage": 30,
+    "blogPost": 90,
+    "newsArticle": 14,
+    "evergreenGuide": 365,
+    "landingPage": 60,
+    "unknown": 90
+  },
+  "accelerators": {
+    "noDateModifiedSchema": 1.5,
+    "noLastModifiedHeader": 1.2,
+    "brokenSameAsLinks": 2.0,
+    "removedSchema": 1.8
+  },
+  "decelerators": {
+    "schemaConfirmedUpdate": 0.6,
+    "highExternalValidationCount": 0.8,
+    "activeMaintenanceClassification": 0.7
+  },
+  "minimumTrustFloor": 0.10,
+  "updateFrequencyThresholds": {
+    "active": 7,
+    "periodic": 30,
+    "stale": 90,
+    "abandoned": 180
+  }
+}
