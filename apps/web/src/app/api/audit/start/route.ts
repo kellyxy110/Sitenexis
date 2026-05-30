@@ -65,7 +65,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     logger.info({ auditId: audit.id, domain, userId: user.id, layer4Enabled }, 'Audit enqueued');
     return NextResponse.json({ auditId: audit.id }, { status: 202 });
   } catch (err) {
-    logger.error({ err, domain }, 'Audit start failed — DB or Redis unreachable');
+    const errMsg = err instanceof Error ? err.message : String(err);
+    const errCode = (err as Record<string, unknown>)?.['code'];
+    logger.error({ err, errMsg, errCode, domain }, 'Audit start failed');
     return NextResponse.json(
       { error: 'Service temporarily unavailable. Please check database and Redis configuration.' },
       { status: 503 },

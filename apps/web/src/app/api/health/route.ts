@@ -1,45 +1,45 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
-import net from 'net';
 
-function checkRedis(url: string): Promise<boolean> {
-  return new Promise((resolve) => {
-    try {
-      const parsed = new URL(url);
-      const socket = net.createConnection(
-        { host: parsed.hostname, port: Number(parsed.port) || 6379 },
-        () => { socket.destroy(); resolve(true); }
-      );
-      socket.setTimeout(2000);
-      socket.on('error', () => resolve(false));
-      socket.on('timeout', () => { socket.destroy(); resolve(false); });
-    } catch {
-      resolve(false);
-    }
-  });
-}
-
-export async function GET(): Promise<NextResponse> {
-  const checks = {
-    db: false,
-    redis: false,
-    groq: !!process.env['GROQ_API_KEY'],
-  };
-
+async function checkDatabase(): Promise<{ ok: boolean; error?: string }> {
   try {
     const { prisma } = await import('@sitenexis/db');
     await prisma.$queryRaw`SELECT 1`;
-    checks.db = true;
-  } catch {
-    // DB unavailable
+    return { ok: true };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { ok: false, error: msg.slice(0, 300) };
   }
+}
 
-  checks.redis = await checkRedis(process.env['REDIS_URL'] ?? 'redis://localhost:6379');
+async function checkRedis(): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const { getRedisConnection } = await import('@sitenexis/crawler');
+    const redis = getRedisConnection();
+    const pong = await redis.ping();
+    return { ok: pong === 'PONG' };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { ok: false, error: msg.slice(0, 300) };
+  }
+}
 
-  const allHealthy = Object.values(checks).every(Boolean);
+export async function GET(): Promise<NextResponse> {
+  const [db, redis] = await Promise.all([checkDatabase(), checkRedis()]);
+
+  const checks = {
+    db: db.ok,
+    dbError: db.error,
+    redis: redis.ok,
+    redisError: redis.error,
+    redisUrl: (process.env['REDIS_URL'] ?? '').replace(/:[^@]+@/, ':***@'),
+    databaseUrl: (process.env['DATABASE_URL'] ?? '').replace(/:[^@]+@/, ':***@').slice(0, 80),
+  };
+
+  const allHealthy = db.ok && redis.ok;
 
   return NextResponse.json(
     { status: allHealthy ? 'ok' : 'degraded', checks },
-    { status: allHealthy ? 200 : 503 }
+    { status: allHealthy ? 200 : 503 },
   );
 }

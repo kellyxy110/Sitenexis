@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion, useInView, type Variants } from 'framer-motion';
 import { ArrowRight, Globe } from 'lucide-react';
 import { HeroCinematic } from '@/components/hero/HeroCinematic';
+import { MarketingNav } from '@/components/marketing/MarketingNav';
 
 // ─── Animation primitives ─────────────────────────────────────────────────────
 
@@ -361,65 +362,7 @@ export default function HomePage() {
   return (
     <main className="min-h-screen bg-midnight font-ui text-white antialiased">
 
-      {/* ── Navigation ────────────────────────────────────────────────────── */}
-      <header className="fixed inset-x-0 top-0 z-50">
-        <div
-          className={[
-            'border-b border-white/[0.05]',
-            'bg-midnight/90 backdrop-blur-xl',
-          ].join(' ')}
-        >
-          <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 md:px-10 md:py-5">
-
-            {/* Logo */}
-            <a
-              href="/"
-              className="flex items-center gap-2.5 group"
-              aria-label="SiteNexis home"
-            >
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.03] backdrop-blur-sm transition-colors duration-200 group-hover:border-white/[0.14]">
-                <PentagonMark size={16} />
-              </div>
-              <span className="text-[15px] font-semibold tracking-[-0.01em] text-white">
-                SiteNexis
-              </span>
-            </a>
-
-            {/* Links */}
-            <nav className="hidden items-center gap-7 md:flex" aria-label="Main navigation">
-              {['Platform', 'Pricing', 'Docs', 'Blog'].map((label) => (
-                <a
-                  key={label}
-                  href={label === 'Pricing' ? '#pricing' : `/${label.toLowerCase()}`}
-                  className="text-sm text-slate-400 transition-colors duration-150 hover:text-slate-200"
-                >
-                  {label}
-                </a>
-              ))}
-            </nav>
-
-            {/* Actions */}
-            <div className="flex items-center gap-3">
-              <a
-                href="/login"
-                className="hidden text-sm text-slate-400 transition-colors duration-150 hover:text-slate-200 sm:block"
-              >
-                Log in
-              </a>
-              <a
-                href="/signup"
-                className={[
-                  'rounded-lg border border-white/[0.12] bg-white/[0.05] px-4 py-2 text-sm font-medium text-white',
-                  'transition-all duration-200 hover:border-white/[0.2] hover:bg-white/[0.08]',
-                  'backdrop-blur-sm',
-                ].join(' ')}
-              >
-                Get started
-              </a>
-            </div>
-          </div>
-        </div>
-      </header>
+      <MarketingNav />
 
       {/* ── Cinematic Hero ────────────────────────────────────────────────── */}
       <HeroCinematic onSubmit={handleAudit} loading={loading} />
