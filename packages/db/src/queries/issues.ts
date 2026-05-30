@@ -1,4 +1,4 @@
-import { type Issue, type IssueSeverity } from '@prisma/client';
+import { type Issue, type IssueSeverity } from '../../generated';
 import { db } from '../client';
 
 export type { Issue };

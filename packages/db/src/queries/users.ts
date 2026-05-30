@@ -1,4 +1,4 @@
-import { type User, type Plan } from '@prisma/client';
+import { type User, type Plan } from '../../generated';
 import { db } from '../client';
 
 export type { User };

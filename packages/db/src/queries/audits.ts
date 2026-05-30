@@ -1,4 +1,4 @@
-import { type Audit, type AuditStatus } from '@prisma/client';
+import { type Audit, type AuditStatus } from '../../generated';
 import { db } from '../client';
 
 export type { Audit };

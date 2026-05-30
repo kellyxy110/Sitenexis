@@ -1,11 +1,10 @@
-import { type AuditScore, type AIVisibilityScore, type PerceptionGraphSnapshot } from '@prisma/client';
+import { type AuditScore, type AIVisibilityScore, type PerceptionGraphSnapshot, type Prisma } from '../../generated';
 import { db } from '../client';
 import { type AuditScores, type PerceptionGraphSnapshot as PGSnapshot } from '@sitenexis/shared';
 
 export type { AuditScore, AIVisibilityScore, PerceptionGraphSnapshot };
 
 export async function saveAuditScores(scores: AuditScores): Promise<AuditScore> {
-  // Build the AI Visibility Score composite from v2 analyzers
   const aiVisibilityScore = Math.round(
     (scores.machineReadability?.score ?? 0) * 0.15
     + (scores.entityIntelligence?.entityConfidenceScore ?? 0) * 0.20
@@ -62,7 +61,6 @@ export async function saveAuditScores(scores: AuditScores): Promise<AuditScore> 
     },
   });
 
-  // Save AI Visibility Score row (v2)
   if (scores.machineReadability && scores.entityIntelligence && scores.citationAnalysis && scores.semanticTrust) {
     await db.aIVisibilityScore.upsert({
       where: { auditId: scores.auditId },
@@ -102,18 +100,17 @@ export async function saveAuditScores(scores: AuditScores): Promise<AuditScore> 
     });
   }
 
-  // Save Perception Graph snapshot
   if (scores.perceptionGraph && scores.perceptionGraph.nodes.length > 0) {
     await db.perceptionGraphSnapshot.upsert({
       where: { auditId: scores.auditId },
       create: {
         auditId: scores.auditId,
-        nodesJson: scores.perceptionGraph.nodes as unknown as import('@prisma/client').Prisma.JsonArray,
-        edgesJson: scores.perceptionGraph.edges as unknown as import('@prisma/client').Prisma.JsonArray,
+        nodesJson: scores.perceptionGraph.nodes as unknown as Prisma.JsonArray,
+        edgesJson: scores.perceptionGraph.edges as unknown as Prisma.JsonArray,
       },
       update: {
-        nodesJson: scores.perceptionGraph.nodes as unknown as import('@prisma/client').Prisma.JsonArray,
-        edgesJson: scores.perceptionGraph.edges as unknown as import('@prisma/client').Prisma.JsonArray,
+        nodesJson: scores.perceptionGraph.nodes as unknown as Prisma.JsonArray,
+        edgesJson: scores.perceptionGraph.edges as unknown as Prisma.JsonArray,
       },
     });
   }

@@ -1,4 +1,4 @@
-import { type Page } from '@prisma/client';
+import { type Page } from '../../generated';
 import { type CrawledPage } from '@sitenexis/shared';
 import { db } from '../client';
 

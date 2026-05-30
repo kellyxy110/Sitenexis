@@ -7,6 +7,7 @@ nex_env
 dist
 .next
 .turbo
+packages/db/generated
 
 # environment
 .env
