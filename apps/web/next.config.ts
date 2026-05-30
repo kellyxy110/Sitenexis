@@ -2,14 +2,19 @@ import path from 'path';
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  // Monorepo root so file tracing can reach packages/ and the pnpm store.
+  // Set monorepo root as the tracing root so packages/db/ is reachable.
   outputFileTracingRoot: path.join(__dirname, '../../'),
 
-  // Include the Prisma generated client (binary + JS) from its custom output
-  // location. The generated client knows its own binary path relative to itself,
-  // so this is the only approach that works reliably in a pnpm monorepo on Vercel.
+  // Include the Prisma engine binary. We include both path variants because
+  // Next.js 15 evaluates these globs relative to the project dir (apps/web/)
+  // in some versions and relative to outputFileTracingRoot in others.
   outputFileTracingIncludes: {
-    '**': ['packages/db/generated/**'],
+    '**': [
+      // Relative to outputFileTracingRoot (monorepo root)
+      'packages/db/generated/**',
+      // Relative to apps/web/ (Next.js project dir)
+      '../../packages/db/generated/**',
+    ],
   },
 
   transpilePackages: ['@sitenexis/shared'],
