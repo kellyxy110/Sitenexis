@@ -14,9 +14,8 @@ async function checkDatabase(): Promise<{ ok: boolean; error?: string }> {
 
 async function checkRedis(): Promise<{ ok: boolean; error?: string }> {
   try {
-    const { getRedisConnection } = await import('@sitenexis/crawler');
-    const redis = getRedisConnection();
-    const pong = await redis.ping();
+    const { redisConnection } = await import('@sitenexis/crawler');
+    const pong = await redisConnection.ping();
     return { ok: pong === 'PONG' };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
