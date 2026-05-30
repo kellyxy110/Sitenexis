@@ -11,11 +11,11 @@
     }
   },
   "scripts": {
-    "build": "tsc && tsc -p tsconfig.scripts.json --noEmit false",
+    "build": "tsc",
     "dev:worker": "tsx watch src/worker.ts",
     "dev:watchdog": "tsx src/watchdog.ts",
-    "start:worker": "node dist/worker.js",
-    "start:watchdog": "node dist/watchdog.js",
+    "start:worker": "tsx src/worker.ts",
+    "start:watchdog": "tsx src/watchdog.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext .ts",
     "test": "vitest run",
