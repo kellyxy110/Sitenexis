@@ -1,5 +1,5 @@
 export const dynamic = 'force-dynamic';
-import { existsSync, readdirSync } from 'fs';
+import { readdirSync } from 'fs';
 import { join } from 'path';
 import { NextResponse } from 'next/server';
 
