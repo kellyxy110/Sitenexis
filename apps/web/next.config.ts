@@ -5,11 +5,12 @@ const nextConfig: NextConfig = {
   // Monorepo root so file tracing can reach the pnpm virtual store (nex_env/).
   outputFileTracingRoot: path.join(__dirname, '../../'),
 
-  // Explicitly include Prisma engine binaries across the pnpm workspace.
+  // Prisma engine binaries live in nex_env/**/.prisma/client/ (dot-prisma, not @prisma).
+  // File tracing doesn't follow .node binaries across the pnpm workspace automatically.
   outputFileTracingIncludes: {
     '**': [
+      'nex_env/**/.prisma/client/**',
       'nex_env/**/@prisma/client/**',
-      'nex_env/**/@prisma/engines/**',
       'packages/db/dist/**',
     ],
   },

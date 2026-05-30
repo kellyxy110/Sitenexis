@@ -1,6 +1,10 @@
 import { Queue } from 'bullmq';
 import IORedis from 'ioredis';
 
+export const HEARTBEAT_KEY = 'worker:heartbeat';
+export const HEARTBEAT_INTERVAL_MS = 15_000;  // write every 15 s
+export const HEARTBEAT_STALE_MS    = 60_000;  // dead if > 60 s old
+
 export interface CrawlJobData {
   auditId: string;
   domain: string;
@@ -9,21 +13,29 @@ export interface CrawlJobData {
   layer4Enabled?: boolean;
 }
 
-function buildRedisConnection(): IORedis {
-  const url = process.env['REDIS_URL'] ?? 'redis://localhost:6379';
+function redisUrl(): string {
+  return process.env['REDIS_URL'] ?? 'redis://localhost:6379';
+}
+
+/** Create a new IORedis client. Call this each time you need an independent connection. */
+export function createRedisClient(): IORedis {
+  const url = redisUrl();
   return new IORedis(url, {
     maxRetriesPerRequest: null,
+    retryStrategy: (times: number) => Math.min(times * 500, 10_000),
+    reconnectOnError: () => true,
+    enableOfflineQueue: true,
     ...(url.startsWith('rediss://') ? { tls: {} } : {}),
   });
 }
 
-// Lazy singletons — not created at import time so that env vars loaded in
-// worker.ts (or by Next.js) are available when the connection is first used.
+// ── Lazy singletons for BullMQ (Queue + Worker share the same connection) ──────
+
 let _connection: IORedis | null = null;
 let _queue: Queue<CrawlJobData> | null = null;
 
 export function getRedisConnection(): IORedis {
-  if (!_connection) _connection = buildRedisConnection();
+  if (!_connection) _connection = createRedisClient();
   return _connection;
 }
 
@@ -47,8 +59,7 @@ export async function enqueueCrawlJob(data: CrawlJobData): Promise<string> {
   return job.id ?? data.auditId;
 }
 
-// Kept for backward compat with any code that spreads the connection into BullMQ options.
-// Accessing this property triggers lazy creation, so it's safe after env loading.
+// Proxy kept for backward compat — accessing any property triggers lazy creation.
 export const redisConnection: IORedis = new Proxy({} as IORedis, {
   get(_target, prop) {
     return Reflect.get(getRedisConnection(), prop);
