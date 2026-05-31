@@ -30,6 +30,28 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: '**.r2.cloudflarestorage.com' },
     ],
   },
+
+  webpack(config, { isServer }) {
+    if (isServer) {
+      // Prevent webpack from bundling worker-only packages that are
+      // never needed in the Next.js server runtime.
+      const workerOnlyExternals = [
+        '@react-pdf/renderer',
+        '@aws-sdk/client-s3',
+        '@aws-sdk/client-s3-multipart-upload',
+        'puppeteer',
+        'puppeteer-core',
+        'bullmq',
+        'ioredis',
+        'lighthouse',
+      ];
+      config.externals = [
+        ...(Array.isArray(config.externals) ? config.externals : [config.externals]),
+        ...workerOnlyExternals,
+      ];
+    }
+    return config;
+  },
 };
 
 export default nextConfig;

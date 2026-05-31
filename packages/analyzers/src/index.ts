@@ -18,7 +18,9 @@ export { analyzeSchema, generateSchemaSnippet } from './schema/engine';
 export { analyzeLinkGraph } from './graph/engine';
 export { analyzePerformance } from './performance/engine';
 export { analyzeContentQuality } from './content/engine';
-export { generateAuditReport } from './reports/generator';
+// generateAuditReport is imported directly by the reporting agent.
+// Do NOT re-export here — @react-pdf/renderer and @aws-sdk/client-s3 are
+// worker-only deps that must not enter the Next.js webpack bundle.
 export { callAI, callClaude, parseAIResponse, AI_MODEL, CLAUDE_MODEL } from './ai/client';
 export {
   entityClarityPrompt,
