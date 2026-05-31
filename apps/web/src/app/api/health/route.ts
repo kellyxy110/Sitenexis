@@ -3,6 +3,19 @@ import { readdirSync } from 'fs';
 import { join } from 'path';
 import { NextResponse } from 'next/server';
 
+function scanForEngines(dirs: string[]): Record<string, string[]> {
+  const results: Record<string, string[]> = {};
+  for (const dir of dirs) {
+    try {
+      const files = readdirSync(dir).filter(f => f.includes('libquery_engine') || f.endsWith('.so.node'));
+      results[dir] = files.length > 0 ? files : ['<empty>'];
+    } catch {
+      results[dir] = ['<not found>'];
+    }
+  }
+  return results;
+}
+
 async function checkDatabase(): Promise<{ ok: boolean; error?: string; debug?: unknown }> {
   try {
     const { prisma } = await import('@sitenexis/db');
@@ -11,22 +24,21 @@ async function checkDatabase(): Promise<{ ok: boolean; error?: string; debug?: u
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
 
-    // Diagnostic: find what engine binaries are actually present at runtime
     const cwd = process.cwd();
-    const searchDirs = [
+    // Scan the directories most likely to contain the Prisma engine binary
+    const scanDirs = [
       join(cwd, 'packages', 'db', 'generated'),
-      join(cwd, 'packages', 'db', 'dist', '..', 'generated'),
-      join(__dirname, '..', '..', '..', '..', 'packages', 'db', 'generated'),
+      join(cwd, '..', 'packages', 'db', 'generated'),
+      join(cwd, '..', '..', 'packages', 'db', 'generated'),
+      '/var/task/packages/db/generated',
+      '/var/task/apps/web/packages/db/generated',
     ];
-    const found: Record<string, string[]> = {};
-    for (const dir of searchDirs) {
-      try {
-        const files = readdirSync(dir).filter(f => f.endsWith('.node') || f.endsWith('.js'));
-        found[dir] = files;
-      } catch {
-        found[dir] = ['<not found>'];
-      }
-    }
+
+    // Also scan node_modules for @sitenexis/db to find where it resolves
+    let dbModulePath = 'unknown';
+    try {
+      dbModulePath = require.resolve('@sitenexis/db');
+    } catch { /* ok */ }
 
     return {
       ok: false,
@@ -35,7 +47,8 @@ async function checkDatabase(): Promise<{ ok: boolean; error?: string; debug?: u
         cwd,
         dirname: __dirname,
         engineEnvVar: process.env['PRISMA_QUERY_ENGINE_LIBRARY'] ?? null,
-        searchResults: found,
+        dbModulePath,
+        engineScan: scanForEngines(scanDirs),
       },
     };
   }

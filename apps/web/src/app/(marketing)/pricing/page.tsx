@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import React, { useState, useRef } from 'react'
 import Link from 'next/link'
 import { motion, useInView } from 'framer-motion'
-import { Check, Minus, ArrowRight, Zap, ChevronDown } from 'lucide-react'
+import { Check, Minus, ArrowRight, Zap, ChevronDown, Activity } from 'lucide-react'
 import { MarketingNav } from '@/components/marketing/MarketingNav'
 
 // ── Primitives ────────────────────────────────────────────────────────────────
@@ -264,6 +264,24 @@ export default function PricingPage() {
         </div>
       </section>
 
+      {/* ── Social proof banner ── */}
+      <section className="border-y border-white/[0.05] bg-[#0A1628] py-4">
+        <div className="mx-auto max-w-4xl px-6">
+          <div className="flex flex-col items-center justify-center gap-3 text-center sm:flex-row sm:gap-6 sm:text-left">
+            <div className="flex items-center gap-2">
+              <Activity size={14} className="text-teal-400 shrink-0" />
+              <span className="text-[12px] font-medium text-slate-300">
+                SiteNexis monitors itself on Pro — every deployment triggers a full audit of sitenexis.com
+              </span>
+            </div>
+            <Link href="/platform/health"
+              className="shrink-0 rounded-full border border-teal-500/30 bg-teal-500/[0.08] px-3 py-1 text-[11px] font-semibold text-teal-400 hover:bg-teal-500/[0.15] transition-colors">
+              View live health score →
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* ── Plans ── */}
       <section className="pb-24">
         <div className="mx-auto max-w-7xl px-4 md:px-10">
@@ -353,8 +371,8 @@ export default function PricingPage() {
                 </thead>
                 <tbody>
                   {COMPARISON_ROWS.map(section => (
-                    <>
-                      <tr key={section.category} className="border-b border-white/[0.05] bg-white/[0.01]">
+                    <React.Fragment key={section.category}>
+                      <tr className="border-b border-white/[0.05] bg-white/[0.01]">
                         <td colSpan={6} className="px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">{section.category}</td>
                       </tr>
                       {section.features.map(row => (
@@ -373,7 +391,7 @@ export default function PricingPage() {
                           ))}
                         </tr>
                       ))}
-                    </>
+                    </React.Fragment>
                   ))}
                 </tbody>
               </table>

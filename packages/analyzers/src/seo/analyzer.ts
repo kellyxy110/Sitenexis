@@ -11,12 +11,14 @@ export interface SEOAnalysisResult {
 /**
  * Runs all SEO checks across a full crawl result and returns a scored report.
  *
- * @param pages      - Full array of crawled pages.
- * @param sitemapUrls - Optional: URL set from the parsed sitemap (for sitemap coverage checks).
+ * @param pages       - Full array of crawled pages.
+ * @param sitemapUrls - URL set from the parsed sitemap. Pass `[]` (empty array) to
+ *                      signal "sitemap was checked but empty" — triggers missing_sitemap.
+ *                      Omit entirely (or pass `undefined`) to skip the sitemap check.
  */
 export function analyzeSEO(
   pages: CrawledPage[],
-  sitemapUrls: string[] = []
+  sitemapUrls?: string[]
 ): SEOAnalysisResult {
   const issues: SEOIssue[] = [];
 
@@ -25,14 +27,16 @@ export function analyzeSEO(
   const descriptionIndex = buildDescriptionIndex(pages);
   const canonicalIndex = buildCanonicalIndex(pages);
   const inboundLinksIndex = buildInboundLinksIndex(pages);
-  const sitemapSet = new Set(sitemapUrls.map(normalizeUrl));
+  const sitemapSet = sitemapUrls !== undefined
+    ? new Set(sitemapUrls.map(normalizeUrl))
+    : null;
 
   for (const page of pages) {
     issues.push(
       ...checkTitle(page, titleIndex),
       ...checkMetaDescription(page, descriptionIndex),
       ...checkCanonical(page, canonicalIndex),
-      ...checkRobotsIndexability(page, inboundLinksIndex, sitemapSet),
+      ...checkRobotsIndexability(page, inboundLinksIndex, sitemapSet ?? new Set()),
       ...checkStatusCode(page),
       ...checkRedirectChain(page),
       ...checkImages(page),
@@ -40,16 +44,16 @@ export function analyzeSEO(
     );
   }
 
-  // Site-wide checks
-  issues.push(
-    ...checkSitemapCoverage(pages, sitemapSet),
-    ...checkBrokenInternalLinks(pages),
-  );
+  // Site-wide checks — sitemap check only runs when caller explicitly provides sitemap context
+  if (sitemapSet !== null) {
+    issues.push(...checkSitemapCoverage(pages, sitemapSet));
+  }
+  issues.push(...checkBrokenInternalLinks(pages));
 
   const deduplicated = deduplicateIssues(issues);
   const sorted = sortIssues(deduplicated);
   const score = calculateSEOScore(sorted, pages.length, {
-    hasValidSitemap: sitemapSet.size > 0,
+    hasValidSitemap: sitemapSet !== null && sitemapSet.size > 0,
   });
 
   const pageScores = computePageScores(pages, sorted);

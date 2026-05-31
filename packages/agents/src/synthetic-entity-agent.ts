@@ -1,15 +1,39 @@
-// Stub — full implementation in a later prompt (Section 26 of CLAUDE.md)
-import { type CrawledPage } from '@sitenexis/shared';
+import type {
+  CrawledPage,
+  EntityIntelligenceReport,
+  SyntheticEntityAnalysis,
+} from '@sitenexis/shared';
+import { runSyntheticEntityDetection } from '@sitenexis/analyzers';
+import { saveSyntheticEntityAnalysis } from '@sitenexis/db';
 import { emitAgentEvent } from './registry';
 
 export async function runSyntheticEntityAgent(
   auditId: string,
-  _pages: CrawledPage[]
-): Promise<void> {
+  pages: CrawledPage[],
+  entityReport: EntityIntelligenceReport,
+): Promise<SyntheticEntityAnalysis> {
   await emitAgentEvent({ auditId, agentId: 'synthetic-entity', event: 'started' });
-  // Detection rules from /config/synthetic-detection-rules.json — never hardcoded
-  // All findings: confidence (0–1), never binary flags
-  // Results shown to domain owner only — never in competitive view
-  // Partial failure: skip failing pattern, continue
-  await emitAgentEvent({ auditId, agentId: 'synthetic-entity', event: 'completed' });
+
+  await emitAgentEvent({ auditId, agentId: 'synthetic-entity', event: 'progress', payload: { category: 'fake_entity' } });
+  await emitAgentEvent({ auditId, agentId: 'synthetic-entity', event: 'progress', payload: { category: 'authority_network' } });
+  await emitAgentEvent({ auditId, agentId: 'synthetic-entity', event: 'progress', payload: { category: 'schema_manipulation' } });
+  await emitAgentEvent({ auditId, agentId: 'synthetic-entity', event: 'progress', payload: { category: 'citation_farming' } });
+  await emitAgentEvent({ auditId, agentId: 'synthetic-entity', event: 'progress', payload: { category: 'unnatural_clustering' } });
+
+  const analysis = runSyntheticEntityDetection(pages, entityReport);
+
+  await saveSyntheticEntityAnalysis(auditId, analysis);
+
+  await emitAgentEvent({
+    auditId,
+    agentId: 'synthetic-entity',
+    event: 'completed',
+    payload: {
+      riskScore: analysis.syntheticRiskScore,
+      authenticityConfidence: analysis.entityAuthenticityConfidence,
+      patternsDetected: analysis.detectedPatterns.filter((p) => p.confidence > 0).length,
+    },
+  });
+
+  return analysis;
 }

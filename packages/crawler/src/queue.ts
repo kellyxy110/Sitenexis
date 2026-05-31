@@ -11,6 +11,7 @@ export interface CrawlJobData {
   userId: string;
   maxPages?: number;
   layer4Enabled?: boolean;
+  selfAuditRunId?: string;
 }
 
 function redisUrl(): string {

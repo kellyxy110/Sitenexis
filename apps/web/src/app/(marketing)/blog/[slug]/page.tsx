@@ -41,6 +41,7 @@ const CAT_COLORS: Record<string, { text: string; bg: string; border: string }> =
   'Entity SEO':     { text: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20' },
   'Technical SEO':  { text: 'text-blue-400',   bg: 'bg-blue-500/10',   border: 'border-blue-500/20'   },
   'Strategy':       { text: 'text-amber-400',  bg: 'bg-amber-500/10',  border: 'border-amber-500/20'  },
+  'AI Agents':      { text: 'text-violet-400', bg: 'bg-violet-500/10', border: 'border-violet-500/20' },
 }
 
 function getStyle(cat: string) {
@@ -132,6 +133,46 @@ function RelatedCard({ post }: { post: ReturnType<typeof getPost> & object }) {
   )
 }
 
+// ── Watermark ────────────────────────────────────────────────────────────────
+
+function BlogWatermark() {
+  const cx = 60, cy = 60, r = 50
+  const pts = Array.from({ length: 5 }, (_, i) => {
+    const a = (Math.PI * 2 * i) / 5 - Math.PI / 2
+    return `${cx + r * Math.cos(a)},${cy + r * Math.sin(a)}`
+  }).join(' ')
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none select-none fixed inset-0 z-0 flex flex-col items-center justify-center gap-4 opacity-[0.045]"
+    >
+      <svg width="120" height="120" viewBox="0 0 120 120" fill="none">
+        <polygon points={pts} stroke="white" strokeWidth="2.5" fill="rgba(255,255,255,0.06)" />
+        <polygon
+          points={Array.from({ length: 5 }, (_, i) => {
+            const a = (Math.PI * 2 * i) / 5 - Math.PI / 2
+            return `${cx + r * 0.52 * Math.cos(a)},${cy + r * 0.52 * Math.sin(a)}`
+          }).join(' ')}
+          stroke="rgba(0,200,255,0.7)"
+          strokeWidth="1.5"
+          fill="none"
+        />
+      </svg>
+      <div className="flex flex-col items-center gap-1">
+        <span
+          style={{ fontFamily: 'Georgia, serif', letterSpacing: '-0.02em' }}
+          className="text-[42px] font-bold text-white leading-none"
+        >
+          SiteNexis
+        </span>
+        <span className="text-[14px] font-medium tracking-[0.18em] uppercase text-white/80">
+          AI Visibility Intelligence
+        </span>
+      </div>
+    </div>
+  )
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -172,6 +213,8 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           </div>
         </div>
       </header>
+
+      <BlogWatermark />
 
       {/* ── Post content ──────────────────────────────────────────────────── */}
       <article className="pt-32 pb-24 px-6">
@@ -276,7 +319,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
       {/* ── Footer ───────────────────────────────────────────────────────── */}
       <footer className="border-t border-white/[0.05] bg-[#07111F] px-6 py-12">
-        <div className="mx-auto max-w-7xl flex flex-col items-center justify-between gap-4 md:flex-row">
+        <div className="mx-auto max-w-7xl flex flex-col items-center justify-between gap-6 md:flex-row">
           <div className="flex items-center gap-2.5">
             <div className="flex h-6 w-6 items-center justify-center rounded-md border border-white/[0.08] bg-white/[0.03]">
               <PentagonMark size={14} />
@@ -284,7 +327,22 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
             <span className="text-[14px] font-semibold text-white">SiteNexis</span>
           </div>
           <p className="text-[12px] text-slate-700">© {new Date().getFullYear()} SiteNexis. Built for the machine-first web.</p>
-          <div className="flex items-center gap-6 text-[12px] text-slate-700">
+          <div className="flex items-center gap-5 text-[12px] text-slate-700">
+            <a
+              href="https://twitter.com/Sitenexis"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 hover:text-slate-400 transition-colors"
+              aria-label="SiteNexis on X"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.748l7.73-8.835L1.254 2.25H8.08l4.261 5.633 5.902-5.633zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+              </svg>
+              @Sitenexis
+            </a>
+            <a href="mailto:sitenexisintel@gmail.com" className="hover:text-slate-400 transition-colors">
+              sitenexisintel@gmail.com
+            </a>
             <Link href="/privacy" className="hover:text-slate-400 transition-colors">Privacy</Link>
             <Link href="/terms" className="hover:text-slate-400 transition-colors">Terms</Link>
           </div>

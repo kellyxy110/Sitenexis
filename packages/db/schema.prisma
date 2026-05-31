@@ -106,6 +106,7 @@ model Page {
   aiScore          Float?    @map("ai_score")
   aiStatus         String    @default("pending") @map("ai_status")
   schemaData       Json      @default("[]") @map("schema_data")
+  bodyText         String?   @map("body_text")
   crawledAt        DateTime  @map("crawled_at")
   archivedAt       DateTime? @map("archived_at")
 
@@ -383,4 +384,131 @@ model SyntheticEntityFlag {
 
   @@index([auditId])
   @@map("synthetic_entity_flags")
+}
+
+// ─── Self-Audit / Continuous Monitoring ──────────────────────────────────────
+// These tables store aggregated time-series data for the continuous self-audit
+// of https://sitenexis.com. Every deployment and scheduled run writes here.
+
+model SelfAuditRun {
+  id            String   @id @default(cuid())
+  domain        String   @default("sitenexis.com")
+  triggeredBy   String   @map("triggered_by")    // 'deploy' | 'cron' | 'manual'
+  status        String   @default("running")
+
+  // Linked regular audit (the underlying infrastructure-agent run)
+  auditId       String?  @unique @map("audit_id")
+
+  // SiteNexis Health Score + 7 dimension scores (all 0–100)
+  healthScore           Float? @map("health_score")
+  technicalSeoScore     Float? @map("technical_seo_score")
+  aiVisibilityScore     Float? @map("ai_visibility_score")
+  entityCoverageScore   Float? @map("entity_coverage_score")
+  citationReadinessScore Float? @map("citation_readiness_score")
+  knowledgeGraphScore   Float? @map("knowledge_graph_score")
+  trustSignalsScore     Float? @map("trust_signals_score")
+  performanceScore      Float? @map("performance_score")
+  geoScore              Float? @map("geo_score")
+
+  // Aggregated breakdown + recommendations JSON
+  breakdown       Json? @default("{}")
+  recommendations Json? @default("[]")
+
+  startedAt   DateTime  @default(now()) @map("started_at")
+  completedAt DateTime? @map("completed_at")
+  errorMessage String?  @map("error_message")
+
+  crawlRun          CrawlRun?
+  visibilityRun     VisibilityRun?
+  entityRun         EntityRun?
+  knowledgeGraphRun KnowledgeGraphRun?
+
+  @@index([domain, startedAt])
+  @@index([status])
+  @@map("audit_runs")
+}
+
+model CrawlRun {
+  id             String   @id @default(cuid())
+  selfAuditRunId String   @unique @map("self_audit_run_id")
+  domain         String
+
+  pagesFound      Int   @default(0) @map("pages_found")
+  pagesCrawled    Int   @default(0) @map("pages_crawled")
+  pagesIndexable  Int   @default(0) @map("pages_indexable")
+  crawlDurationMs Int   @default(0) @map("crawl_duration_ms")
+  brokenLinksCount Int  @default(0) @map("broken_links_count")
+  redirectChainCount Int @default(0) @map("redirect_chain_count")
+  missingSitemapPages Int @default(0) @map("missing_sitemap_pages")
+  crawlHealthScore Float @map("crawl_health_score")
+  topIssues       Json  @default("[]") @map("top_issues")
+  crawledAt       DateTime @default(now()) @map("crawled_at")
+
+  selfAuditRun SelfAuditRun @relation(fields: [selfAuditRunId], references: [id])
+
+  @@index([domain, crawledAt])
+  @@map("crawl_runs")
+}
+
+model VisibilityRun {
+  id             String   @id @default(cuid())
+  selfAuditRunId String   @unique @map("self_audit_run_id")
+  domain         String
+
+  aiVisibilityScore        Float @map("ai_visibility_score")
+  machineReadabilityScore  Float @map("machine_readability_score")
+  retrievalReadinessScore  Float @map("retrieval_readiness_score")
+  citationProbability      Float @map("citation_probability")
+  semanticTrustScore       Float @map("semantic_trust_score")
+  recommendationConfidence Float @map("recommendation_confidence")
+  retrievalQualityScore    Float @default(0) @map("retrieval_quality_score")
+  surfaceCoverageScore     Float @default(0) @map("surface_coverage_score")
+  providerBreakdown        Json  @default("{}") @map("provider_breakdown")
+  scannedAt                DateTime @default(now()) @map("scanned_at")
+
+  selfAuditRun SelfAuditRun @relation(fields: [selfAuditRunId], references: [id])
+
+  @@index([domain, scannedAt])
+  @@map("visibility_runs")
+}
+
+model EntityRun {
+  id             String   @id @default(cuid())
+  selfAuditRunId String   @unique @map("self_audit_run_id")
+  domain         String
+
+  entitiesDetected      Int    @default(0) @map("entities_detected")
+  primaryEntityName     String? @map("primary_entity_name")
+  entityConfidenceScore Float  @map("entity_confidence_score")
+  entityConsistencyScore Float @map("entity_consistency_score")
+  entityCoverageScore   Float  @map("entity_coverage_score")
+  disambiguationScore   Float  @map("disambiguation_score")
+  sameAsLinksCount      Int    @default(0) @map("same_as_links_count")
+  authenticityScore     Float  @default(100) @map("authenticity_score")
+  topEntities           Json   @default("[]") @map("top_entities")
+  extractedAt           DateTime @default(now()) @map("extracted_at")
+
+  selfAuditRun SelfAuditRun @relation(fields: [selfAuditRunId], references: [id])
+
+  @@index([domain, extractedAt])
+  @@map("entity_runs")
+}
+
+model KnowledgeGraphRun {
+  id             String   @id @default(cuid())
+  selfAuditRunId String   @unique @map("self_audit_run_id")
+  domain         String
+
+  nodeCount          Int    @default(0) @map("node_count")
+  edgeCount          Int    @default(0) @map("edge_count")
+  topicClusters      Int    @default(0) @map("topic_clusters")
+  avgNodeConfidence  Float  @default(0) @map("avg_node_confidence")
+  graphStrengthScore Float  @map("graph_strength_score")
+  topNodes           Json   @default("[]") @map("top_nodes")
+  generatedAt        DateTime @default(now()) @map("generated_at")
+
+  selfAuditRun SelfAuditRun @relation(fields: [selfAuditRunId], references: [id])
+
+  @@index([domain, generatedAt])
+  @@map("knowledge_graph_runs")
 }

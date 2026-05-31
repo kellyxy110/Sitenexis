@@ -30,6 +30,10 @@ const envSchema = z.object({
   PROVIDER_WEIGHTS_CONFIG: z.string().optional(),
   TRUST_DECAY_CONFIG: z.string().optional(),
   SYNTHETIC_DETECTION_CONFIG: z.string().optional(),
+
+  // Self-audit system
+  SELF_AUDIT_SECRET: z.string().default('dev-self-audit-secret'),
+  VERCEL_DEPLOY_WEBHOOK_SECRET: z.string().optional(),
 });
 
 export const env = envSchema.parse(process.env);

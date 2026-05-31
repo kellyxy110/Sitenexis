@@ -41,7 +41,12 @@ export async function saveAuditScores(scores: AuditScores): Promise<AuditScore> 
           score: scores.semanticTrust.score,
           breakdown: scores.semanticTrust.breakdown,
         } : null,
-        schema: { coverage: scores.schema.coverage },
+        schema: {
+          coverage: scores.schema.coverage,
+          schemaUrls: scores.schema.pageAnalyses
+            .filter((p) => p.detectedTypes.length > 0)
+            .map((p) => p.url),
+        },
         linkGraph: { avgPageRank: scores.linkGraph.avgPageRank },
         performance: {
           lcp: scores.performance.lcp,
@@ -62,6 +67,15 @@ export async function saveAuditScores(scores: AuditScores): Promise<AuditScore> 
   });
 
   if (scores.machineReadability && scores.entityIntelligence && scores.citationAnalysis && scores.semanticTrust) {
+    // Recommendation confidence uses a distinct formula from AI Visibility Score (CLAUDE.md §31)
+    const recommendationConfidence = Math.round(
+      (scores.entityIntelligence.entityConfidenceScore) * 0.30
+      + (scores.citationAnalysis.citationProbabilityScore) * 0.30
+      + (scores.semanticTrust.score) * 0.20
+      + (scores.machineReadability.score) * 0.10
+      + scores.schema.score * 0.10,
+    );
+
     await db.aIVisibilityScore.upsert({
       where: { auditId: scores.auditId },
       create: {
@@ -72,7 +86,7 @@ export async function saveAuditScores(scores: AuditScores): Promise<AuditScore> 
         retrievalReadinessScore: scores.aiReadability.score,
         citationProbabilityScore: scores.citationAnalysis.citationProbabilityScore,
         semanticTrustScore: scores.semanticTrust.score,
-        recommendationConfidence: aiVisibilityScore,
+        recommendationConfidence,
         providerScores: {},
         breakdown: {
           machineReadability: scores.machineReadability.breakdown,
@@ -95,7 +109,7 @@ export async function saveAuditScores(scores: AuditScores): Promise<AuditScore> 
         retrievalReadinessScore: scores.aiReadability.score,
         citationProbabilityScore: scores.citationAnalysis.citationProbabilityScore,
         semanticTrustScore: scores.semanticTrust.score,
-        recommendationConfidence: aiVisibilityScore,
+        recommendationConfidence,
       },
     });
   }
@@ -134,4 +148,20 @@ export async function getPerceptionGraph(auditId: string): Promise<PGSnapshot | 
     nodes: record.nodesJson as unknown as PGSnapshot['nodes'],
     edges: record.edgesJson as unknown as PGSnapshot['edges'],
   };
+}
+
+export async function getPriorSchemaUrls(auditId: string): Promise<string[]> {
+  const record = await db.auditScore.findUnique({ where: { auditId }, select: { breakdown: true } });
+  if (!record) return [];
+  const bd = record.breakdown as Record<string, unknown> | null;
+  const schemaBd = bd?.['schema'] as Record<string, unknown> | undefined;
+  return (schemaBd?.['schemaUrls'] as string[] | undefined) ?? [];
+}
+
+export async function getEntitiesByAudit(auditId: string) {
+  return db.entity.findMany({
+    where: { auditId },
+    orderBy: { mentionCount: 'desc' },
+    include: { relationships: { take: 10 } },
+  });
 }

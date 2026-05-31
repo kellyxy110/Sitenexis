@@ -4,3 +4,5 @@ export * from './queries/issues';
 export * from './queries/pages';
 export * from './queries/scores';
 export * from './queries/users';
+export * from './queries/v3';
+export * from './queries/self-audit';

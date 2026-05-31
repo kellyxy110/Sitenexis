@@ -93,7 +93,11 @@ interface AuditData {
   linkGraph?: InternalLinkGraph | null;
 }
 
-const TAB_IDS = ['seo', 'ai', 'machine-readability', 'entity', 'citation', 'semantic-trust', 'schema', 'links', 'content', 'performance'] as const;
+const TAB_IDS = [
+  'seo', 'ai', 'machine-readability', 'entity', 'citation', 'semantic-trust',
+  'schema', 'links', 'content', 'performance',
+  'retrieval', 'machine-trust', 'temporal', 'surfaces', 'authenticity', 'perception-graph',
+] as const;
 type TabId = typeof TAB_IDS[number];
 const TAB_LABELS: Record<TabId, string> = {
   seo: 'SEO',
@@ -106,7 +110,74 @@ const TAB_LABELS: Record<TabId, string> = {
   links: 'Link Graph',
   content: 'Content',
   performance: 'Performance',
+  retrieval: 'Retrieval Simulation',
+  'machine-trust': 'Machine Trust',
+  temporal: 'Temporal Authority',
+  surfaces: 'Recommendation Surfaces',
+  authenticity: 'Entity Authenticity',
+  'perception-graph': 'Perception Graph',
 };
+
+
+// ─── v3 data types ───────────────────────────────────────────────────────────
+
+interface RetrievalData {
+  auditId: string;
+  avgRetrievalQualityScore: number | null;
+  pagesSimulated: number;
+  results: Array<{
+    pageUrl: string; simulated: boolean;
+    retrievalQualityScore: number | null; chunkStabilityIndex: number | null;
+    answerFormationProbability: number | null; summarisationLossScore: number | null;
+    citationEligibilityScore: number | null; fragileClaimsCount: number;
+    retrievalFailureReasons: Array<{ stage: string; description: string; severity: string; recommendation: string }>;
+    truncationZoneWarnings: string[];
+  }>;
+}
+
+interface MachineTrustData {
+  auditId: string; overall: number;
+  entityCredibilityScore: number; schemaTrustAlignmentScore: number;
+  externalValidationScore: number; contradictionAbsenceScore: number | null;
+  trustDegradationResistance: number; crossSourceValidationIndex: number;
+  trustIssues: Array<{ type: string; severity: string; entity: string; description: string; recommendation: string }>;
+  degradationSignals: Array<{ signalType: string; entity: string; previousValue: string; currentValue: string; severityImpact: number }>;
+}
+
+interface TemporalData {
+  auditId: string; isBaseline: boolean;
+  authorityVelocityScore: number | null; trustStabilityIndex: number;
+  contentFreshnessImpactFactor: number; semanticDriftIndex: number;
+  updateFrequencyClassification: string; stalePagesAtRisk: string[];
+  driftedPages: Array<{ pageUrl: string; driftScore: number; previousTopicCluster: string; currentTopicCluster: string }>;
+  temporalIssues: Array<{ type: string; severity: string; pageUrl: string; description: string; recommendation: string }>;
+}
+
+interface SurfacesData {
+  auditId: string; overallSurfaceScore: number;
+  surfaces: {
+    aiOverviews: { inclusionProbability: number; status: string; blockers: Array<{ type: string; description: string; recommendation: string }>; recommendations: string[] };
+    chatRecommendation: { inclusionProbability: number; status: string; blockers: Array<{ type: string; description: string; recommendation: string }>; recommendations: string[] };
+    voiceRetrieval: { inclusionProbability: number; status: string; blockers: Array<{ type: string; description: string; recommendation: string }>; recommendations: string[] };
+    agentDiscovery: { inclusionProbability: number; status: string; blockers: Array<{ type: string; description: string; recommendation: string }>; recommendations: string[] };
+  };
+  coverageGaps: Array<{ surface: string; missedOpportunity: string; requiredSignals: string[]; estimatedImpact: string }>;
+  missingVisibilityChannels: string[];
+}
+
+interface AuthenticityData {
+  auditId: string; syntheticRiskScore: number;
+  entityAuthenticityConfidence: number; networkIntegrityScore: number;
+  detectedPatterns: Array<{ patternType: string; confidence: number; evidence: string[]; affectedEntities: string[]; severity: string }>;
+  flaggedEntities: Array<{ entityName: string; flagReason: string; confidence: number }>;
+  recommendations: string[];
+}
+
+interface PerceptionGraphData {
+  auditId: string;
+  nodes: Array<{ id: string; type: string; label: string; confidence: number; citationReadiness: number; disambiguationStrength: number; supportingPages: string[] }>;
+  edges: Array<{ source: string; target: string; relationshipType: string; strength: number; evidencedBy: string[] }>;
+}
 
 // ─── Score helpers ────────────────────────────────────────────────────────────
 
@@ -668,6 +739,358 @@ function SemanticTrustTab({ data }: { data: AuditData }) {
   );
 }
 
+// ─── v3 Tab: Retrieval Simulation ─────────────────────────────────────────────
+
+function RetrievalTab({ d }: { d: RetrievalData | undefined; loading: boolean }) {
+  if (!d) return <V3Loading label="Retrieval Simulation" />;
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        {[
+          { label: 'Retrieval Quality', value: d.avgRetrievalQualityScore },
+          { label: 'Pages Simulated', value: d.pagesSimulated, noColor: true },
+        ].map(({ label, value, noColor }) => (
+          <div key={label} className="card-glass rounded-xl p-4 text-center">
+            <span className="text-2xl font-bold tabular-nums" style={{ color: noColor ? '#fff' : scoreColor(value as number | null) }}>{value ?? '—'}</span>
+            <p className="mt-1 text-xs text-[#4A6280]">{label}</p>
+          </div>
+        ))}
+      </div>
+      <div className="card-glass rounded-xl overflow-hidden">
+        <div className="border-b border-white/10 px-5 py-3">
+          <h3 className="font-semibold text-white">Per-Page Retrieval Scores</h3>
+          <p className="mt-0.5 text-xs text-[#4A6280]">Simulated — same content always produces the same result</p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead><tr className="border-b border-white/5">
+              <th className="px-5 py-3 text-left text-xs font-semibold text-[#4A6280]">Page</th>
+              <th className="px-3 py-3 text-center text-xs font-semibold text-[#4A6280]">Quality</th>
+              <th className="px-3 py-3 text-center text-xs font-semibold text-[#4A6280]">Chunk Stability</th>
+              <th className="px-3 py-3 text-center text-xs font-semibold text-[#4A6280]">Ans. Formation</th>
+              <th className="px-3 py-3 text-center text-xs font-semibold text-[#4A6280]">Summ. Loss</th>
+              <th className="px-3 py-3 text-center text-xs font-semibold text-[#4A6280]">Citation Elig.</th>
+            </tr></thead>
+            <tbody>
+              {d.results.slice(0, 20).map((r, i) => (
+                <tr key={i} className="border-b border-white/5 hover:bg-white/[0.02]">
+                  <td className="max-w-[200px] truncate px-5 py-3 text-xs text-[#4A6280]">{r.pageUrl}</td>
+                  <td className="px-3 py-3 text-center text-xs font-semibold tabular-nums" style={{ color: scoreColor(r.retrievalQualityScore) }}>{r.retrievalQualityScore ?? '—'}</td>
+                  <td className="px-3 py-3 text-center text-xs tabular-nums text-[#7A9AB4]">{r.chunkStabilityIndex != null ? r.chunkStabilityIndex.toFixed(2) : '—'}</td>
+                  <td className="px-3 py-3 text-center text-xs tabular-nums text-[#7A9AB4]">{r.answerFormationProbability != null ? `${Math.round(r.answerFormationProbability * 100)}%` : '—'}</td>
+                  <td className="px-3 py-3 text-center text-xs font-semibold tabular-nums" style={{ color: scoreColor(r.summarisationLossScore) }}>{r.summarisationLossScore ?? '—'}</td>
+                  <td className="px-3 py-3 text-center text-xs font-semibold tabular-nums" style={{ color: scoreColor(r.citationEligibilityScore) }}>{r.citationEligibilityScore ?? '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── v3 Tab: Machine Trust ────────────────────────────────────────────────────
+
+function MachineTrustTab({ d }: { d: MachineTrustData | undefined; loading: boolean }) {
+  if (!d) return <V3Loading label="Machine Trust" />;
+  const subScores = [
+    { label: 'Entity Credibility', score: d.entityCredibilityScore, desc: 'Consistency of entity attributes across all pages and schema' },
+    { label: 'Schema Trust Alignment', score: d.schemaTrustAlignmentScore, desc: 'Schema markup accurately describes page content — no over-claiming' },
+    { label: 'External Validation', score: d.externalValidationScore, desc: 'Depth and quality of external signals that validate entity claims' },
+    { label: 'Contradiction Absence', score: d.contradictionAbsenceScore, desc: 'No conflicting entity attributes detected across pages' },
+    { label: 'Degradation Resistance', score: d.trustDegradationResistance, desc: 'No trust-damaging signals detected across audit history' },
+  ];
+  return (
+    <div className="space-y-6">
+      <div className="card-glass rounded-xl p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h3 className="font-semibold text-white">Machine Trust Score</h3>
+            <p className="mt-1 text-xs text-[#4A6280]">Confidence an AI model would have in using this content as a reliable source</p>
+          </div>
+          <div className="text-right">
+            <span className="text-4xl font-bold tabular-nums" style={{ color: scoreColor(d.overall) }}>{d.overall}</span>
+            <p className="mt-0.5 text-xs text-[#4A6280]">Cross-source validation: {Math.round(d.crossSourceValidationIndex * 100)}%</p>
+          </div>
+        </div>
+        <div className="space-y-4">
+          {subScores.map(({ label, score, desc }) => (
+            <div key={label}>
+              <div className="flex justify-between text-xs mb-1">
+                <div><span className="text-white font-medium">{label}</span><span className="ml-2 text-[#4A6280]">{desc}</span></div>
+                <span className="font-semibold tabular-nums" style={{ color: score != null ? scoreColor(score) : '#4A6280' }}>{score != null ? Math.round(score) : 'N/A'}</span>
+              </div>
+              <div className="h-1.5 rounded-full bg-white/10">
+                <div className="h-full rounded-full bg-teal transition-all" style={{ width: `${Math.min(100, score ?? 0)}%` }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      {d.trustIssues.length > 0 && (
+        <div className="card-glass rounded-xl overflow-hidden">
+          <div className="border-b border-white/10 px-5 py-3"><h3 className="font-semibold text-white">Trust Issues ({d.trustIssues.length})</h3></div>
+          <div className="divide-y divide-white/[0.04]">
+            {d.trustIssues.map((issue, i) => (
+              <div key={i} className="px-5 py-4">
+                <div className="flex items-start gap-3">
+                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${issue.severity === 'critical' ? 'bg-red-500/15 text-red-400' : issue.severity === 'warning' ? 'bg-amber-500/15 text-amber-400' : 'bg-blue-500/15 text-blue-400'}`}>{issue.severity}</span>
+                  <div>
+                    <p className="text-sm text-white">{issue.description}</p>
+                    <p className="mt-1 text-xs text-[#4A6280]">→ {issue.recommendation}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── v3 Tab: Temporal Authority ───────────────────────────────────────────────
+
+function TemporalTab({ d }: { d: TemporalData | undefined; loading: boolean }) {
+  if (!d) return <V3Loading label="Temporal Authority" />;
+  const freqColors: Record<string, string> = { active: 'text-green-400 bg-green-500/10', periodic: 'text-teal-400 bg-teal-500/10', stale: 'text-amber-400 bg-amber-500/10', abandoned: 'text-red-400 bg-red-500/10' };
+  const freqClass = freqColors[d.updateFrequencyClassification] ?? 'text-[#4A6280] bg-white/5';
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="card-glass rounded-xl p-4 text-center">
+          {d.isBaseline ? (
+            <><span className="text-lg font-bold text-[#4A6280]">Baseline</span><p className="mt-1 text-xs text-[#4A6280]">Authority Velocity</p><p className="mt-1 text-[10px] text-[#3A5568]">Needs 2+ audits</p></>
+          ) : (
+            <><span className="text-2xl font-bold tabular-nums" style={{ color: scoreColor(d.authorityVelocityScore) }}>{d.authorityVelocityScore ?? '—'}</span><p className="mt-1 text-xs text-[#4A6280]">Authority Velocity</p></>
+          )}
+        </div>
+        <div className="card-glass rounded-xl p-4 text-center">
+          <span className="text-2xl font-bold tabular-nums" style={{ color: scoreColor(d.trustStabilityIndex * 100) }}>{Math.round(d.trustStabilityIndex * 100)}</span>
+          <p className="mt-1 text-xs text-[#4A6280]">Trust Stability</p>
+        </div>
+        <div className="card-glass rounded-xl p-4 text-center">
+          <span className="text-2xl font-bold tabular-nums" style={{ color: scoreColor(d.contentFreshnessImpactFactor * 100) }}>{Math.round(d.contentFreshnessImpactFactor * 100)}</span>
+          <p className="mt-1 text-xs text-[#4A6280]">Freshness Factor</p>
+        </div>
+        <div className="card-glass rounded-xl p-4 text-center flex flex-col items-center justify-center">
+          <span className={`rounded-full px-3 py-1 text-xs font-bold capitalize ${freqClass}`}>{d.updateFrequencyClassification}</span>
+          <p className="mt-1 text-xs text-[#4A6280]">Update Frequency</p>
+        </div>
+      </div>
+      {d.temporalIssues.length > 0 && (
+        <div className="card-glass rounded-xl overflow-hidden">
+          <div className="border-b border-white/10 px-5 py-3"><h3 className="font-semibold text-white">Temporal Issues ({d.temporalIssues.length})</h3></div>
+          <div className="divide-y divide-white/[0.04]">
+            {d.temporalIssues.map((issue, i) => (
+              <div key={i} className="px-5 py-4">
+                <span className={`mb-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${issue.severity === 'critical' ? 'bg-red-500/15 text-red-400' : issue.severity === 'warning' ? 'bg-amber-500/15 text-amber-400' : 'bg-blue-500/15 text-blue-400'}`}>{issue.severity}</span>
+                <p className="text-sm text-white">{issue.description}</p>
+                <p className="mt-1 text-xs text-[#4A6280]">→ {issue.recommendation}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {d.stalePagesAtRisk.length > 0 && (
+        <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-5">
+          <h3 className="mb-3 font-semibold text-amber-400">Stale Pages at Risk ({d.stalePagesAtRisk.length})</h3>
+          <ul className="space-y-1">{d.stalePagesAtRisk.map((url, i) => <li key={i} className="text-xs text-[#4A6280]">{url}</li>)}</ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── v3 Tab: Recommendation Surfaces ─────────────────────────────────────────
+
+function SurfacesTab({ d }: { d: SurfacesData | undefined; loading: boolean }) {
+  if (!d) return <V3Loading label="Recommendation Surfaces" />;
+  const statusColors: Record<string, string> = { visible: 'text-green-400 bg-green-500/10 border-green-500/20', partial: 'text-amber-400 bg-amber-500/10 border-amber-500/20', absent: 'text-red-400 bg-red-500/10 border-red-500/20' };
+  const surfaces = [
+    { key: 'aiOverviews', label: 'AI Overviews', desc: 'Search-integrated AI responses', data: d.surfaces.aiOverviews },
+    { key: 'chatRecommendation', label: 'Chat Recommendation', desc: 'LLM assistant responses', data: d.surfaces.chatRecommendation },
+    { key: 'voiceRetrieval', label: 'Voice Retrieval', desc: 'Voice assistant answers', data: d.surfaces.voiceRetrieval },
+    { key: 'agentDiscovery', label: 'Agent Discovery', desc: 'Autonomous AI agents', data: d.surfaces.agentDiscovery },
+  ] as const;
+  return (
+    <div className="space-y-6">
+      <div className="card-glass rounded-xl p-4 flex items-center justify-between">
+        <div><p className="text-xs text-[#4A6280]">Overall Surface Score</p><p className="mt-0.5 text-xs text-[#3A5568]">Estimated recommendation coverage across all AI surfaces</p></div>
+        <span className="text-3xl font-bold tabular-nums" style={{ color: scoreColor(d.overallSurfaceScore) }}>{d.overallSurfaceScore}</span>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        {surfaces.map(({ key, label, desc, data }) => {
+          const sc = statusColors[data.status] ?? 'text-[#4A6280] bg-white/5 border-white/10';
+          return (
+            <div key={key} className={`rounded-xl border p-5 ${sc}`}>
+              <div className="flex items-start justify-between mb-3">
+                <div><p className="text-sm font-semibold text-white">{label}</p><p className="text-xs text-[#4A6280]">{desc}</p></div>
+                <div className="text-right"><span className="text-2xl font-bold tabular-nums">{data.inclusionProbability}</span><p className="text-[10px] opacity-70">est. inclusion %</p></div>
+              </div>
+              <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${sc}`}>{data.status}</span>
+              {data.blockers.length > 0 && (
+                <div className="mt-3 space-y-1">
+                  {data.blockers.map((b, i) => <p key={i} className="text-xs text-[#4A6280]">⚠ {b.description}</p>)}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      {d.coverageGaps.length > 0 && (
+        <div className="card-glass rounded-xl overflow-hidden">
+          <div className="border-b border-white/10 px-5 py-3"><h3 className="font-semibold text-white">Coverage Gaps</h3></div>
+          <div className="divide-y divide-white/[0.04]">
+            {d.coverageGaps.map((gap, i) => (
+              <div key={i} className="px-5 py-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs font-semibold text-white">{gap.surface}</span>
+                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${gap.estimatedImpact === 'high' ? 'bg-red-500/15 text-red-400' : gap.estimatedImpact === 'medium' ? 'bg-amber-500/15 text-amber-400' : 'bg-blue-500/15 text-blue-400'}`}>{gap.estimatedImpact} impact</span>
+                </div>
+                <p className="text-xs text-[#4A6280]">{gap.missedOpportunity}</p>
+                <div className="mt-2 flex flex-wrap gap-1">{gap.requiredSignals.map((s, j) => <span key={j} className="rounded-full bg-white/[0.05] px-2 py-0.5 text-[10px] text-[#7A9AB4] border border-white/[0.06]">{s}</span>)}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── v3 Tab: Entity Authenticity ──────────────────────────────────────────────
+
+function AuthenticityTab({ d }: { d: AuthenticityData | undefined; loading: boolean }) {
+  if (!d) return <V3Loading label="Entity Authenticity" />;
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-3 gap-4">
+        <div className="card-glass rounded-xl p-4 text-center">
+          <span className="text-3xl font-bold tabular-nums" style={{ color: scoreColor(d.entityAuthenticityConfidence) }}>{d.entityAuthenticityConfidence}</span>
+          <p className="mt-1 text-xs text-[#4A6280]">Entity Authenticity Confidence</p>
+          <p className="mt-0.5 text-[10px] text-[#3A5568]">Higher is more authentic</p>
+        </div>
+        <div className="card-glass rounded-xl p-4 text-center">
+          <span className="text-3xl font-bold tabular-nums" style={{ color: scoreColor(d.networkIntegrityScore) }}>{d.networkIntegrityScore}</span>
+          <p className="mt-1 text-xs text-[#4A6280]">Network Integrity</p>
+        </div>
+        <div className="card-glass rounded-xl p-4 text-center">
+          <span className="text-3xl font-bold tabular-nums" style={{ color: d.syntheticRiskScore < 20 ? '#22C55E' : d.syntheticRiskScore < 50 ? '#F59E0B' : '#EF4444' }}>{d.syntheticRiskScore}</span>
+          <p className="mt-1 text-xs text-[#4A6280]">Synthetic Risk Score</p>
+          <p className="mt-0.5 text-[10px] text-[#3A5568]">Lower is safer</p>
+        </div>
+      </div>
+      {d.detectedPatterns.length === 0 && d.flaggedEntities.length === 0 ? (
+        <div className="card-glass rounded-xl p-8 text-center">
+          <p className="text-green-400 font-semibold">No synthetic patterns detected</p>
+          <p className="mt-1 text-xs text-[#4A6280]">All entity signals appear organic and authentic.</p>
+        </div>
+      ) : (
+        <div className="card-glass rounded-xl overflow-hidden">
+          <div className="border-b border-white/10 px-5 py-3"><h3 className="font-semibold text-white">Detected Patterns ({d.detectedPatterns.length})</h3></div>
+          <div className="divide-y divide-white/[0.04]">
+            {d.detectedPatterns.map((p, i) => (
+              <div key={i} className="px-5 py-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs font-semibold text-white capitalize">{p.patternType.replace(/_/g, ' ')}</span>
+                  <span className="text-xs text-[#4A6280]">confidence: {Math.round(p.confidence * 100)}%</span>
+                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${p.severity === 'critical' ? 'bg-red-500/15 text-red-400' : p.severity === 'warning' ? 'bg-amber-500/15 text-amber-400' : 'bg-blue-500/15 text-blue-400'}`}>{p.severity}</span>
+                </div>
+                <ul className="mt-1 space-y-0.5">{p.evidence.map((ev, j) => <li key={j} className="text-xs text-[#4A6280]">• {ev}</li>)}</ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {d.recommendations.length > 0 && (
+        <div className="rounded-xl border border-cyan/20 bg-cyan/5 p-5">
+          <h3 className="mb-3 font-semibold text-cyan">Recommendations</h3>
+          <ul className="space-y-2">{d.recommendations.map((r, i) => <li key={i} className="flex gap-2 text-xs text-[#4A6280]"><span className="shrink-0 text-cyan">→</span>{r}</li>)}</ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── v3 Tab: Perception Graph ─────────────────────────────────────────────────
+
+function PerceptionGraphTab({ d }: { d: PerceptionGraphData | undefined; loading: boolean }) {
+  if (!d) return <V3Loading label="Perception Graph" />;
+  const nodeTypeColors: Record<string, string> = { entity: '#00C8FF', topic: '#0BCEBC', claim: '#F59E0B', page: '#7A9AB4' };
+  const sorted = [...d.nodes].sort((a, b) => b.confidence - a.confidence);
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-3 gap-4">
+        <div className="card-glass rounded-xl p-4 text-center"><span className="text-2xl font-bold text-white">{d.nodes.length}</span><p className="mt-1 text-xs text-[#4A6280]">Nodes</p></div>
+        <div className="card-glass rounded-xl p-4 text-center"><span className="text-2xl font-bold text-white">{d.edges.length}</span><p className="mt-1 text-xs text-[#4A6280]">Edges</p></div>
+        <div className="card-glass rounded-xl p-4 text-center">
+          <span className="text-2xl font-bold text-white">{d.nodes.length > 0 ? Math.round(d.nodes.reduce((s, n) => s + n.confidence, 0) / d.nodes.length * 100) : '—'}%</span>
+          <p className="mt-1 text-xs text-[#4A6280]">Avg. Confidence</p>
+        </div>
+      </div>
+      <div className="card-glass rounded-xl overflow-hidden">
+        <div className="border-b border-white/10 px-5 py-3"><h3 className="font-semibold text-white">Perception Nodes</h3></div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead><tr className="border-b border-white/5">
+              <th className="px-5 py-3 text-left text-xs font-semibold text-[#4A6280]">Label</th>
+              <th className="px-3 py-3 text-left text-xs font-semibold text-[#4A6280]">Type</th>
+              <th className="px-3 py-3 text-center text-xs font-semibold text-[#4A6280]">Confidence</th>
+              <th className="px-3 py-3 text-center text-xs font-semibold text-[#4A6280]">Citation Ready</th>
+              <th className="px-3 py-3 text-center text-xs font-semibold text-[#4A6280]">Disambiguation</th>
+            </tr></thead>
+            <tbody>
+              {sorted.map((node, i) => (
+                <tr key={i} className="border-b border-white/5 hover:bg-white/[0.02]">
+                  <td className="max-w-[200px] truncate px-5 py-3 text-xs text-white">{node.label}</td>
+                  <td className="px-3 py-3">
+                    <span className="rounded-full px-2 py-0.5 text-[10px] font-medium border" style={{ color: nodeTypeColors[node.type] ?? '#7A9AB4', borderColor: `${nodeTypeColors[node.type] ?? '#7A9AB4'}40`, backgroundColor: `${nodeTypeColors[node.type] ?? '#7A9AB4'}10` }}>{node.type}</span>
+                  </td>
+                  <td className="px-3 py-3 text-center text-xs tabular-nums" style={{ color: scoreColor(node.confidence * 100) }}>{Math.round(node.confidence * 100)}%</td>
+                  <td className="px-3 py-3 text-center text-xs tabular-nums text-[#7A9AB4]">{Math.round(node.citationReadiness * 100)}%</td>
+                  <td className="px-3 py-3 text-center text-xs tabular-nums text-[#7A9AB4]">{Math.round(node.disambiguationStrength * 100)}%</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {d.edges.length > 0 && (
+        <div className="card-glass rounded-xl overflow-hidden">
+          <div className="border-b border-white/10 px-5 py-3"><h3 className="font-semibold text-white">Top Relationships</h3></div>
+          <div className="divide-y divide-white/[0.04]">
+            {[...d.edges].sort((a, b) => b.strength - a.strength).slice(0, 10).map((edge, i) => {
+              const src = d.nodes.find((n) => n.id === edge.source);
+              const tgt = d.nodes.find((n) => n.id === edge.target);
+              return (
+                <div key={i} className="flex items-center gap-3 px-5 py-3 text-xs">
+                  <span className="text-white">{src?.label ?? edge.source}</span>
+                  <span className="text-cyan">—{edge.relationshipType}→</span>
+                  <span className="text-white">{tgt?.label ?? edge.target}</span>
+                  <span className="ml-auto text-[#4A6280]">{Math.round(edge.strength * 100)}%</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── v3 Loading placeholder ───────────────────────────────────────────────────
+
+function V3Loading({ label }: { label: string }) {
+  return (
+    <div className="card-glass rounded-xl p-8 text-center">
+      <div className="mb-4 h-6 w-6 animate-spin rounded-full border-2 border-cyan border-t-transparent mx-auto" />
+      <p className="text-[#4A6280]">Loading {label} analysis…</p>
+    </div>
+  );
+}
+
 // ─── Schema snippet generator (client-side preview) ───────────────────────────
 
 function generateSnippetPreview(type: string): string {
@@ -690,6 +1113,7 @@ export default function AuditPage() {
   const auditId = searchParams.get('auditId');
   const [activeTab, setActiveTab] = useState<TabId>('seo');
 
+  // ── Main audit query ───────────────────────────────────────────────────────
   const { data, isLoading, error } = useQuery<AuditData>({
     queryKey: ['audit', domain],
     queryFn: async () => {
@@ -713,6 +1137,46 @@ export default function AuditPage() {
     staleTime: 60_000,
     retry: 3,
     retryDelay: 1000,
+  });
+
+  // ── v3 lazy queries — only fetch when tab is active ───────────────────────
+  const auditId2 = data?.id ?? null;
+
+  const { data: retrievalData, isLoading: retrievalLoading } = useQuery<RetrievalData>({
+    queryKey: ['audit-retrieval', auditId2],
+    queryFn: () => fetch(`/api/audit/${auditId2}/retrieval`).then((r) => r.json() as Promise<RetrievalData>),
+    enabled: activeTab === 'retrieval' && !!auditId2,
+    staleTime: 120_000,
+  });
+  const { data: machineTrustData, isLoading: machineTrustLoading } = useQuery<MachineTrustData>({
+    queryKey: ['audit-machine-trust', auditId2],
+    queryFn: () => fetch(`/api/audit/${auditId2}/machine-trust`).then((r) => r.json() as Promise<MachineTrustData>),
+    enabled: activeTab === 'machine-trust' && !!auditId2,
+    staleTime: 120_000,
+  });
+  const { data: temporalData, isLoading: temporalLoading } = useQuery<TemporalData>({
+    queryKey: ['audit-temporal', auditId2],
+    queryFn: () => fetch(`/api/audit/${auditId2}/temporal`).then((r) => r.json() as Promise<TemporalData>),
+    enabled: activeTab === 'temporal' && !!auditId2,
+    staleTime: 120_000,
+  });
+  const { data: surfacesData, isLoading: surfacesLoading } = useQuery<SurfacesData>({
+    queryKey: ['audit-surfaces', auditId2],
+    queryFn: () => fetch(`/api/audit/${auditId2}/surfaces`).then((r) => r.json() as Promise<SurfacesData>),
+    enabled: activeTab === 'surfaces' && !!auditId2,
+    staleTime: 120_000,
+  });
+  const { data: authenticityData, isLoading: authenticityLoading } = useQuery<AuthenticityData>({
+    queryKey: ['audit-authenticity', auditId2],
+    queryFn: () => fetch(`/api/audit/${auditId2}/authenticity`).then((r) => r.json() as Promise<AuthenticityData>),
+    enabled: activeTab === 'authenticity' && !!auditId2,
+    staleTime: 120_000,
+  });
+  const { data: perceptionData, isLoading: perceptionLoading } = useQuery<PerceptionGraphData>({
+    queryKey: ['audit-perception-graph', auditId2],
+    queryFn: () => fetch(`/api/audit/${auditId2}/perception-graph`).then((r) => r.json() as Promise<PerceptionGraphData>),
+    enabled: activeTab === 'perception-graph' && !!auditId2,
+    staleTime: 120_000,
   });
 
   // If audit is still running, show progress UI
@@ -849,6 +1313,12 @@ export default function AuditPage() {
           {activeTab === 'schema'             && <SchemaTab data={data} />}
           {activeTab === 'content'            && <ContentTab data={data} />}
           {activeTab === 'performance'        && <PerformanceTab data={data} />}
+          {activeTab === 'retrieval'        && <RetrievalTab d={retrievalData} loading={retrievalLoading} />}
+          {activeTab === 'machine-trust'    && <MachineTrustTab d={machineTrustData} loading={machineTrustLoading} />}
+          {activeTab === 'temporal'         && <TemporalTab d={temporalData} loading={temporalLoading} />}
+          {activeTab === 'surfaces'         && <SurfacesTab d={surfacesData} loading={surfacesLoading} />}
+          {activeTab === 'authenticity'     && <AuthenticityTab d={authenticityData} loading={authenticityLoading} />}
+          {activeTab === 'perception-graph' && <PerceptionGraphTab d={perceptionData} loading={perceptionLoading} />}
           {activeTab === 'links'       && (
             <div className="space-y-6">
               {data.linkGraph ? (

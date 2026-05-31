@@ -32,6 +32,30 @@ export { analyzeEntityIntelligence } from './entity/engine';
 export { analyzeCitationProbability } from './citation/engine';
 export { analyzeSemanticTrust } from './semantic-trust/engine';
 export { buildPerceptionGraph } from './perception-graph/engine';
+export { calculateAIVisibilityScore, calculateRecommendationConfidenceScore, getRecommendationBlockers } from './ai/visibility';
+export type { AIVisibilityScore } from './ai/visibility';
+
+// ─── v3 — Retrieval Simulation ────────────────────────────────────────────────
+export { runRetrievalSimulation } from './retrieval-simulation/engine';
+
+// ─── v3 — Machine Trust ───────────────────────────────────────────────────────
+export { runMachineTrustAnalysis } from './machine-trust/engine';
+
+// ─── v3 — Temporal Authority ──────────────────────────────────────────────────
+export { runTemporalAuthorityAnalysis } from './temporal-authority/engine';
+
+// ─── v3 — Recommendation Surface Mapping ─────────────────────────────────────
+export { runRecommendationSurfaceMapping } from './recommendation-surface/engine';
+export type { AgentProbeResults } from './recommendation-surface/engine';
+
+// ─── v3 — Synthetic Entity Detection ─────────────────────────────────────────
+export { runSyntheticEntityDetection } from './synthetic-entity/engine';
+
+// ─── Self-audit — Health Score + Recommendations ──────────────────────────────
+export { computeHealthScore, getHealthLabel, getHealthColor } from './health-score/engine';
+export type { SiteNexisHealthScore } from './health-score/engine';
+export { generateRecommendations } from './recommendations/engine';
+export type { Recommendation } from './recommendations/engine';
 
 export async function runAllAnalyzers(
   auditId: string,

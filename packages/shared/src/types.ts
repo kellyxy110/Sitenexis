@@ -662,6 +662,21 @@ export interface MachineTrustIntelligenceScore {
   entityAuthenticityConfidence: number;
 }
 
+// ─── v2 — AI Visibility Score ────────────────────────────────────────────────
+
+export interface AIVisibilityScore {
+  score: number;
+  breakdown: {
+    machineReadability: number;
+    entityConfidence: number;
+    retrievalReadiness: number;
+    citationProbability: number;
+    semanticTrust: number;
+    schemaCompleteness: number;
+  };
+  recommendationConfidenceScore: number;
+}
+
 // ─── Score labels ─────────────────────────────────────────────────────────────
 
 export type ScoreLabel = 'Excellent' | 'Good' | 'Needs Work' | 'Critical';

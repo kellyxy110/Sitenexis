@@ -56,8 +56,8 @@ function startHeartbeat(): void {
 const worker = new Worker<CrawlJobData>(
   'crawl',
   async (job) => {
-    const { auditId, domain, userId, layer4Enabled = false, maxPages } = job.data;
-    log(`Job ${job.id} started — audit:${auditId} domain:${domain}`);
+    const { auditId, domain, userId, layer4Enabled = false, maxPages, selfAuditRunId } = job.data;
+    log(`Job ${job.id} started — audit:${auditId} domain:${domain}${selfAuditRunId ? ' (self-audit)' : ''}`);
 
     const { runInfrastructureAgent } = await import('@sitenexis/agents');
     await runInfrastructureAgent({
@@ -66,6 +66,7 @@ const worker = new Worker<CrawlJobData>(
       userId,
       layer4Enabled,
       ...(maxPages !== undefined ? { maxPages } : {}),
+      ...(selfAuditRunId !== undefined ? { selfAuditRunId } : {}),
     });
   },
   {

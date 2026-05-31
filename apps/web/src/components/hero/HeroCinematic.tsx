@@ -354,7 +354,7 @@ export function HeroCinematic({ onSubmit, loading }: HeroCinematicProps) {
               initial="hidden"
               animate="visible"
               variants={fadeUp}
-              className="mt-7 max-w-[520px] text-[17px] leading-[1.72] tracking-[-0.01em] text-slate-400"
+              className="mt-7 max-w-[520px] text-[17px] leading-[1.72] tracking-[-0.01em] text-white"
             >
               SiteNexis models how AI systems retrieve, interpret, trust, and
               recommend your website — across every layer from semantic
@@ -370,7 +370,7 @@ export function HeroCinematic({ onSubmit, loading }: HeroCinematicProps) {
               className="mt-10 w-full max-w-[540px]"
             >
               <DomainInput onSubmit={onSubmit} loading={loading} />
-              <p className="mt-4 text-[12px] tracking-wide text-slate-500">
+              <p className="mt-4 text-[12px] tracking-wide text-slate-300">
                 Free&nbsp;&nbsp;·&nbsp;&nbsp;No account required&nbsp;&nbsp;·&nbsp;&nbsp;Results in ~60s
               </p>
             </motion.div>
@@ -384,8 +384,8 @@ export function HeroCinematic({ onSubmit, loading }: HeroCinematicProps) {
               className="mt-12 flex flex-wrap gap-x-7 gap-y-3"
             >
               {PROOF_ITEMS.map((item) => (
-                <span key={item} className="flex items-center gap-2 text-[12px] text-slate-500">
-                  <span className="h-px w-4 bg-slate-700" />
+                <span key={item} className="flex items-center gap-2 text-[12px] text-slate-200">
+                  <span className="h-px w-4 bg-slate-500" />
                   {item}
                 </span>
               ))}

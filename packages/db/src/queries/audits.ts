@@ -82,6 +82,18 @@ export async function softDeleteAudit(id: string): Promise<void> {
   });
 }
 
+export async function getPreviousCompletedAuditIdForDomain(
+  domain: string,
+  excludeAuditId: string,
+): Promise<string | null> {
+  const audit = await db.audit.findFirst({
+    where: { domain, status: 'complete', archivedAt: null, id: { not: excludeAuditId } },
+    orderBy: { completedAt: 'desc' },
+    select: { id: true },
+  });
+  return audit?.id ?? null;
+}
+
 export async function countAuditsThisMonth(userId: string): Promise<number> {
   const start = new Date();
   start.setDate(1);

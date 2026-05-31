@@ -19,9 +19,22 @@ export async function saveCrawledPages(
       wordCount: p.wordCount,
       internalLinks: p.internalLinks.length,
       externalLinks: p.externalLinks.length,
+      bodyText: p.bodyText ?? null,
       crawledAt: p.crawledAt,
     })),
   });
+}
+
+export async function getPageTextsByAudit(auditId: string): Promise<Map<string, string>> {
+  const rows = await db.page.findMany({
+    where: { auditId, archivedAt: null },
+    select: { url: true, bodyText: true },
+  });
+  const map = new Map<string, string>();
+  for (const row of rows) {
+    if (row.bodyText) map.set(row.url, row.bodyText);
+  }
+  return map;
 }
 
 export async function getPagesByAudit(auditId: string): Promise<Page[]> {

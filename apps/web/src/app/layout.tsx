@@ -21,6 +21,12 @@ export const metadata: Metadata = {
   title: 'SiteNexis — AI Retrieval & Machine Trust Intelligence',
   description:
     'SiteNexis models how AI systems retrieve, interpret, trust, and recommend your website — across every layer from semantic structure to machine trust formation.',
+  icons: {
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+    ],
+    apple: '/apple-icon',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

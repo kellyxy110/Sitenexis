@@ -18,6 +18,7 @@ import {
   CreditCard,
   Users,
   Puzzle,
+  Activity,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -48,6 +49,13 @@ export const NAV_GROUPS: NavGroup[] = [
         href: '/dashboard',
         icon: LayoutDashboard,
         matchExact: true,
+      },
+      {
+        id: 'health',
+        label: 'SiteNexis Health',
+        href: '/dashboard/health',
+        icon: Activity,
+        badge: 'LIVE',
       },
       {
         id: 'ai-overview',

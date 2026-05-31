@@ -28,6 +28,7 @@ const CATEGORY_COLORS: Record<string, { text: string; bg: string; border: string
   'Entity SEO':       { text: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20', glow: 'rgba(139,92,246,0.18)'    },
   'Technical SEO':    { text: 'text-sapphire-400',bg: 'bg-blue-500/10',  border: 'border-blue-500/20',   glow: 'rgba(59,130,246,0.18)'    },
   'Strategy':         { text: 'text-amber-400',  bg: 'bg-amber-500/10',  border: 'border-amber-500/20',  glow: 'rgba(245,158,11,0.18)'    },
+  'AI Agents':        { text: 'text-violet-400', bg: 'bg-violet-500/10', border: 'border-violet-500/20', glow: 'rgba(139,92,246,0.22)'    },
 }
 
 function getCategoryStyle(cat: string) {

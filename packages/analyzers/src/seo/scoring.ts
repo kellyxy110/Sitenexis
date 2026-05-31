@@ -69,14 +69,14 @@ const CRAWLABILITY_TYPES = new Set([
 ]);
 const IMAGE_TYPES = new Set(['missing_alt_text']);
 
-// Category starting budgets
+// Category starting budgets — sum = 77; bonuses (max 23) bring a perfect site to 100.
 const BUDGETS = {
-  titleOptimisation: 25,
-  metaOptimisation: 25,
-  headingStructure: 15,
-  canonicalisation: 15,
-  crawlability: 10,
-  imageOptimisation: 10,
+  titleOptimisation: 20,
+  metaOptimisation: 20,
+  headingStructure: 12,
+  canonicalisation: 12,
+  crawlability: 8,
+  imageOptimisation: 5,
 } as const;
 
 // ─── Bonus conditions ─────────────────────────────────────────────────────────
@@ -137,18 +137,20 @@ export function calculateSEOScore(
     const rawDeduction = ISSUE_DEDUCTIONS[issue.type] ?? defaultDeduction(issue.severity);
     const deduction = rawDeduction / normFactor;
 
+    // No per-category floor — excess deductions carry into the total, allowing
+    // a site with many critical issues to score 0 even if other categories are clean.
     if (TITLE_TYPES.has(issue.type)) {
-      titleOptimisation = Math.max(0, titleOptimisation - deduction);
+      titleOptimisation -= deduction;
     } else if (META_TYPES.has(issue.type)) {
-      metaOptimisation = Math.max(0, metaOptimisation - deduction);
+      metaOptimisation -= deduction;
     } else if (HEADING_TYPES.has(issue.type)) {
-      headingStructure = Math.max(0, headingStructure - deduction);
+      headingStructure -= deduction;
     } else if (CANONICAL_TYPES.has(issue.type)) {
-      canonicalisation = Math.max(0, canonicalisation - deduction);
+      canonicalisation -= deduction;
     } else if (CRAWLABILITY_TYPES.has(issue.type)) {
-      crawlability = Math.max(0, crawlability - deduction);
+      crawlability -= deduction;
     } else if (IMAGE_TYPES.has(issue.type)) {
-      imageOptimisation = Math.max(0, imageOptimisation - deduction);
+      imageOptimisation -= deduction;
     }
   }
 
@@ -167,12 +169,12 @@ export function calculateSEOScore(
     score: finalScore,
     issues,
     breakdown: {
-      titleOptimisation: Math.round(titleOptimisation),
-      metaOptimisation: Math.round(metaOptimisation),
-      headingStructure: Math.round(headingStructure),
-      canonicalisation: Math.round(canonicalisation),
-      crawlability: Math.round(crawlability),
-      imageOptimisation: Math.round(imageOptimisation),
+      titleOptimisation: Math.round(Math.max(0, titleOptimisation)),
+      metaOptimisation: Math.round(Math.max(0, metaOptimisation)),
+      headingStructure: Math.round(Math.max(0, headingStructure)),
+      canonicalisation: Math.round(Math.max(0, canonicalisation)),
+      crawlability: Math.round(Math.max(0, crawlability)),
+      imageOptimisation: Math.round(Math.max(0, imageOptimisation)),
     },
   };
 }
