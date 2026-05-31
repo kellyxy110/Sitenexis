@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "buildCommand": "turbo run build --filter=web...",
+  "buildCommand": "pnpm --filter @sitenexis/db exec prisma generate --schema=./schema.prisma && turbo run build --filter=web...",
   "installCommand": "pnpm install --no-frozen-lockfile",
   "outputDirectory": "apps/web/.next"
 }
