@@ -22,6 +22,8 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 
+// Layers is already imported above — used for SII
+
 export interface NavItem {
   id: string;
   label: string;
@@ -62,6 +64,13 @@ export const NAV_GROUPS: NavGroup[] = [
         label: 'AI Visibility Overview',
         href: '/dashboard/overview',
         icon: Eye,
+      },
+      {
+        id: 'sii',
+        label: 'Intelligence Index',
+        href: '/dashboard/sii',
+        icon: Layers,
+        badge: 'SII',
       },
     ],
   },

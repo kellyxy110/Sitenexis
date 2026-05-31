@@ -1,9 +1,9 @@
 import { type CrawledPage } from '@sitenexis/shared';
 import {
   updateAuditStatus, saveAuditScores, getAuditScores, getAIVisibilityScore, getPerceptionGraph,
-  getPreviousCompletedAuditIdForDomain, getPriorSchemaUrls,
+  getPreviousCompletedAuditIdForDomain, getPriorSchemaUrls, saveSIIScore,
 } from '@sitenexis/db';
-import { analyzeLinkGraph, analyzeMachineReadability, buildPerceptionGraph, computeHealthScore, generateRecommendations } from '@sitenexis/analyzers';
+import { analyzeLinkGraph, analyzeMachineReadability, buildPerceptionGraph, computeHealthScore, generateRecommendations, computeSIIScore } from '@sitenexis/analyzers';
 import { emitAgentEvent } from './registry';
 import { runCrawlAgent } from './crawl-agent';
 import { runSEOAgent } from './seo-agent';
@@ -120,6 +120,23 @@ export async function runInfrastructureAgent(input: AuditJobInput): Promise<void
       citationAnalysis,
       semanticTrust,
       perceptionGraph,
+    });
+
+    // Compute + persist SII score (synchronous — all inputs already available)
+    const siiResult = computeSIIScore({
+      url: `https://${domain}`,
+      seoScore:                seo.score,
+      machineReadabilityScore: machineReadability.score,
+      aiVisibilityScore:       null, // derived internally from sub-scores
+      semanticTrustScore:      semanticTrust.score,
+      entityConfidenceScore:   entityIntelligence.entityConfidenceScore,
+      retrievalReadinessScore: aiReadability.score,
+      citationProbabilityScore: citationAnalysis.citationProbabilityScore,
+      schemaScore:             schema.score,
+      pagesCrawled:            pages.length,
+    });
+    await saveSIIScore(auditId, { ...siiResult, url: `https://${domain}` }).catch(() => {
+      // Non-fatal — SII is additive; do not block audit completion
     });
 
     // Phase 6 — Visualization (parallel)

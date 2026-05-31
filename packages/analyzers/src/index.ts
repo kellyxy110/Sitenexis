@@ -57,6 +57,10 @@ export type { SiteNexisHealthScore } from './health-score/engine';
 export { generateRecommendations } from './recommendations/engine';
 export type { Recommendation } from './recommendations/engine';
 
+// ─── SiteNexis Intelligence Index ─────────────────────────────────────────────
+export { computeSIIScore } from './sii/engine';
+export type { SIIInput, SIIResult } from './sii/engine';
+
 export async function runAllAnalyzers(
   auditId: string,
   pages: CrawledPage[],

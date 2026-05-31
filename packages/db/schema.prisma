@@ -78,6 +78,7 @@ model Audit {
   temporalAuthorityRecord  TemporalAuthorityRecord?
   recommendationSurfaceMap RecommendationSurfaceMap?
   syntheticEntityFlags     SyntheticEntityFlag[]
+  siiScore                 SIIScore?
 
   @@index([userId])
   @@index([domain])
@@ -511,4 +512,30 @@ model KnowledgeGraphRun {
 
   @@index([domain, generatedAt])
   @@map("knowledge_graph_runs")
+}
+
+// ─── SiteNexis Intelligence Index ────────────────────────────────────────────
+
+model SIIScore {
+  id      String @id @default(cuid())
+  auditId String @unique @map("audit_id")
+  audit   Audit  @relation(fields: [auditId], references: [id])
+
+  siiScore   Float @map("sii_score")
+  confidence Float
+
+  /// Raw dimension scores (0–100, nullable when input was unavailable)
+  breakdown             Json
+  /// Weighted contributions (score × weight for each dimension)
+  weightedContributions Json @map("weighted_contributions")
+  /// Machine-interpretable observations
+  insights              Json
+  /// Dimension or data gaps preventing accurate scoring
+  criticalGaps          Json @map("critical_gaps")
+  /// Prioritised recommendations sorted by expected SII gain
+  recommendations       Json
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("sii_scores")
 }

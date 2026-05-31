@@ -778,6 +778,43 @@ export type AuditJob = Audit;
 export type InternalLinkGraph = LinkGraphScore;
 export type SchemaAnalysis = SchemaScore;
 
+// ─── SiteNexis Intelligence Index (SII) ──────────────────────────────────────
+
+export interface SIIBreakdown {
+  seo_readability: number | null;
+  ai_visibility: number | null;
+  semantic_structure: number | null;
+  entity_clarity: number | null;
+  retrieval_friendliness: number | null;
+  citation_potential: number | null;
+}
+
+export interface SIIWeightedContributions {
+  seo_readability: number | null;
+  ai_visibility: number | null;
+  semantic_structure: number | null;
+  entity_clarity: number | null;
+  retrieval_friendliness: number | null;
+  citation_potential: number | null;
+}
+
+export interface SIIRecommendationEntry {
+  area: string;
+  action: string;
+  expected_gain: string;
+}
+
+export interface SIIScore {
+  url: string;
+  sii_score: number;
+  confidence: number;
+  breakdown: SIIBreakdown;
+  weighted_contributions: SIIWeightedContributions;
+  insights: string[];
+  critical_gaps: string[];
+  recommendation_priority: SIIRecommendationEntry[];
+}
+
 // ─── API response shapes ──────────────────────────────────────────────────────
 
 export interface ApiError {

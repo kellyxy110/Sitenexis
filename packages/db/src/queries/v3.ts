@@ -6,6 +6,7 @@ import type {
   TemporalAuthorityResult,
   RecommendationSurfaceMap,
   SyntheticEntityAnalysis,
+  SIIScore,
 } from '@sitenexis/shared';
 
 // ─── Retrieval Simulation ─────────────────────────────────────────────────────
@@ -258,5 +259,47 @@ export async function getLatestSyntheticEntityAnalysis(auditId: string): Promise
     detectedPatterns: r.detectedPatterns as unknown as SyntheticEntityAnalysis['detectedPatterns'],
     flaggedEntities: r.flaggedEntities as unknown as SyntheticEntityAnalysis['flaggedEntities'],
     recommendations: r.recommendations,
+  };
+}
+
+// ─── SiteNexis Intelligence Index ────────────────────────────────────────────
+
+export async function saveSIIScore(auditId: string, result: SIIScore): Promise<void> {
+  await db.sIIScore.upsert({
+    where: { auditId },
+    update: {
+      siiScore:             result.sii_score,
+      confidence:           result.confidence,
+      breakdown:            result.breakdown as unknown as Prisma.InputJsonValue,
+      weightedContributions: result.weighted_contributions as unknown as Prisma.InputJsonValue,
+      insights:             result.insights as unknown as Prisma.InputJsonValue,
+      criticalGaps:         result.critical_gaps as unknown as Prisma.InputJsonValue,
+      recommendations:      result.recommendation_priority as unknown as Prisma.InputJsonValue,
+    },
+    create: {
+      auditId,
+      siiScore:             result.sii_score,
+      confidence:           result.confidence,
+      breakdown:            result.breakdown as unknown as Prisma.InputJsonValue,
+      weightedContributions: result.weighted_contributions as unknown as Prisma.InputJsonValue,
+      insights:             result.insights as unknown as Prisma.InputJsonValue,
+      criticalGaps:         result.critical_gaps as unknown as Prisma.InputJsonValue,
+      recommendations:      result.recommendation_priority as unknown as Prisma.InputJsonValue,
+    },
+  });
+}
+
+export async function getSIIScore(auditId: string): Promise<SIIScore | null> {
+  const r = await db.sIIScore.findUnique({ where: { auditId } });
+  if (!r) return null;
+  return {
+    url:           '',
+    sii_score:     r.siiScore,
+    confidence:    r.confidence,
+    breakdown:     r.breakdown as unknown as SIIScore['breakdown'],
+    weighted_contributions: r.weightedContributions as unknown as SIIScore['weighted_contributions'],
+    insights:      r.insights as unknown as string[],
+    critical_gaps: r.criticalGaps as unknown as string[],
+    recommendation_priority: r.recommendations as unknown as SIIScore['recommendation_priority'],
   };
 }
