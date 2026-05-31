@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
-import { Eye, EyeOff, Mail, Lock } from 'lucide-react'
+import { Eye, EyeOff, Mail, Lock, Brain, Shield, Network, Zap, CheckCircle2 } from 'lucide-react'
 import { createSupabaseBrowserClient, isSupabaseConfigured } from '@/lib/supabase/client'
 
 // ── SVG icons ─────────────────────────────────────────────────────────────────
@@ -28,23 +28,7 @@ function GitHubIcon() {
   )
 }
 
-function TwitterXIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-    </svg>
-  )
-}
-
-function DiscordIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M20.317 4.492c-1.53-.69-3.17-1.2-4.885-1.49a.075.075 0 0 0-.079.036c-.21.369-.444.85-.608 1.23a18.566 18.566 0 0 0-5.487 0 12.36 12.36 0 0 0-.617-1.23A.077.077 0 0 0 8.562 3c-1.714.29-3.354.8-4.885 1.491a.07.07 0 0 0-.032.027C.533 9.093-.32 13.555.099 17.961a.08.08 0 0 0 .031.055 20.03 20.03 0 0 0 5.993 2.98.078.078 0 0 0 .084-.026c.462-.62.874-1.275 1.226-1.963a.074.074 0 0 0-.041-.104 13.201 13.201 0 0 1-1.872-.878.075.075 0 0 1-.008-.125c.126-.093.252-.19.372-.287a.075.075 0 0 1 .078-.01c3.927 1.764 8.18 1.764 12.061 0a.075.075 0 0 1 .079.009c.12.098.245.195.372.288a.075.075 0 0 1-.006.125c-.598.344-1.22.635-1.873.877a.075.075 0 0 0-.041.105c.36.687.772 1.341 1.225 1.962a.077.077 0 0 0 .084.028 19.963 19.963 0 0 0 6.002-2.981.076.076 0 0 0 .032-.054c.5-5.094-.838-9.52-3.549-13.442a.06.06 0 0 0-.031-.028zM8.02 15.278c-1.182 0-2.157-1.069-2.157-2.38 0-1.312.956-2.38 2.157-2.38 1.21 0 2.176 1.077 2.157 2.38 0 1.312-.956 2.38-2.157 2.38zm7.975 0c-1.183 0-2.157-1.069-2.157-2.38 0-1.312.955-2.38 2.157-2.38 1.21 0 2.176 1.077 2.157 2.38 0 1.312-.946 2.38-2.157 2.38z" />
-    </svg>
-  )
-}
-
-function PentagonMark({ size = 18 }: { size?: number }) {
+function PentagonMark({ size = 20 }: { size?: number }) {
   const cx = size / 2, cy = size / 2, r = size * 0.42
   const pts = Array.from({ length: 5 }, (_, i) => {
     const a = (Math.PI * 2 * i) / 5 - Math.PI / 2
@@ -52,12 +36,121 @@ function PentagonMark({ size = 18 }: { size?: number }) {
   }).join(' ')
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} fill="none" aria-hidden>
-      <polygon points={pts} stroke="rgba(255,255,255,0.5)" strokeWidth="1.2" fill="rgba(255,255,255,0.04)" />
+      <polygon points={pts} stroke="rgba(0,200,255,0.7)" strokeWidth="1.4" fill="rgba(0,200,255,0.1)" />
     </svg>
   )
 }
 
-// ── Login form ────────────────────────────────────────────────────────────────
+// ── Left brand panel ──────────────────────────────────────────────────────────
+
+const FEATURES = [
+  {
+    icon: Brain,
+    title: 'AI Visibility Scoring',
+    desc: 'See exactly how ChatGPT, Perplexity, and Google AI Overviews perceive your content.',
+  },
+  {
+    icon: Network,
+    title: 'Entity Intelligence Engine',
+    desc: 'Map every named entity on your domain and score consistency, coverage, and disambiguation.',
+  },
+  {
+    icon: Shield,
+    title: 'Machine Trust Layer',
+    desc: 'Model how AI systems form, maintain, and lose trust in your website over time.',
+  },
+  {
+    icon: Zap,
+    title: 'Retrieval Simulation',
+    desc: 'Simulate the 6-stage AI retrieval pipeline and identify every failure point.',
+  },
+]
+
+const STATS = [
+  { value: '12', label: 'Intelligence dimensions' },
+  { value: '16', label: 'Analysis agents' },
+  { value: '6', label: 'AI provider models' },
+]
+
+function BrandPanel() {
+  return (
+    <div className="relative flex h-full flex-col justify-between overflow-hidden px-12 py-14 xl:px-16">
+      {/* Background glow */}
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_30%_40%,rgba(0,200,255,0.09),transparent)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_40%_30%_at_70%_80%,rgba(11,206,188,0.06),transparent)]" />
+
+      {/* Decorative grid lines */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.35]"
+        style={{
+          backgroundImage: `linear-gradient(rgba(0,200,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,200,255,0.04) 1px, transparent 1px)`,
+          backgroundSize: '48px 48px',
+        }}
+      />
+
+      {/* Decorative orbs */}
+      <div className="pointer-events-none absolute -top-20 -left-20 h-64 w-64 rounded-full bg-cyan-500/[0.04] blur-3xl" />
+      <div className="pointer-events-none absolute bottom-10 right-10 h-48 w-48 rounded-full bg-teal-500/[0.05] blur-2xl" />
+
+      <div className="relative space-y-10">
+        {/* Logo */}
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-500/20 bg-cyan-500/[0.08]">
+            <PentagonMark size={22} />
+          </div>
+          <div>
+            <span className="block text-[20px] font-bold tracking-[-0.02em] text-white" style={{ fontFamily: 'Georgia, serif' }}>
+              SiteNexis
+            </span>
+            <span className="block text-[11px] font-medium tracking-[0.1em] uppercase text-cyan-500/60">
+              AI Visibility Intelligence
+            </span>
+          </div>
+        </div>
+
+        {/* Headline */}
+        <div>
+          <h1 className="text-[32px] font-bold leading-[1.2] tracking-[-0.03em] text-white xl:text-[36px]">
+            How do AI systems<br />
+            <span className="bg-gradient-to-r from-cyan-400 to-teal-400 bg-clip-text text-transparent">
+              see your website?
+            </span>
+          </h1>
+          <p className="mt-4 text-[15px] leading-[1.7] text-slate-400 max-w-[380px]">
+            SiteNexis is the only platform that models machine perception, trust formation, and retrieval behaviour across the AI ecosystem — not just traditional search.
+          </p>
+        </div>
+
+        {/* Features */}
+        <div className="space-y-5">
+          {FEATURES.map(({ icon: Icon, title, desc }) => (
+            <div key={title} className="flex items-start gap-4">
+              <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/[0.07] bg-white/[0.04]">
+                <Icon size={16} className="text-cyan-400" strokeWidth={1.5} />
+              </div>
+              <div>
+                <p className="text-[13px] font-semibold text-white">{title}</p>
+                <p className="mt-0.5 text-[12px] leading-[1.6] text-slate-500">{desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Stats bar */}
+      <div className="relative mt-10 grid grid-cols-3 gap-4 border-t border-white/[0.06] pt-8">
+        {STATS.map(({ value, label }) => (
+          <div key={label}>
+            <p className="text-[28px] font-bold tracking-[-0.03em] text-white">{value}</p>
+            <p className="mt-0.5 text-[11px] text-slate-500">{label}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── Login form ─────────────────────────────────────────────────────────────────
 
 function LoginForm() {
   const router = useRouter()
@@ -68,233 +161,196 @@ function LoginForm() {
   const [password,    setPassword]    = useState('')
   const [showPass,    setShowPass]    = useState(false)
   const [loading,     setLoading]     = useState(false)
-  const [oauthLoad,   setOauthLoad]   = useState<'google' | 'github' | 'twitter' | 'discord' | null>(null)
+  const [oauthLoad,   setOauthLoad]   = useState<'google' | 'github' | null>(null)
   const [error,       setError]       = useState('')
 
   const configured = isSupabaseConfigured()
 
-  // ── OAuth ──────────────────────────────────────────────────────────────────
-
-  const handleOAuth = useCallback(async (provider: 'google' | 'github' | 'twitter' | 'discord') => {
+  const handleOAuth = useCallback(async (provider: 'google' | 'github') => {
     if (!configured) return
     setOauthLoad(provider)
-    setError('')
-    const supabase = createSupabaseBrowserClient()
-    const { error: err } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectTo)}`,
-      },
-    })
-    if (err) { setError(err.message); setOauthLoad(null) }
-    // On success the browser navigates away — no need to clear loading
+    try {
+      const supabase = createSupabaseBrowserClient()
+      await supabase.auth.signInWithOAuth({
+        provider,
+        options: { redirectTo: `${window.location.origin}/auth/callback?redirectTo=${redirectTo}` },
+      })
+    } catch {
+      setOauthLoad(null)
+    }
   }, [configured, redirectTo])
-
-  // ── Email/password ─────────────────────────────────────────────────────────
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email || !password) return
+    if (!configured || loading) return
     setLoading(true)
     setError('')
 
-    const supabase = createSupabaseBrowserClient()
-    const { error: err } = await supabase.auth.signInWithPassword({ email, password })
-
-    if (err) {
-      setLoading(false)
-      // Map common Supabase errors to user-friendly messages
-      if (err.message.includes('Invalid login credentials')) {
+    try {
+      const supabase = createSupabaseBrowserClient()
+      const { error: err } = await supabase.auth.signInWithPassword({ email, password })
+      if (err) throw err
+      router.push(redirectTo)
+      router.refresh()
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Sign in failed'
+      if (msg.toLowerCase().includes('invalid login') || msg.toLowerCase().includes('invalid credentials')) {
         setError('Incorrect email or password. Please try again.')
-      } else if (err.message.includes('Email not confirmed')) {
+      } else if (msg.toLowerCase().includes('email not confirmed')) {
         setError('Please confirm your email address before signing in.')
       } else {
-        setError(err.message)
+        setError(msg)
       }
-      return
+    } finally {
+      setLoading(false)
     }
-
-    // Session established — navigate to dashboard
-    router.push(redirectTo)
-    router.refresh()
-  }, [email, password, redirectTo, router])
+  }, [email, password, configured, loading, redirectTo, router])
 
   return (
     <div className="w-full max-w-[400px]">
 
-      {/* Logo */}
-      <div className="mb-9 flex items-center justify-center gap-2.5">
-        <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/[0.1] bg-white/[0.04]">
+      {/* Mobile logo (hidden on lg+) */}
+      <div className="mb-8 flex items-center justify-center gap-2.5 lg:hidden">
+        <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-cyan-500/20 bg-cyan-500/[0.08]">
           <PentagonMark size={18} />
         </div>
-        <span className="text-[17px] font-bold tracking-[-0.01em] text-white">SiteNexis</span>
+        <span className="text-[17px] font-bold tracking-[-0.01em] text-white" style={{ fontFamily: 'Georgia, serif' }}>SiteNexis</span>
       </div>
 
-      {/* Card */}
-      <div className="rounded-[24px] border border-white/[0.08] bg-white/[0.03] p-8 shadow-[0_8px_48px_rgba(0,0,0,0.5)] backdrop-blur-2xl">
+      <h2 className="text-[24px] font-bold tracking-[-0.02em] text-white">Welcome back</h2>
+      <p className="mt-1.5 text-[14px] text-slate-500">Sign in to your SiteNexis account.</p>
 
-        <h1 className="text-[22px] font-bold tracking-[-0.02em] text-white">Welcome back</h1>
-        <p className="mt-1.5 text-[14px] text-slate-500">Sign in to your SiteNexis account.</p>
+      {/* Demo mode */}
+      {!configured && (
+        <div className="mt-6 rounded-xl border border-amber-500/[0.2] bg-amber-500/[0.08] px-4 py-3">
+          <p className="text-[12px] font-semibold text-amber-400">Demo mode active</p>
+          <p className="mt-0.5 text-[11px] text-amber-400/70">
+            Supabase is not configured. Add credentials to{' '}
+            <code className="rounded bg-amber-500/[0.15] px-1 font-mono text-amber-300">apps/web/.env</code>.
+          </p>
+          <button
+            onClick={() => router.push('/dashboard')}
+            className="mt-3 w-full rounded-lg border border-amber-500/[0.25] bg-amber-500/[0.12] py-2 text-[12px] font-semibold text-amber-300 transition hover:bg-amber-500/[0.2]"
+          >
+            Enter demo dashboard →
+          </button>
+        </div>
+      )}
 
-        {/* Demo mode banner */}
-        {!configured && (
-          <div className="mt-6 rounded-xl border border-amber-500/[0.2] bg-amber-500/[0.08] px-4 py-3">
-            <p className="text-[12px] font-semibold text-amber-400">Demo mode active</p>
-            <p className="mt-0.5 text-[11px] text-amber-400/70">
-              Supabase is not configured. Add credentials to{' '}
-              <code className="rounded bg-amber-500/[0.15] px-1 font-mono text-amber-300">apps/web/.env</code>.
-            </p>
-            <button
-              onClick={() => router.push('/dashboard')}
-              className="mt-3 w-full rounded-lg border border-amber-500/[0.25] bg-amber-500/[0.12] py-2 text-[12px] font-semibold text-amber-300 transition hover:bg-amber-500/[0.2]"
-            >
-              Enter demo dashboard →
-            </button>
+      {configured && (
+        <>
+          {/* OAuth */}
+          <div className="mt-6 grid grid-cols-2 gap-3">
+            {([
+              { provider: 'google' as const, label: 'Google',  Icon: GoogleIcon },
+              { provider: 'github' as const, label: 'GitHub',  Icon: GitHubIcon },
+            ]).map(({ provider, label, Icon }) => (
+              <button
+                key={provider}
+                onClick={() => handleOAuth(provider)}
+                disabled={!!oauthLoad}
+                className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-white/[0.1] bg-white/[0.04] px-3 py-3 text-[13px] font-medium text-white transition-all hover:border-white/[0.18] hover:bg-white/[0.07] disabled:opacity-50"
+              >
+                {oauthLoad === provider
+                  ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+                  : <Icon />}
+                {label}
+              </button>
+            ))}
           </div>
-        )}
 
-        {configured && (
-          <>
-            {/* OAuth buttons */}
-            <div className="mt-6 grid grid-cols-2 gap-2.5">
-              <button
-                onClick={() => handleOAuth('google')}
-                disabled={!!oauthLoad}
-                className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-white/[0.1] bg-white/[0.04] px-3 py-3 text-[13px] font-medium text-white transition-all duration-200 hover:border-white/[0.18] hover:bg-white/[0.07] disabled:opacity-50"
-              >
-                {oauthLoad === 'google' ? (
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white" />
-                ) : <GoogleIcon />}
-                Google
-              </button>
+          <div className="relative my-6 flex items-center gap-3">
+            <div className="flex-1 border-t border-white/[0.07]" />
+            <span className="shrink-0 text-[11px] font-medium text-slate-600">or continue with email</span>
+            <div className="flex-1 border-t border-white/[0.07]" />
+          </div>
 
-              <button
-                onClick={() => handleOAuth('github')}
-                disabled={!!oauthLoad}
-                className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-white/[0.1] bg-white/[0.04] px-3 py-3 text-[13px] font-medium text-white transition-all duration-200 hover:border-white/[0.18] hover:bg-white/[0.07] disabled:opacity-50"
-              >
-                {oauthLoad === 'github' ? (
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white" />
-                ) : <GitHubIcon />}
-                GitHub
-              </button>
-
-              <button
-                onClick={() => handleOAuth('twitter')}
-                disabled={!!oauthLoad}
-                className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-white/[0.1] bg-white/[0.04] px-3 py-3 text-[13px] font-medium text-white transition-all duration-200 hover:border-white/[0.18] hover:bg-white/[0.07] disabled:opacity-50"
-              >
-                {oauthLoad === 'twitter' ? (
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white" />
-                ) : <TwitterXIcon />}
-                Twitter / X
-              </button>
-
-              <button
-                onClick={() => handleOAuth('discord')}
-                disabled={!!oauthLoad}
-                className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-white/[0.1] bg-white/[0.04] px-3 py-3 text-[13px] font-medium text-white transition-all duration-200 hover:border-white/[0.18] hover:bg-white/[0.07] disabled:opacity-50"
-              >
-                {oauthLoad === 'discord' ? (
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white" />
-                ) : <DiscordIcon />}
-                Discord
-              </button>
+          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+            {/* Email */}
+            <div>
+              <label htmlFor="email" className="mb-1.5 block text-[12px] font-medium text-slate-500">
+                Email address
+              </label>
+              <div className="relative">
+                <Mail size={14} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-600" strokeWidth={1.5} />
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  required
+                  autoComplete="email"
+                  autoFocus
+                  className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] py-3 pl-10 pr-4 text-[14px] text-white placeholder-slate-700 outline-none transition focus:border-teal-500/[0.4] focus:bg-white/[0.06] focus:ring-2 focus:ring-teal-500/[0.12]"
+                />
+              </div>
             </div>
 
-            {/* Divider */}
-            <div className="relative my-6 flex items-center gap-3">
-              <div className="flex-1 border-t border-white/[0.07]" />
-              <span className="shrink-0 text-[11px] font-medium text-slate-600">or continue with email</span>
-              <div className="flex-1 border-t border-white/[0.07]" />
+            {/* Password */}
+            <div>
+              <div className="mb-1.5 flex items-center justify-between">
+                <label htmlFor="password" className="text-[12px] font-medium text-slate-500">Password</label>
+                <Link href="/reset-password" className="text-[11px] text-slate-600 transition hover:text-slate-400">
+                  Forgot password?
+                </Link>
+              </div>
+              <div className="relative">
+                <Lock size={14} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-600" strokeWidth={1.5} />
+                <input
+                  id="password"
+                  type={showPass ? 'text' : 'password'}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  autoComplete="current-password"
+                  className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] py-3 pl-10 pr-12 text-[14px] text-white placeholder-slate-700 outline-none transition focus:border-teal-500/[0.4] focus:bg-white/[0.06] focus:ring-2 focus:ring-teal-500/[0.12]"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPass(v => !v)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-600 transition hover:text-slate-400"
+                  aria-label={showPass ? 'Hide password' : 'Show password'}
+                >
+                  {showPass ? <EyeOff size={14} strokeWidth={1.5} /> : <Eye size={14} strokeWidth={1.5} />}
+                </button>
+              </div>
             </div>
 
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-
-              {/* Email */}
-              <div>
-                <label htmlFor="email" className="mb-1.5 block text-[12px] font-medium text-slate-500">
-                  Email address
-                </label>
-                <div className="relative">
-                  <Mail size={14} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-600" strokeWidth={1.5} />
-                  <input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    placeholder="you@example.com"
-                    required
-                    autoComplete="email"
-                    autoFocus
-                    className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] py-3 pl-10 pr-4 text-[14px] text-white placeholder-slate-700 outline-none transition focus:border-teal-500/[0.4] focus:bg-white/[0.06] focus:ring-2 focus:ring-teal-500/[0.12] disabled:opacity-50"
-                  />
-                </div>
+            {error && (
+              <div className="rounded-xl border border-red-500/[0.2] bg-red-500/[0.08] px-4 py-3 text-[12px] text-red-400">
+                {error}
               </div>
+            )}
 
-              {/* Password */}
-              <div>
-                <div className="mb-1.5 flex items-center justify-between">
-                  <label htmlFor="password" className="text-[12px] font-medium text-slate-500">
-                    Password
-                  </label>
-                  <Link href="/reset-password" className="text-[11px] text-slate-600 transition hover:text-slate-400">
-                    Forgot password?
-                  </Link>
-                </div>
-                <div className="relative">
-                  <Lock size={14} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-600" strokeWidth={1.5} />
-                  <input
-                    id="password"
-                    type={showPass ? 'text' : 'password'}
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    required
-                    autoComplete="current-password"
-                    className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] py-3 pl-10 pr-12 text-[14px] text-white placeholder-slate-700 outline-none transition focus:border-teal-500/[0.4] focus:bg-white/[0.06] focus:ring-2 focus:ring-teal-500/[0.12] disabled:opacity-50"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPass(v => !v)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-600 transition hover:text-slate-400"
-                    aria-label={showPass ? 'Hide password' : 'Show password'}
-                  >
-                    {showPass ? <EyeOff size={14} strokeWidth={1.5} /> : <Eye size={14} strokeWidth={1.5} />}
-                  </button>
-                </div>
-              </div>
+            <button
+              type="submit"
+              disabled={loading || !email || !password}
+              className="mt-1 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500 py-3 text-[13px] font-bold text-[#050816] transition-all hover:shadow-[0_0_20px_rgba(0,200,255,0.25)] hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40 disabled:translate-y-0 disabled:shadow-none"
+            >
+              {loading ? (
+                <>
+                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#050816]/30 border-t-[#050816]" />
+                  Signing in…
+                </>
+              ) : 'Sign in'}
+            </button>
+          </form>
 
-              {/* Error */}
-              {error && (
-                <div className="rounded-xl border border-red-500/[0.2] bg-red-500/[0.08] px-4 py-3 text-[12px] text-red-400">
-                  {error}
-                </div>
-              )}
+          {/* Trust signals */}
+          <div className="mt-5 flex items-center justify-center gap-4 text-[11px] text-slate-600">
+            {['End-to-end encrypted', 'No card required', 'Cancel anytime'].map(t => (
+              <span key={t} className="flex items-center gap-1">
+                <CheckCircle2 size={10} className="text-teal-600" />
+                {t}
+              </span>
+            ))}
+          </div>
+        </>
+      )}
 
-              {/* Submit */}
-              <button
-                type="submit"
-                disabled={loading || !email || !password}
-                className="mt-1 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500 py-3 text-[13px] font-bold text-[#050816] transition-all duration-200 hover:shadow-[0_0_20px_rgba(0,200,255,0.25)] hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40 disabled:translate-y-0 disabled:shadow-none"
-              >
-                {loading ? (
-                  <>
-                    <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#050816]/30 border-t-[#050816]" />
-                    Signing in…
-                  </>
-                ) : (
-                  'Sign in'
-                )}
-              </button>
-            </form>
-          </>
-        )}
-      </div>
-
-      {/* Footer */}
-      <p className="mt-6 text-center text-[13px] text-slate-600">
+      <p className="mt-7 text-center text-[13px] text-slate-600">
         Don&apos;t have an account?{' '}
         <Link href="/signup" className="font-medium text-slate-400 transition hover:text-white">
           Sign up free
@@ -309,16 +365,27 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div className="w-full max-w-[400px] rounded-[24px] border border-white/[0.08] bg-white/[0.03] p-8">
-        <div className="h-8 w-32 animate-pulse rounded-lg bg-white/[0.06] mx-auto mb-8" />
-        <div className="space-y-4">
-          <div className="h-12 animate-pulse rounded-xl bg-white/[0.04]" />
-          <div className="h-12 animate-pulse rounded-xl bg-white/[0.04]" />
-          <div className="h-12 animate-pulse rounded-xl bg-white/[0.04]" />
-        </div>
+      <div className="fixed inset-0 flex items-center justify-center bg-[#07111F]">
+        <div className="h-8 w-32 animate-pulse rounded-lg bg-white/[0.06]" />
       </div>
     }>
-      <LoginForm />
+      {/* Two-column full-screen layout — breaks out of the auth layout centering */}
+      <div className="fixed inset-0 flex overflow-auto bg-[#07111F]">
+
+        {/* Ambient background */}
+        <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_60%_50%_at_20%_30%,rgba(0,200,255,0.07),transparent)]" />
+        <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_40%_35%_at_80%_80%,rgba(11,206,188,0.04),transparent)]" />
+
+        {/* Left — brand panel (hidden on mobile) */}
+        <div className="hidden lg:flex lg:w-[52%] border-r border-white/[0.05] bg-[#060f1c]">
+          <BrandPanel />
+        </div>
+
+        {/* Right — login form */}
+        <div className="flex flex-1 items-center justify-center px-6 py-12">
+          <LoginForm />
+        </div>
+      </div>
     </Suspense>
   )
 }
