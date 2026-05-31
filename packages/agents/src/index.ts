@@ -15,3 +15,7 @@ export { runMachineTrustAgent } from './machine-trust-agent';
 export { runTemporalAuthorityAgent } from './temporal-authority-agent';
 export { runRecommendationMappingAgent } from './recommendation-mapping-agent';
 export { runSyntheticEntityAgent } from './synthetic-entity-agent';
+
+// ─── Orchestrator ────────────────────────────────────────────────────────────
+export { orchestrate } from './orchestrator';
+export type { OrchestratorInput, OrchestratorResult, ExecutionStep, CrawlDataType, UserIntent, AgentName, AggregationMode } from './orchestrator';

@@ -778,6 +778,68 @@ export type AuditJob = Audit;
 export type InternalLinkGraph = LinkGraphScore;
 export type SchemaAnalysis = SchemaScore;
 
+// ─── Agent Orchestrator ───────────────────────────────────────────────────────
+
+export type OrchestratorCrawlDataType = 'full_page' | 'partial' | 'multi_page';
+
+export type OrchestratorUserIntent =
+  | 'seo_audit'
+  | 'ai_visibility'
+  | 'entity_mapping'
+  | 'retrieval_analysis'
+  | 'full_intelligence'
+  | null;
+
+export type OrchestratorAgentName =
+  | 'Site Audit Agent'
+  | 'AI Visibility Agent'
+  | 'Entity Extraction Agent'
+  | 'Retrieval Analysis Agent'
+  | 'SII Aggregator';
+
+export interface OrchestratorStoredResult {
+  cachedAt: string;
+  ageHours: number;
+  fresh: boolean;
+}
+
+export interface OrchestratorPageMetrics {
+  wordCount?: number;
+  metaTagCount?: number;
+  schemaMarkupDensity?: number;
+  isNew?: boolean;
+  hasDynamicContent?: boolean;
+  pageCount?: number;
+}
+
+export interface OrchestratorInput {
+  url: string;
+  crawlDataType: OrchestratorCrawlDataType;
+  userIntent?: OrchestratorUserIntent;
+  existingResults?: Partial<Record<
+    'siteAudit' | 'aiVisibility' | 'entityExtraction' | 'retrievalAnalysis',
+    OrchestratorStoredResult
+  >>;
+  pageMetrics?: OrchestratorPageMetrics;
+}
+
+export interface OrchestratorExecutionStep {
+  agent: OrchestratorAgentName;
+  reason: string;
+  priority: number;
+}
+
+export type OrchestratorAggregationMode = 'SII Aggregator' | 'partial' | 'none';
+
+export interface OrchestratorResult {
+  url: string;
+  execution_plan: OrchestratorExecutionStep[];
+  parallel_execution: string[];
+  final_aggregation: OrchestratorAggregationMode;
+  confidence: number;
+  optimization_notes: string[];
+}
+
 // ─── SiteNexis Intelligence Index (SII) ──────────────────────────────────────
 
 export interface SIIBreakdown {
