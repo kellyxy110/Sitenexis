@@ -52,7 +52,7 @@ export default function DashboardPage() {
   const [startError, setStartError] = useState<string | null>(null);
 
   // ── Fetch current user ──────────────────────────────────────────────────────
-  const { data: me } = useQuery<MeResponse>({
+  const { data: me, isLoading: meLoading } = useQuery<MeResponse>({
     queryKey: ['me'],
     queryFn: async () => {
       const r = await fetch('/api/me');
@@ -64,7 +64,8 @@ export default function DashboardPage() {
 
   const userName = me?.email ? me.email.split('@')[0] : null;
   const userPlan = me?.plan ?? 'free';
-  const isDemo   = me?.isDemo ?? true;
+  // Only show demo banner once /api/me has responded — avoids flash on authenticated pages.
+  const isDemo   = meLoading ? false : (me?.isDemo ?? true);
 
   // ── Fetch audits ────────────────────────────────────────────────────────────
   const { data, isLoading } = useQuery<AuditsResponse>({

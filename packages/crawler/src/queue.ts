@@ -55,7 +55,54 @@ function getCrawlQueue(): Queue<CrawlJobData> {
   return _queue;
 }
 
+/**
+ * Verify Redis is reachable with a hard 5-second timeout.
+ * Uses a disposable connection with offline-queue disabled so it throws
+ * immediately on ECONNREFUSED instead of waiting indefinitely.
+ * Called before every enqueue so the API route fails fast with a clear error.
+ */
+async function pingRedis(): Promise<void> {
+  const url = redisUrl();
+  const client = new IORedis(url, {
+    maxRetriesPerRequest: 0,
+    enableOfflineQueue: false,
+    connectTimeout: 5_000,
+    retryStrategy: () => null, // no retries — fail immediately
+    ...(url.startsWith('rediss://') ? { tls: {} } : {}),
+  });
+
+  try {
+    await Promise.race([
+      client.ping(),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error(`Redis ping timed out after 5 000ms — REDIS_URL: ${url.replace(/:[^@]+@/, ':***@')}`)), 5_000),
+      ),
+    ]);
+  } finally {
+    client.disconnect();
+  }
+}
+
+export async function getCrawlQueueStats(): Promise<{
+  waiting: number;
+  active: number;
+  completed: number;
+  failed: number;
+}> {
+  const q = getCrawlQueue();
+  const [waiting, active, completed, failed] = await Promise.all([
+    q.getWaitingCount(),
+    q.getActiveCount(),
+    q.getCompletedCount(),
+    q.getFailedCount(),
+  ]);
+  return { waiting, active, completed, failed };
+}
+
 export async function enqueueCrawlJob(data: CrawlJobData): Promise<string> {
+  // Fail fast: verify Redis is reachable before creating the Queue connection.
+  // Without this, IORedis offline-queue causes the call to hang until Vercel timeout.
+  await pingRedis();
   const job = await getCrawlQueue().add('crawl-domain', data, { jobId: data.auditId });
   return job.id ?? data.auditId;
 }

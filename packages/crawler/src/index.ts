@@ -1,6 +1,7 @@
 export { DomainCrawler, crawlDomain, type CrawlOptions, type CrawlEvents } from './crawler';
 export {
   enqueueCrawlJob,
+  getCrawlQueueStats,
   redisConnection,
   createRedisClient,
   getRedisConnection,
