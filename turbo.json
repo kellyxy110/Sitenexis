@@ -5,7 +5,8 @@
     "build": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**", "generated/**"]
+      "outputs": [".next/**", "!.next/cache/**", "dist/**", "generated/**"],
+      "env": ["PRISMA_QUERY_ENGINE_LIBRARY", "DATABASE_URL", "REDIS_URL", "SUPABASE_URL", "SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY", "DIRECT_URL"]
     },
     "dev": {
       "cache": false,
