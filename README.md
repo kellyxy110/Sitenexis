@@ -15,7 +15,7 @@ SiteNexis answers questions no existing tool addresses:
 - *How is machine trust formed, maintained, and lost across an AI ecosystem over time?*
 - *Across which AI recommendation surfaces is this content invisible — and why?*
 
-This is observability for machines — a 16-agent intelligence pipeline that models the complete chain of decisions an AI system makes when encountering a website, from raw HTML ingestion through chunk extraction, entity resolution, semantic trust formation, retrieval ranking, summarisation degradation, citation eligibility filtering, and final recommendation surface inclusion.
+This is observability for machines — a 16-agent intelligence pipeline that models the complete chain of decisions an AI system makes when encountering a website: raw HTML ingestion → chunk extraction → entity resolution → semantic trust formation → retrieval ranking → summarisation degradation → citation eligibility filtering → recommendation surface inclusion.
 
 ---
 
@@ -43,23 +43,37 @@ This is observability for machines — a 16-agent intelligence pipeline that mod
 
 ---
 
+## Audit Execution Modes
+
+SiteNexis runs audits in two modes, selected automatically based on infrastructure availability:
+
+### Full Pipeline Mode (BullMQ + Worker)
+Requires Redis (Upstash) and a running BullMQ worker process. Runs the complete 16-agent pipeline with Puppeteer crawling, all analyzer modules, PDF report generation, and Layer 4 Machine Trust analysis. Supports up to 500 pages per audit.
+
+### Serverless Mode (Vercel-native, no Redis required)
+When Redis is unavailable (e.g. Vercel deployment without a Redis URL), audits automatically fall back to serverless execution using Next.js `after()`. This mode uses `fetch()` + HTML parsing to crawl up to 20 pages, runs programmatic SEO and schema analysis, calculates all AI Visibility scores, and saves full results to Supabase — no BullMQ worker or Redis required.
+
+**In both modes:** audits produce real scores from real data. The 503 "service unavailable" error only occurs if the database itself is unreachable.
+
+---
+
 ## Tech Stack
 
 | Layer | Technology |
 |---|---|
-| Frontend | Next.js 16 App Router (React Server Components) |
+| Frontend | Next.js 15 App Router (React Server Components) |
 | UI | Tailwind CSS, Framer Motion, TanStack Query, TanStack Table |
-| Backend | Next.js API routes + BullMQ workers |
+| Backend | Next.js API routes + BullMQ workers (optional) |
 | Database | PostgreSQL via Supabase (Prisma ORM) |
-| Auth | Supabase Auth (email/password + OAuth) |
-| AI Engine | Groq `llama-3.3-70b-versatile` via `callAI()` wrapper |
-| Job Queue | BullMQ + Redis (Upstash) |
+| Auth | Supabase Auth (email/password + Google/GitHub OAuth) |
+| AI Engine | Anthropic Claude API + OpenAI fallback |
+| Job Queue | BullMQ + Redis — Upstash (optional, falls back to serverless) |
 | Storage | Cloudflare R2 (PDF reports) |
 | Billing | Stripe Checkout + Customer Portal |
 | Email | Resend |
 | Error tracking | Sentry |
 | Monorepo | pnpm workspaces + Turbo |
-| Deploy | Vercel (web) + Railway (BullMQ worker) |
+| Deploy | Vercel (web) + Railway/Fly.io (BullMQ worker, optional) |
 
 ---
 
@@ -68,7 +82,7 @@ This is observability for machines — a 16-agent intelligence pipeline that mod
 ```
 sitenexis/
 ├── apps/
-│   └── web/                    # Next.js 16 App Router
+│   └── web/                    # Next.js 15 App Router
 │       ├── app/
 │       │   ├── (auth)/          # Login, signup, reset
 │       │   ├── (marketing)/     # Landing, pricing, blog, about
@@ -78,6 +92,7 @@ sitenexis/
 │       └── src/
 │           ├── components/
 │           └── lib/
+│               └── serverless-audit.ts  # Serverless audit runner (no Redis/worker)
 ├── packages/
 │   ├── crawler/                 # Puppeteer/Cheerio crawl engine + BullMQ worker
 │   ├── analyzers/               # All 12-dimension scoring modules
@@ -90,7 +105,6 @@ sitenexis/
 │   ├── trust-decay-model.json
 │   ├── surface-coverage-model.json
 │   └── synthetic-detection-rules.json
-├── vercel.json
 └── CLAUDE.md                    # Full architectural specification
 ```
 
@@ -110,6 +124,8 @@ Phase 5:  Retrieval Simulation Agent, Machine Trust Agent,
 Phase 6:  Visualization Agent
 Phase 7:  Reporting Agent
 ```
+
+Phase 5 (Layer 4) agents require Pro or higher plan and run only when the full BullMQ pipeline is active.
 
 ---
 
@@ -145,9 +161,9 @@ Phase 7:  Reporting Agent
 
 - Node.js 20+
 - pnpm 9+
-- A Supabase project
-- Redis instance (Upstash recommended)
-- Groq API key
+- A Supabase project (required)
+- Redis — Upstash (optional; audits fall back to serverless mode without it)
+- Anthropic API key (optional; programmatic scoring works without it)
 
 ### Setup
 
@@ -157,15 +173,13 @@ pnpm install
 
 # Copy environment variables
 cp .env.example apps/web/.env.local
-# Fill in all values (see Environment Variables section below)
-
-# Generate Prisma client
-pnpm db:generate
+# Fill in SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, DATABASE_URL
+# REDIS_URL is optional — omit to use serverless audit mode
 
 # Push schema to database
 pnpm db:push
 
-# Start everything (Next.js + BullMQ worker)
+# Start everything
 pnpm dev
 ```
 
@@ -190,16 +204,25 @@ pnpm db:generate      # Regenerate Prisma client after schema changes
 
 All variables validated at startup via `apps/web/src/lib/env.ts`. Copy `.env.example` to `apps/web/.env.local`.
 
+### Required
+
 | Variable | Purpose |
 |---|---|
-| `DATABASE_URL` | Supabase pooled connection (port 6543) |
-| `DIRECT_URL` | Supabase direct connection for migrations (port 5432) |
+| `DATABASE_URL` | Supabase pooled connection (port 6543, `?pgbouncer=true`) |
+| `DIRECT_URL` | Supabase direct connection for migrations (port 5432, session-mode pooler) |
 | `SUPABASE_URL` | Supabase project URL |
 | `SUPABASE_ANON_KEY` | Public anon key (safe for browser) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Full access server key (never expose to browser) |
-| `ANTHROPIC_API_KEY` | AI engine — used via `callAI()` wrapper |
+| `NEXT_PUBLIC_SUPABASE_URL` | Same as SUPABASE_URL — needed by client components |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Same as SUPABASE_ANON_KEY — needed by client components |
+
+### Optional (enables full pipeline mode)
+
+| Variable | Purpose |
+|---|---|
+| `REDIS_URL` | BullMQ job queue — Upstash `rediss://` URL. Audits work without this (serverless mode). |
+| `ANTHROPIC_API_KEY` | AI scoring via Claude API |
 | `OPENAI_API_KEY` | Optional fallback AI provider |
-| `REDIS_URL` | BullMQ + AI score cache |
 | `S3_BUCKET_NAME` | PDF report storage (Cloudflare R2 or S3) |
 | `S3_ACCESS_KEY_ID` | Storage access key |
 | `S3_SECRET_ACCESS_KEY` | Storage secret key |
@@ -213,34 +236,40 @@ All variables validated at startup via `apps/web/src/lib/env.ts`. Copy `.env.exa
 
 ## Deployment
 
-The project is pre-configured for Vercel + Railway deployment.
+### Vercel (Web App)
 
-### Web App (Vercel)
+1. Connect your GitHub repo to Vercel
+2. Set the environment variables listed above in Vercel project settings
+3. Vercel auto-deploys on every push to `main`
 
-The `vercel.json` at the root configures:
-- Build command: `turbo run build --filter=web...`
-- Install command: `pnpm install --no-frozen-lockfile`
-- Output: `apps/web/.next`
-
-Set all environment variables listed above in your Vercel project settings.
-
-```bash
-# Install Vercel CLI
-npm i -g vercel
-
-# Deploy
-vercel --prod
+**Minimum required env vars for a working Vercel deployment:**
+```
+DATABASE_URL
+DIRECT_URL
+SUPABASE_URL
+NEXT_PUBLIC_SUPABASE_URL
+SUPABASE_ANON_KEY
+NEXT_PUBLIC_SUPABASE_ANON_KEY
+SUPABASE_SERVICE_ROLE_KEY
 ```
 
-### BullMQ Worker (Railway)
+Without `REDIS_URL`, audits run in serverless mode (no worker required). With `REDIS_URL` set, audits use the full BullMQ pipeline and require a separate worker process.
 
-The worker is a separate process that runs all 16 agents. Deploy `packages/crawler/src/worker.ts` as a Railway service using `railway.json` at the project root.
+### BullMQ Worker (Railway / Fly.io) — Optional
+
+The worker process handles full 16-agent pipeline audits. Deploy `packages/crawler/src/worker.ts` as a separate long-lived service. Required env vars: `DATABASE_URL`, `REDIS_URL`, `ANTHROPIC_API_KEY`.
 
 ```bash
-# Configure Railway
-railway init
+# Railway
 railway up
+
+# Fly.io
+fly launch
 ```
+
+### Health Check
+
+Visit `/api/health` for a full system diagnostic showing status of env vars, Prisma engine, DB connectivity, Redis, BullMQ queue, and worker heartbeat.
 
 ---
 
@@ -250,12 +279,13 @@ railway up
 - **No `process.env` directly** — always import from `@/lib/env`
 - **No raw Prisma in routes** — use `@sitenexis/db` query helpers
 - **No scoring logic in agents** — agents orchestrate; `@sitenexis/analyzers` scores
-- **No hardcoded weights** — provider weights, decay curves, detection rules are in `/config/`
+- **No hardcoded weights** — provider weights, decay curves, detection rules in `/config/`
 - **Soft deletes only** — `archivedAt: DateTime?`, never hard delete
 - **Score explainability is mandatory** — every deduction maps to a named `Issue`
 - **Retrieval simulation top 30 pages only** — compute cost control
 - **Layer 4 gated to Pro+ plans** — `PLAN_LIMITS.layer4Analysis`
 - **Synthetic detection shown to domain owner only** — not in competitive analysis
+- **503 only on DB failure** — Redis unavailability triggers serverless fallback, not error
 
 ---
 
@@ -275,7 +305,7 @@ railway up
 
 The blog at `/blog` covers AI visibility, machine trust, entity SEO, AI agents, and semantic web strategy. Posts are defined in `apps/web/src/lib/blog-posts.ts` as structured content blocks — no CMS required.
 
-Current post count: **34 posts** across 7 categories.
+Current post count: **49 posts** across 7 categories.
 
 ---
 

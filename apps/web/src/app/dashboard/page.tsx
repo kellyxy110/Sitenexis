@@ -105,8 +105,14 @@ export default function DashboardPage() {
         const { auditId } = await res.json() as { auditId: string };
         router.push(`/audit/${encodeURIComponent(domain)}?auditId=${auditId}`);
       } else {
-        const body = await res.json() as { error?: string };
-        setStartError(body.error ?? `Request failed (${res.status}). Please try again.`);
+        const body = await res.json() as {
+          error?: string;
+          failed_stage?: string;
+          recommended_fix?: string;
+        };
+        const stage = body.failed_stage ? ` [${body.failed_stage}]` : '';
+        const fix = body.recommended_fix ? ` — ${body.recommended_fix}` : '';
+        setStartError((body.error ?? `Request failed (${res.status})`) + stage + fix);
       }
     } catch {
       setStartError('Could not reach the server. Check your connection and try again.');

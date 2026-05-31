@@ -1,4 +1,5 @@
 export const dynamic = 'force-dynamic';
+import { after } from 'next/server';
 import { type NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAuth, unauthorizedResponse } from '@/lib/auth';
@@ -23,11 +24,7 @@ interface StageResult {
   recommended_fix?: string;
 }
 
-function stageError(
-  stage: string,
-  err: unknown,
-  recommended_fix: string,
-): StageResult {
+function stageError(stage: string, err: unknown, recommended_fix: string): StageResult {
   const error = err instanceof Error ? err.message : String(err);
   return { stage, status: 'error', error: error.slice(0, 500), recommended_fix };
 }
@@ -61,15 +58,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return startDemoAudit(domain);
   }
 
-  // ── Real mode — per-step diagnostics ─────────────────────────────────────────
+  // ── Real mode ─────────────────────────────────────────────────────────────────
   const stages: StageResult[] = [];
 
-  // Stage 1: User upsert (proves DB is reachable + schema exists)
-  let upsertUserFn: ((id: string, email: string) => Promise<unknown>) | null = null;
+  // Stage 1: User upsert — proves DB is reachable and schema exists
   try {
-    const mod = await import('@sitenexis/db');
-    upsertUserFn = mod.upsertUser;
-    await mod.upsertUser(user.id, user.email);
+    const { upsertUser } = await import('@sitenexis/db');
+    await upsertUser(user.id, user.email);
     stages.push({ stage: 'db_upsert_user', status: 'ok' });
   } catch (err) {
     const s = stageError(
@@ -78,119 +73,133 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       'Check DATABASE_URL on Vercel. Run pnpm db:push to ensure tables exist. Verify Prisma engine binary is deployed.',
     );
     stages.push(s);
-    logger.error({ err, stage: s.stage, errMsg: s.error, domain }, 'Audit start failed at stage: db_upsert_user');
-    return serviceUnavailable(stages);
+    logger.error({ err, stage: s.stage, errMsg: s.error, domain }, 'Audit start failed');
+    return dbUnavailable(stages);
   }
-  void upsertUserFn; // suppress unused warning
 
-  // Stage 2: Plan limit check (DB read)
+  // Stage 2: Plan limit check
   let limitCheck: { allowed: boolean; reason?: string };
   try {
     const { checkAuditLimit } = await import('@/lib/plans');
     limitCheck = await checkAuditLimit(user.id);
     stages.push({ stage: 'check_audit_limit', status: 'ok' });
   } catch (err) {
-    const s = stageError(
-      'check_audit_limit',
-      err,
-      'Database query failed on users table. Ensure the users table exists and user row has a valid plan field.',
-    );
+    const s = stageError('check_audit_limit', err, 'Database query failed on users table.');
     stages.push(s);
-    logger.error({ err, stage: s.stage, errMsg: s.error, domain }, 'Audit start failed at stage: check_audit_limit');
-    return serviceUnavailable(stages);
+    logger.error({ err, stage: s.stage, domain }, 'Audit start failed');
+    return dbUnavailable(stages);
   }
 
   if (!limitCheck.allowed) {
     return NextResponse.json({ error: limitCheck.reason }, { status: 402 });
   }
 
-  // Stage 3: Layer 4 access check (DB read)
+  // Stage 3: Layer 4 access check
   let layer4Enabled = false;
   try {
     const { checkLayer4Access } = await import('@/lib/plans');
     layer4Enabled = await checkLayer4Access(user.id);
     stages.push({ stage: 'check_layer4_access', status: 'ok' });
   } catch (err) {
-    const s = stageError(
-      'check_layer4_access',
-      err,
-      'Database query failed on users/plans table.',
-    );
+    const s = stageError('check_layer4_access', err, 'Database query failed on users/plans table.');
     stages.push(s);
-    logger.error({ err, stage: s.stage, errMsg: s.error, domain }, 'Audit start failed at stage: check_layer4_access');
-    return serviceUnavailable(stages);
+    logger.error({ err, stage: s.stage, domain }, 'Audit start failed');
+    return dbUnavailable(stages);
   }
 
-  // Stage 4: Create audit record (DB write)
+  // Stage 4: Create audit record
   let audit: { id: string };
   try {
     const { createAudit } = await import('@sitenexis/db');
     audit = await createAudit(user.id, domain);
     stages.push({ stage: 'db_create_audit', status: 'ok' });
   } catch (err) {
-    const s = stageError(
-      'db_create_audit',
-      err,
-      'Cannot write to audits table. Check DATABASE_URL and that db:push has been run.',
-    );
+    const s = stageError('db_create_audit', err, 'Cannot write to audits table. Check DATABASE_URL and run pnpm db:push.');
     stages.push(s);
-    logger.error({ err, stage: s.stage, errMsg: s.error, domain }, 'Audit start failed at stage: db_create_audit');
-    return serviceUnavailable(stages);
+    logger.error({ err, stage: s.stage, domain }, 'Audit start failed');
+    return dbUnavailable(stages);
   }
 
-  // Stage 5: Enqueue BullMQ job (Redis write)
+  // Stage 5: Try BullMQ / Redis — fall back to serverless execution if unavailable
+  let executionMode: 'bullmq' | 'serverless' = 'serverless';
+
   try {
     const { enqueueCrawlJob } = await import('@sitenexis/crawler');
     await enqueueCrawlJob({ auditId: audit.id, domain, userId: user.id, layer4Enabled });
+    executionMode = 'bullmq';
     stages.push({ stage: 'enqueue_crawl_job', status: 'ok' });
-  } catch (err) {
-    const s = stageError(
-      'enqueue_crawl_job',
-      err,
-      'Redis connection failed. Set REDIS_URL on Vercel to an Upstash or external Redis URL. Default redis://localhost:6379 does not work on serverless.',
-    );
-    stages.push(s);
-    logger.error({ err, stage: s.stage, errMsg: s.error, domain, auditId: audit.id }, 'Audit start failed at stage: enqueue_crawl_job');
-
-    // Clean up the audit record we just created since we couldn't queue it
-    try {
-      const { updateAuditStatus } = await import('@sitenexis/db');
-      await updateAuditStatus(audit.id, 'failed', { errorMessage: s.error ?? 'Redis unavailable' });
-    } catch { /* best effort cleanup */ }
-
-    return serviceUnavailable(stages);
-  }
-
-  // Stage 6: Confirm worker is alive (Redis read — non-fatal)
-  let workerAlive = false;
-  try {
-    const { getRedisConnection, HEARTBEAT_KEY, HEARTBEAT_STALE_MS } = await import('@sitenexis/crawler');
-    const heartbeatRaw = await getRedisConnection().get(HEARTBEAT_KEY);
-    if (heartbeatRaw) {
-      const age = Date.now() - parseInt(heartbeatRaw, 10);
-      workerAlive = age < HEARTBEAT_STALE_MS;
-    }
-    stages.push({ stage: 'worker_heartbeat', status: workerAlive ? 'ok' : 'error', ...(workerAlive ? {} : { error: 'No heartbeat — worker may not be running', recommended_fix: 'Start the BullMQ worker: pnpm --filter @sitenexis/crawler dev:worker. On Vercel, the worker must run as a separate process (Railway, Fly.io, or a dedicated server).' }) });
   } catch {
-    stages.push({ stage: 'worker_heartbeat', status: 'skipped', error: 'Could not read heartbeat key' });
+    // Redis unavailable — use serverless audit instead of returning 503
+    stages.push({
+      stage: 'enqueue_crawl_job',
+      status: 'skipped',
+      error: 'Redis unavailable. Falling back to serverless audit execution.',
+      recommended_fix: 'Set REDIS_URL on Vercel to an Upstash Redis URL for full pipeline support.',
+    });
+
+    // Schedule serverless audit to run after this response is sent
+    after(async () => {
+      try {
+        const { runServerlessAudit } = await import('@/lib/serverless-audit');
+        await runServerlessAudit(audit.id, domain, user.id);
+      } catch (auditErr) {
+        logger.error({ auditId: audit.id, domain, err: auditErr }, 'Serverless audit after() failed');
+        try {
+          const { updateAuditStatus } = await import('@sitenexis/db');
+          await updateAuditStatus(audit.id, 'failed', {
+            errorMessage: auditErr instanceof Error ? auditErr.message : 'Serverless audit failed',
+          });
+        } catch { /* best effort */ }
+      }
+    });
   }
 
-  logger.info({ auditId: audit.id, domain, userId: user.id, layer4Enabled, workerAlive }, 'Audit enqueued');
+  // Stage 6: Worker heartbeat check (informational only — non-fatal)
+  if (executionMode === 'bullmq') {
+    try {
+      const { getRedisConnection, HEARTBEAT_KEY, HEARTBEAT_STALE_MS } = await import('@sitenexis/crawler');
+      const heartbeatRaw = await getRedisConnection().get(HEARTBEAT_KEY);
+      const workerAlive = heartbeatRaw ? Date.now() - parseInt(heartbeatRaw, 10) < HEARTBEAT_STALE_MS : false;
+      stages.push({
+        stage: 'worker_heartbeat',
+        status: workerAlive ? 'ok' : 'error',
+        ...(!workerAlive && {
+          error: 'No worker heartbeat detected.',
+          recommended_fix: 'The audit is queued but no worker is running to process it. Start the BullMQ worker: pnpm --filter @sitenexis/crawler dev:worker. On Vercel, ensure REDIS_URL is set and the worker runs separately (Railway, Fly.io, or a VPS).',
+        }),
+      });
+    } catch {
+      stages.push({ stage: 'worker_heartbeat', status: 'skipped' });
+    }
+  }
+
+  const workerAlive = stages.find((s) => s.stage === 'worker_heartbeat')?.status === 'ok';
+
+  logger.info({
+    auditId: audit.id,
+    domain,
+    userId: user.id,
+    layer4Enabled,
+    executionMode,
+    workerAlive,
+  }, 'Audit started');
 
   return NextResponse.json(
-    { auditId: audit.id, workerAlive },
+    { auditId: audit.id, executionMode, workerAlive },
     { status: 202 },
   );
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function serviceUnavailable(stages: StageResult[]): NextResponse {
-  const failedStage = stages.find((s) => s.status === 'error');
+/** Only DB failures return 503 — Redis failures use serverless fallback instead */
+function dbUnavailable(stages: StageResult[]): NextResponse {
+  const failed = stages.find((s) => s.status === 'error');
   return NextResponse.json(
     {
-      error: 'Service temporarily unavailable.',
-      failed_stage: failedStage?.stage ?? 'unknown',
+      error: `Database unavailable: ${failed?.error ?? 'unknown error'}`,
+      failed_stage: failed?.stage ?? 'unknown',
+      recommended_fix: failed?.recommended_fix ?? 'Check DATABASE_URL and Prisma engine configuration.',
       diagnosis: stages,
     },
     { status: 503 },
@@ -201,7 +210,7 @@ function startDemoAudit(domain: string): NextResponse {
   const audit = createDemoAudit(domain);
   void runDemoSimulation(audit.id, domain);
   logger.info({ auditId: audit.id, domain, mode: 'demo' }, 'Demo audit started');
-  return NextResponse.json({ auditId: audit.id }, { status: 202 });
+  return NextResponse.json({ auditId: audit.id, executionMode: 'demo' }, { status: 202 });
 }
 
 // ── Demo simulation ───────────────────────────────────────────────────────────

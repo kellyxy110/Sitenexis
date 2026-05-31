@@ -70,8 +70,14 @@ export default function LiveAuditPage() {
         body: JSON.stringify({ domain: trimmed }),
       });
       if (!res.ok) {
-        const j = await res.json().catch(() => ({}));
-        throw new Error((j as { error?: string }).error ?? `HTTP ${res.status}`);
+        const j = await res.json().catch(() => ({})) as {
+          error?: string;
+          failed_stage?: string;
+          recommended_fix?: string;
+        };
+        const stage = j.failed_stage ? ` [${j.failed_stage}]` : '';
+        const fix = j.recommended_fix ? ` — ${j.recommended_fix}` : '';
+        throw new Error((j.error ?? `HTTP ${res.status}`) + stage + fix);
       }
       const { auditId: id } = await res.json() as { auditId: string };
       setAuditId(id);
