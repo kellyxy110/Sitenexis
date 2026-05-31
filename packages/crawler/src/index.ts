@@ -1,4 +1,7 @@
-export { DomainCrawler, crawlDomain, type CrawlOptions, type CrawlEvents } from './crawler';
+// Queue, heartbeat, and extraction utilities — safe to import in Next.js API routes.
+// DomainCrawler is intentionally NOT re-exported here: it requires puppeteer which
+// is not available on Vercel serverless. Import from './crawler' directly in the
+// BullMQ worker process only.
 export {
   enqueueCrawlJob,
   getCrawlQueueStats,
