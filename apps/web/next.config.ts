@@ -20,7 +20,8 @@ const nextConfig: NextConfig = {
   transpilePackages: ['@sitenexis/shared'],
   serverExternalPackages: [
     '@prisma/client', 'pino', 'pino-pretty',
-    '@sitenexis/db', '@sitenexis/crawler', '@sitenexis/agents',
+    '@sitenexis/db', '@sitenexis/crawler', '@sitenexis/agents', '@sitenexis/analyzers',
+    '@react-pdf/renderer', '@aws-sdk/client-s3', 'puppeteer', 'bullmq', 'ioredis',
   ],
 
   images: {
