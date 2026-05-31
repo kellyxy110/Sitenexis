@@ -80,8 +80,10 @@ function checkPrismaEngine(): DiagnosticStage {
   const scanDirs = [
     join(cwd, 'packages', 'db', 'generated'),
     join(cwd, '..', 'packages', 'db', 'generated'),
+    join(cwd, '..', '..', 'packages', 'db', 'generated'),
     '/var/task/packages/db/generated',
     '/var/task/apps/web/packages/db/generated',
+    '/vercel/path0/packages/db/generated',
   ];
 
   const engineEnvVar = process.env['PRISMA_QUERY_ENGINE_LIBRARY'] ?? null;
