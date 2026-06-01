@@ -690,7 +690,7 @@ function SemanticTrustTab({ data }: { data: AuditData }) {
   const st = data.scores?.breakdown.semanticTrust;
   const trustIssues = data.issues.filter((i) => i.module === 'semantic-trust') as SEOIssue[];
 
-  if (!st) {
+  if (!st || !('breakdown' in st) || !st.breakdown) {
     return (
       <div className="card-glass rounded-xl p-8 text-center">
         <p className="text-[#4A6280]">Semantic trust analysis not yet available for this audit.</p>
