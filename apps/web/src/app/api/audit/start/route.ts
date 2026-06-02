@@ -77,28 +77,43 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return dbUnavailable(stages);
   }
 
-  // Stage 2: Plan limit check
-  let limitCheck: { allowed: boolean; reason?: string };
+  // Stage 2: Credit check + deduction
+  // Determine action type: Layer 4 costs 5 credits, standard costs 2 credits.
+  // We do a preliminary layer4 check here just to pick the cost; the gating check happens in Stage 3.
+  let prelimLayer4 = false;
   try {
-    const { checkAuditLimit } = await import('@/lib/plans');
-    limitCheck = await checkAuditLimit(user.id);
-    stages.push({ stage: 'check_audit_limit', status: 'ok' });
+    const { checkLayer4Access } = await import('@/lib/plans');
+    prelimLayer4 = await checkLayer4Access(user.id);
+  } catch { /* non-fatal — use conservative cost */ }
+
+  const auditAction = prelimLayer4 ? 'ai_swarm_audit' : 'ai_visibility_audit';
+
+  let creditResult: { allowed: boolean; reason?: string };
+  try {
+    const { checkAndDeductCredits } = await import('@/lib/credits');
+    creditResult = await checkAndDeductCredits(user.id, auditAction, { domain });
+    stages.push({ stage: 'check_credits', status: 'ok' });
   } catch (err) {
-    const s = stageError('check_audit_limit', err, 'Database query failed on users table.');
+    const s = stageError('check_credits', err, 'Credit check failed. Database query failed on users table.');
     stages.push(s);
     logger.error({ err, stage: s.stage, domain }, 'Audit start failed');
     return dbUnavailable(stages);
   }
 
-  if (!limitCheck.allowed) {
-    return NextResponse.json({ error: limitCheck.reason }, { status: 402 });
+  if (!creditResult.allowed) {
+    return NextResponse.json({ error: creditResult.reason }, { status: 402 });
   }
 
-  // Stage 3: Layer 4 access check
+  // Stage 3: Layer 4 access check (plan-based OR unlimited flag)
   let layer4Enabled = false;
   try {
     const { checkLayer4Access } = await import('@/lib/plans');
-    layer4Enabled = await checkLayer4Access(user.id);
+    const { getUserCredits } = await import('@sitenexis/db');
+    const [planAccess, credits] = await Promise.all([
+      checkLayer4Access(user.id),
+      getUserCredits(user.id),
+    ]);
+    layer4Enabled = planAccess || credits.isUnlimited;
     stages.push({ stage: 'check_layer4_access', status: 'ok' });
   } catch (err) {
     const s = stageError('check_layer4_access', err, 'Database query failed on users/plans table.');

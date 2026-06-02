@@ -44,11 +44,32 @@ model User {
   updatedAt        DateTime  @updatedAt @map("updated_at")
   archivedAt       DateTime? @map("archived_at")
 
-  audits    Audit[]
-  apiKeys   ApiKey[]
-  usageLogs UsageLog[]
+  creditBalance      Int      @default(10) @map("credit_balance")
+  isUnlimited        Boolean  @default(false) @map("is_unlimited")
+
+  audits             Audit[]
+  apiKeys            ApiKey[]
+  usageLogs          UsageLog[]
+  creditTransactions CreditTransaction[]
 
   @@map("users")
+}
+
+model CreditTransaction {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  type        String   // 'credit' | 'debit'
+  amount      Int
+  actionType  String   @map("action_type")
+  description String?
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user  User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("credit_transactions")
 }
 
 model Audit {

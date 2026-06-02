@@ -18,15 +18,27 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    const { getUserById } = await import('@sitenexis/db');
-    const dbUser = await getUserById(user.id);
+    const { getUserById, getUserCredits } = await import('@sitenexis/db');
+    const [dbUser, credits] = await Promise.all([
+      getUserById(user.id),
+      getUserCredits(user.id),
+    ]);
     return NextResponse.json({
       id: user.id,
       email: user.email,
       plan: dbUser?.plan ?? 'free',
       isDemo: false,
+      creditBalance: credits.balance,
+      isUnlimited: credits.isUnlimited,
     });
   } catch {
-    return NextResponse.json({ id: user.id, email: user.email, plan: 'free', isDemo: false });
+    return NextResponse.json({
+      id: user.id,
+      email: user.email,
+      plan: 'free',
+      isDemo: false,
+      creditBalance: 0,
+      isUnlimited: false,
+    });
   }
 }

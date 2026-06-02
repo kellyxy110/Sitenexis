@@ -25,6 +25,14 @@ interface AuditRow {
     linkGraphScore: number;
     performanceScore: number;
   } | null;
+  aiVisibilityScores?: {
+    aiVisibilityScore: number;
+    entityConfidenceScore: number;
+    retrievalReadinessScore: number;
+    citationProbabilityScore: number;
+    semanticTrustScore: number;
+    recommendationConfidence: number;
+  } | null;
   _count?: { issues: number };
 }
 
@@ -41,6 +49,8 @@ interface MeResponse {
   email: string;
   plan: string;
   isDemo: boolean;
+  creditBalance?: number;
+  isUnlimited?: boolean;
 }
 
 const PAGE_SIZE = 10;
@@ -62,10 +72,12 @@ export default function DashboardPage() {
     staleTime: 60_000,
   });
 
-  const userName = me?.email ? me.email.split('@')[0] : null;
-  const userPlan = me?.plan ?? 'free';
+  const userName      = me?.email ? me.email.split('@')[0] : null;
+  const userPlan      = me?.plan ?? 'free';
+  const creditBalance = me?.creditBalance ?? 0;
+  const isUnlimited   = me?.isUnlimited ?? false;
   // Only show demo banner once /api/me has responded — avoids flash on authenticated pages.
-  const isDemo   = meLoading ? false : (me?.isDemo ?? true);
+  const isDemo        = meLoading ? false : (me?.isDemo ?? true);
 
   // ── Fetch audits ────────────────────────────────────────────────────────────
   const { data, isLoading } = useQuery<AuditsResponse>({
@@ -128,13 +140,25 @@ export default function DashboardPage() {
     if (!completeAudits.length) {
       return { aiVisibility: null, retrievalReadiness: null, citationProbability: null, semanticTrust: null, entityConfidence: null };
     }
+    // Use the most recent audit's AI visibility scores if available
+    const latest = completeAudits[0];
+    const av = latest?.aiVisibilityScores;
+    if (av) {
+      return {
+        aiVisibility:        Math.round(av.aiVisibilityScore),
+        retrievalReadiness:  Math.round(av.retrievalReadinessScore),
+        citationProbability: Math.round(av.citationProbabilityScore),
+        semanticTrust:       Math.round(av.semanticTrustScore),
+        entityConfidence:    Math.round(av.entityConfidenceScore),
+      };
+    }
     const avgAi = Math.round(completeAudits.reduce((s, r) => s + (r.scores?.aiScore ?? 0), 0) / completeAudits.length);
     return {
-      aiVisibility:       avgAi,
-      retrievalReadiness: null,
-      citationProbability:null,
-      semanticTrust:      null,
-      entityConfidence:   null,
+      aiVisibility:        avgAi,
+      retrievalReadiness:  null,
+      citationProbability: null,
+      semanticTrust:       null,
+      entityConfidence:    null,
     };
   }, [completeAudits]);
 
@@ -179,6 +203,26 @@ export default function DashboardPage() {
                 with your Supabase and database credentials to enable real crawls.
               </p>
             </div>
+          </div>
+        )}
+
+        {/* Credit balance widget */}
+        {!isDemo && !meLoading && (
+          <div className="mb-4 flex items-center justify-between rounded-xl border border-white/[0.06] bg-white/[0.02] px-5 py-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan/[0.08] border border-cyan/[0.15]">
+                <span className="text-sm font-bold text-cyan">⚡</span>
+              </div>
+              <div>
+                <p className="text-xs text-[#4A6280]">Credit Balance</p>
+                <p className="text-sm font-bold text-white">
+                  {isUnlimited ? '∞ Unlimited' : `${creditBalance} credit${creditBalance !== 1 ? 's' : ''}`}
+                </p>
+              </div>
+            </div>
+            <a href="/dashboard/settings/billing" className="rounded-lg border border-white/[0.08] bg-white/[0.02] px-3 py-1.5 text-xs font-semibold text-[#7A9AB4] hover:text-white hover:border-white/[0.15] transition-colors">
+              Buy credits
+            </a>
           </div>
         )}
 

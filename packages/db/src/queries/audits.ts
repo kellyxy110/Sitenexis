@@ -38,7 +38,11 @@ export async function listAuditsByUser(
       orderBy: { createdAt: 'desc' },
       skip: (page - 1) * pageSize,
       take: pageSize,
-      include: { scores: true },
+      include: {
+        scores: true,
+        aiVisibilityScores: true,
+        _count: { select: { issues: true } },
+      },
     }),
     db.audit.count({ where: { userId, archivedAt: null } }),
   ]);
