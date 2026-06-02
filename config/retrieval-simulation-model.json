@@ -1,0 +1,60 @@
+{
+  "version": "1.0",
+  "description": "Retrieval simulation model parameters for SiteNexis Retrieval Quality Score calculation",
+
+  "chunkExtraction": {
+    "idealChunkTokens": 450,
+    "minChunkTokens": 100,
+    "maxChunkTokens": 600,
+    "boundaryStrategies": ["paragraph", "heading", "sentence"],
+    "stabilityPassCount": 3,
+    "penaltyPerBoundaryMismatch": 0.08
+  },
+
+  "rankingPressure": {
+    "baselineCompetitionScore": 0.5,
+    "highAuthorityPenalty": 0.15,
+    "lowEntityDensityPenalty": 0.12,
+    "missingSchemaaPenalty": 0.10,
+    "thinContentThresholdWords": 300,
+    "thinContentPenalty": 0.20
+  },
+
+  "summarisationDegradation": {
+    "fragilePhraseMinWords": 8,
+    "crossChunkDependencyPenaltyPerChunk": 0.05,
+    "timeSensitiveClaimPenalty": 0.08,
+    "maxSummarisationLoss": 0.40,
+    "statisticTagPatterns": ["\\d+%", "\\$\\d+", "\\d+ (million|billion|thousand)"]
+  },
+
+  "truncation": {
+    "contextWindowTokens": 8192,
+    "truncationZoneStartPct": 0.75,
+    "criticalFactPenaltyInZone": 0.15
+  },
+
+  "answerFormation": {
+    "weights": {
+      "chunkStability": 0.25,
+      "rankingPressure": 0.25,
+      "summarisationLoss": 0.25,
+      "citationEligibility": 0.25
+    }
+  },
+
+  "citationEligibility": {
+    "minFactualClaimsPerChunk": 2,
+    "minEntityMentions": 1,
+    "requiredAuthoritySignals": ["schema", "externalLinks", "citations"],
+    "penaltyPerMissingSignal": 0.12,
+    "genericContentPenalty": 0.25
+  },
+
+  "scoring": {
+    "chunkStabilityWeight": 0.25,
+    "answerFormationWeight": 0.25,
+    "summarisationLossWeight": 0.25,
+    "citationEligibilityWeight": 0.25
+  }
+}

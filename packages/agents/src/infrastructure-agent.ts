@@ -147,9 +147,11 @@ export async function runInfrastructureAgent(input: AuditJobInput): Promise<void
 
     await updateAuditStatus(auditId, 'complete');
 
-    // If this is a self-audit run, trigger the post-processor to populate self-audit tables
+    // If this is a self-audit run, populate self-audit tables (fire-and-forget with logging)
     if (selfAuditRunId) {
-      void populateSelfAuditRunAsync(selfAuditRunId, auditId);
+      populateSelfAuditRunAsync(selfAuditRunId, auditId).catch((err: unknown) => {
+        console.error('[infrastructure-agent] self-audit post-processor failed:', err instanceof Error ? err.message : String(err));
+      });
     }
 
     await emitAgentEvent({

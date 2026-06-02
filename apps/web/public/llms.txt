@@ -1,0 +1,50 @@
+# SiteNexis — AI Retrieval & Machine Trust Intelligence Platform
+
+> SiteNexis is the only platform that models how AI systems retrieve, interpret, trust, and recommend web content — across every layer from semantic structure to machine trust formation.
+
+## What SiteNexis Does
+
+SiteNexis audits any domain across 12 intelligence dimensions and answers:
+
+- How does an AI system retrieve this page under query pressure?
+- Where does meaning degrade in the AI retrieval pipeline?
+- How is trust formed, maintained, and lost in an AI ecosystem?
+- Across which AI recommendation surfaces is this content invisible?
+
+## Core Intelligence Layers
+
+### Layer 1 — Crawl & Structure
+Technical crawl engine: robots.txt parsing, sitemap discovery, canonical detection, internal link graph, redirect chains.
+
+### Layer 2 — Semantic Intelligence
+Entity Intelligence Engine: named entity detection, consistency scoring, disambiguation analysis, AI Perception Graph construction.
+
+### Layer 3 — AI Visibility
+Machine Readability Scoring, AI Extractability (4 dimensions), Retrieval Readiness, Citation Probability Engine, Semantic Trust Layer, Recommendation Confidence.
+
+### Layer 4 — Machine Trust (Pro+)
+Retrieval Simulation Engine (6-stage), Machine Trust Score, Temporal Authority Model, Recommendation Surface Mapping (AI Overviews / Chat / Voice / Agents), Synthetic Entity Detection.
+
+## Primary Scores
+
+- **AI Visibility Score** (0–100): Composite of machine readability, entity confidence, retrieval readiness, citation probability, semantic trust, schema completeness.
+- **Machine Trust Score** (0–100): Entity credibility consistency, schema trust alignment, external validation depth, contradiction absence, trust degradation resistance.
+- **Retrieval Quality Score** (0–100): Chunk stability, answer formation probability, summarisation loss, citation eligibility.
+- **Recommendation Surface Score** (0–100): Estimated inclusion probability across AI Overviews, chat, voice, autonomous agents.
+- **Entity Authenticity Confidence** (0–100): Inverse of synthetic entity risk score.
+
+## Pricing
+
+- Free: 10 starter credits
+- Starter: $29/mo — 50 credits/month
+- Pro: $99/mo — 150 credits/month + Layer 4 intelligence
+- Agency: $249/mo — 500 credits/month + API access + bulk domains
+
+## Technology
+
+Built on: Next.js 15, Supabase (PostgreSQL), Prisma, BullMQ, Anthropic Claude API, Upstash Redis, Cloudflare R2.
+
+## Contact
+
+Website: https://sitenexis.com
+GitHub: https://github.com/kellyxy110/Sitenexis

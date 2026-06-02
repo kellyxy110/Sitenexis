@@ -54,7 +54,7 @@ function checkEnvVars(): DiagnosticStage {
     DATABASE_URL: (process.env['DATABASE_URL'] ?? '').replace(/:[^@]+@/, ':***@').slice(0, 80),
     SUPABASE_URL: (process.env['SUPABASE_URL'] ?? '').slice(0, 60),
     REDIS_URL: (process.env['REDIS_URL'] ?? '').replace(/:[^@]+@/, ':***@').slice(0, 80),
-    ANTHROPIC_API_KEY: process.env['ANTHROPIC_API_KEY'] ? 'set' : 'MISSING',
+    GROQ_API_KEY: process.env['GROQ_API_KEY'] ? 'set' : 'MISSING',
     NEXT_PUBLIC_SUPABASE_URL: process.env['NEXT_PUBLIC_SUPABASE_URL'] ? 'set' : 'MISSING',
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env['NEXT_PUBLIC_SUPABASE_ANON_KEY'] ? 'set' : 'MISSING',
     serviceStatus: services,
