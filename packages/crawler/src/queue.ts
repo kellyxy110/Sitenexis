@@ -1,5 +1,5 @@
 import { Queue } from 'bullmq';
-import IORedis from 'ioredis';
+import IORedis, { type RedisOptions } from 'ioredis';
 
 export const HEARTBEAT_KEY        = 'worker:heartbeat';
 export const HEARTBEAT_INTERVAL_MS = 15_000;  // write every 15 s
@@ -55,7 +55,7 @@ export function maskUrl(url: string): string {
 // ── IORedis factory ───────────────────────────────────────────────────────────
 
 /** Options shared by every IORedis client in this process. */
-function sharedOptions(isBullMq = false): ConstructorParameters<typeof IORedis>[1] {
+function sharedOptions(isBullMq = false): RedisOptions {
   const url     = getRedisUrl();
   const isTls   = url.startsWith('rediss://');
 
