@@ -1,5 +1,6 @@
+// ── Env bootstrap ─────────────────────────────────────────────────────────────
 import { readFileSync } from 'fs';
-import { join } from 'path';
+import { join }         from 'path';
 import { spawn, type ChildProcess } from 'child_process';
 
 try {
@@ -11,11 +12,17 @@ try {
 } catch { /* .env is optional in production */ }
 
 import {
+  validateRedisUrl,
+  maskUrl,
+  getRedisUrl,
   createRedisClient,
   HEARTBEAT_KEY,
   HEARTBEAT_STALE_MS,
 } from './queue';
 import type IORedis from 'ioredis';
+
+// ── Startup validation ────────────────────────────────────────────────────────
+validateRedisUrl();
 
 // ── Logging ───────────────────────────────────────────────────────────────────
 
@@ -25,26 +32,27 @@ function log(msg: string): void {
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
-const CHECK_INTERVAL_MS = 30_000;   // heartbeat check every 30 s
-const STARTUP_GRACE_MS  = 30_000;   // wait 30 s before first heartbeat check
-const HEALTHY_UPTIME_MS = 5 * 60_000; // 5 min uptime = reset backoff
-const MAX_RESTARTS      = 20;
-const BASE_BACKOFF_MS   = 1_000;
-const MAX_BACKOFF_MS    = 60_000;
+const CHECK_INTERVAL_MS  = 30_000;        // heartbeat check every 30 s
+const STARTUP_GRACE_MS   = 30_000;        // wait before first check (worker startup)
+const HEALTHY_UPTIME_MS  = 5 * 60_000;   // 5 min healthy = reset backoff counter
+const MAX_RESTARTS       = 20;
+const BASE_BACKOFF_MS    = 1_000;
+const MAX_BACKOFF_MS     = 60_000;
 
-// ── Worker process ────────────────────────────────────────────────────────────
+// ── Worker process management ─────────────────────────────────────────────────
 
-// Detect whether we're running as .ts (tsx) or compiled .js (node).
-const isTs      = __filename.endsWith('.ts');
-const workerBin = isTs ? 'tsx' : process.execPath;
+// Detect runtime: tsx (dev) vs compiled Node (production).
+const isTs       = __filename.endsWith('.ts');
+const workerBin  = isTs ? 'tsx' : process.execPath;
 const workerScript = join(__dirname, isTs ? 'worker.ts' : 'worker.js');
 
 let workerProc:     ChildProcess | null = null;
-let monitorTimer:   ReturnType<typeof setInterval>  | null = null;
+let monitorTimer:   ReturnType<typeof setInterval> | null = null;
 let redis:          IORedis | null = null;
 let restartCount    = 0;
 let workerStartedAt = 0;
 let stopping        = false;
+let lastRedisErrLog = 0;
 
 function backoffMs(): number {
   if (restartCount === 0) return 0;
@@ -71,7 +79,7 @@ function spawnWorker(): void {
 
     workerProc = spawn(workerBin, [workerScript], {
       stdio: 'inherit',
-      env: { ...process.env },
+      env: { ...process.env },   // inherit all env vars including REDIS_URL
     });
 
     workerProc.on('exit', (code, signal) => {
@@ -81,14 +89,12 @@ function spawnWorker(): void {
       const desc = signal ? `signal:${signal}` : `code:${code}`;
       log(`Worker exited (${desc})`);
 
-      // Reset backoff if the worker was healthy for a while
       if (Date.now() - workerStartedAt > HEALTHY_UPTIME_MS) {
         log('Worker had healthy uptime — resetting restart backoff');
         restartCount = 0;
       }
 
       restartCount++;
-      log(`Worker restarted (#${restartCount})`);
       spawnWorker();
     });
 
@@ -113,17 +119,22 @@ async function checkHeartbeat(): Promise<void> {
 
     const age = Date.now() - parseInt(raw, 10);
     if (age > HEARTBEAT_STALE_MS) {
-      log(`Heartbeat stale (${Math.round(age / 1000)}s) — killing and restarting worker`);
+      log(`Heartbeat stale (${Math.round(age / 1000)}s old) — killing worker`);
       if (workerProc) {
         workerProc.kill('SIGTERM');
-        // exit event fires → spawnWorker() called from exit handler
+        // exit handler fires → spawnWorker() called automatically
       } else {
         restartCount++;
         spawnWorker();
       }
     }
   } catch (err) {
-    log(`Heartbeat check error: ${String(err)}`);
+    // Don't flood logs on transient Redis errors during heartbeat checks.
+    const now = Date.now();
+    if (now - lastRedisErrLog > 30_000) {
+      log(`Heartbeat check error: ${String(err)}`);
+      lastRedisErrLog = now;
+    }
   }
 }
 
@@ -133,21 +144,36 @@ function cleanup(): void {
   stopping = true;
   if (monitorTimer) { clearInterval(monitorTimer); monitorTimer = null; }
   if (workerProc)   { try { workerProc.kill('SIGTERM'); } catch { /* ok */ } workerProc = null; }
-  try { redis?.disconnect(); } catch { /* best effort */ }
+  if (redis)        { try { redis.disconnect();         } catch { /* ok */ } redis = null; }
 }
 
 // ── Entry point ───────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
   log('Watchdog starting');
+  log(`Redis: ${maskUrl(getRedisUrl())}`);
+  log(`TLS: ${getRedisUrl().startsWith('rediss://') ? 'enabled' : 'disabled'}`);
 
-  redis = createRedisClient();
-  redis.on('connect', () => log('Watchdog connected to Redis'));
-  redis.on('error',   (err: Error) => log(`Watchdog Redis error: ${err.message}`));
+  redis = createRedisClient(false);
+
+  redis.on('connect',     () => log('Watchdog Redis connected'));
+  redis.on('ready',       () => log('Watchdog Redis ready'));
+  redis.on('reconnecting',() => log('Watchdog Redis reconnecting…'));
+  redis.on('close',       () => log('Watchdog Redis connection closed'));
+
+  // Rate-limit error events — every reconnection attempt fires 'error'.
+  // Without rate-limiting this fills the Railway log with noise.
+  redis.on('error', (err: Error) => {
+    const now = Date.now();
+    if (now - lastRedisErrLog > 30_000) {
+      log(`Watchdog Redis error: ${err.message}`);
+      lastRedisErrLog = now;
+    }
+  });
 
   spawnWorker();
 
-  // Grace period — give the worker time to start and write its first heartbeat
+  // Grace period: give the worker time to start and write its first heartbeat.
   setTimeout(() => {
     log('Starting heartbeat monitor');
     monitorTimer = setInterval(() => void checkHeartbeat(), CHECK_INTERVAL_MS);
@@ -158,8 +184,7 @@ async function main(): Promise<void> {
 
 process.on('SIGTERM', () => { log('SIGTERM — shutting down'); cleanup(); process.exit(0); });
 process.on('SIGINT',  () => { log('SIGINT — shutting down');  cleanup(); process.exit(0); });
-
 process.on('uncaughtException',  (err: Error) => { log(`Uncaught: ${err.message}`); cleanup(); process.exit(1); });
-process.on('unhandledRejection', (r: unknown) => { log(`Unhandled: ${String(r)}`); cleanup(); process.exit(1); });
+process.on('unhandledRejection', (r: unknown) => { log(`Unhandled: ${String(r)}`);  cleanup(); process.exit(1); });
 
 void main();
