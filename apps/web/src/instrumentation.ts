@@ -16,9 +16,9 @@ export async function register() {
 
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const fs = require('fs') as typeof import('fs');
+    const fs = require(/* webpackIgnore: true */ 'fs') as typeof import('fs');
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const path = require('path') as typeof import('path');
+    const path = require(/* webpackIgnore: true */ 'path') as typeof import('path');
 
     const candidates = [
       vercelPath,

@@ -5,7 +5,7 @@ import { TopCommandBar } from '@/components/dashboard/TopCommandBar';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { CreditCard, Check, ArrowRight, Loader2, ExternalLink, Zap, Clock } from 'lucide-react';
-import { CREDIT_PACKS, CREDIT_ACTION_LABELS, type CreditAction } from '@/lib/credits';
+import { CREDIT_PACKS, CREDIT_ACTION_LABELS, type CreditAction } from '@/lib/credits-config';
 
 interface MeData {
   id: string;
