@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { Check, Circle, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
+import { Check, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
 
 // ── Checklist data (mirrors Citation Probability Score formula) ───────────────
 
