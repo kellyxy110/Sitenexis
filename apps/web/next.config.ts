@@ -27,6 +27,16 @@ const nextConfig: NextConfig = {
         'puppeteer', 'puppeteer-core', 'bullmq', 'ioredis', 'lighthouse',
       ];
     }
+    // Tell webpack fs/path are Node built-ins — suppress "module not found" warnings
+    // from instrumentation.ts which runs server-only but is compiled for all runtimes.
+    config.resolve = {
+      ...config.resolve,
+      fallback: {
+        ...((config.resolve as { fallback?: Record<string, boolean> }).fallback ?? {}),
+        fs: false,
+        path: false,
+      },
+    };
     return config;
   },
 
