@@ -100,6 +100,7 @@ const SECTIONS: CheckSection[] = [
     title: 'Trust Signal Density',
     weight: '10%',
     formulaWeight: 10,
+    color: 'teal',
     items: [
       { id: 'ts1', label: 'Schema markup present and matches content type accurately', description: 'Article, HowTo, FAQPage, or Product schema — correct type for correct content. Wrong schema type is a trust penalty.', points: 4 },
       { id: 'ts2', label: 'Author entity present with credentials or verifiable external presence', description: 'Person schema with author name, role, and sameAs link to a professional profile (LinkedIn, Google Scholar, etc.).', points: 3 },
