@@ -1,3 +1,4 @@
+import { CREDIT_COSTS, CREDIT_ACTION_LABELS } from './credits-config';
 import type { CreditAction } from './credits-config';
 export { CREDIT_COSTS, CREDIT_ACTION_LABELS, CREDIT_PACKS } from './credits-config';
 export type { CreditAction } from './credits-config';
