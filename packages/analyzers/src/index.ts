@@ -63,6 +63,20 @@ export type { Recommendation } from './recommendations/engine';
 export { computeSIIScore } from './sii/engine';
 export type { SIIInput, SIIResult } from './sii/engine';
 
+// ─── Intelligence Modules (plug-in layer, non-breaking) ───────────────────────
+
+// Module 1: AI Discovery Intelligence Engine
+export { analyzeDiscovery } from './discovery/engine';
+
+// Module 2: Authority Stability + Core Update Engine
+export { analyzeAuthorityStability } from './authority-stability/engine';
+
+// Module 3: Core Update Simulation Engine
+export { simulateCoreUpdateScenarios } from './core-update-simulation/engine';
+
+// Module 4: Self-Audit Benchmark Layer
+export { compareToBenchmark, getBenchmarkProfile, AVAILABLE_BENCHMARKS } from './self-audit/benchmark';
+
 export async function runAllAnalyzers(
   auditId: string,
   pages: CrawledPage[],

@@ -7,6 +7,7 @@ import type {
   CitationFactorBreakdown,
   EntityIntelligenceReport,
   SchemaScore,
+  ContentFormatType,
 } from '@sitenexis/shared';
 
 // ─── Config loading ───────────────────────────────────────────────────────────
@@ -303,6 +304,72 @@ function analyzePage(
   return { url: page.url, citationProbability, factors, blockers };
 }
 
+// ─── Intelligence Module: Content format classifier ───────────────────────────
+
+/**
+ * Classifies the dominant content format of a page based on title + structure.
+ * AI systems cite different formats at different rates — "Best X" and
+ * comparison formats achieve 3–5× the citation rate of general narrative posts.
+ */
+function classifyContentFormat(pages: CrawledPage[]): ContentFormatType {
+  if (pages.length === 0) return 'general';
+
+  const titleCounts: Record<ContentFormatType, number> = {
+    best_x: 0, comparison: 0, definition: 0, guide: 0,
+    procedural: 0, evaluative: 0, factual: 0, general: 0,
+  };
+
+  for (const page of pages) {
+    const title = (page.title ?? '').toLowerCase();
+    const body  = (page.bodyText ?? '').toLowerCase();
+
+    if (/\b(best|top \d+|top-\d+)\b/.test(title))                      titleCounts.best_x++;
+    else if (/\bvs\.?\b|\bversus\b|\bcompared?\b|\balternative/.test(title)) titleCounts.comparison++;
+    else if (/\bwhat is\b|\bwhat are\b|\bdefinition\b|\bexplained\b/.test(title)) titleCounts.definition++;
+    else if (/\bhow to\b|\bstep.by.step\b|\btutorial\b/.test(title))    titleCounts.procedural++;
+    else if (/\bguide\b|\bguide to\b|\bcomplete guide\b/.test(title))   titleCounts.guide++;
+    else if (/\breview\b|\brated\b|\bis .* good\b|\bworth\b/.test(title)) titleCounts.evaluative++;
+    else if (/\d+%|\d+ (million|billion|thousand)|\bstatistic\b|\bdata\b/.test(body) &&
+             (page.bodyText ?? '').split(/\s+/).length > 600)            titleCounts.factual++;
+    else                                                                 titleCounts.general++;
+  }
+
+  // Return the most dominant format (excluding 'general' if another wins)
+  const sorted = (Object.entries(titleCounts) as [ContentFormatType, number][])
+    .sort((a, b) => b[1] - a[1]);
+  const top = sorted[0];
+  // Only declare a format winner if it represents > 20% of pages
+  if (top && top[1] > pages.length * 0.2 && top[0] !== 'general') return top[0];
+  // Check if 'general' is explicitly dominant
+  return 'general';
+}
+
+/**
+ * Computes the gap between citation eligibility and retrieval readiness.
+ * Uses structural citation readiness and factual density as a retrieval proxy.
+ *
+ * Positive gap: content is more citable than retrievable (chunk structure issue)
+ * Negative gap: content is more retrievable than citable (factual density issue)
+ */
+function computeRetrievalCitationGap(
+  pageAnalyses: CitationPageAnalysis[],
+  citationProbabilityScore: number,
+): number {
+  if (pageAnalyses.length === 0) return 0;
+
+  // Proxy for retrieval readiness: avg of structural readiness + factual density
+  const avgRetrievability = Math.round(
+    pageAnalyses.reduce(
+      (sum, p) =>
+        sum +
+        (p.factors.structuralCitationReadiness * 0.5 + p.factors.factualDensity * 0.5),
+      0,
+    ) / pageAnalyses.length,
+  );
+
+  return citationProbabilityScore - avgRetrievability;
+}
+
 // ─── Main export ──────────────────────────────────────────────────────────────
 
 export function analyzeCitationProbability(
@@ -365,5 +432,7 @@ export function analyzeCitationProbability(
     topCitationCandidates,
     citationBlockers,
     recommendations,
+    contentFormatClassification: classifyContentFormat(pages),
+    retrievalCitationGap: computeRetrievalCitationGap(pageAnalyses, citationProbabilityScore),
   };
 }

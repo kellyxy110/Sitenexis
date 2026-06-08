@@ -332,15 +332,19 @@ export interface EntityIssue {
 }
 
 export interface EntityIntelligenceReport {
-  entitiesDetected: Entity[];
-  primaryEntity: Entity | null;
+  entitiesDetected:       Entity[];
+  primaryEntity:          Entity | null;
   entityConsistencyScore: number;
-  entityCoverageScore: number;
-  disambiguationScore: number;
-  entityConfidenceScore: number;
-  inconsistencies: EntityIssue[];
-  missingAttributes: string[];
-  recommendations: string[];
+  entityCoverageScore:    number;
+  disambiguationScore:    number;
+  entityConfidenceScore:  number;
+  inconsistencies:        EntityIssue[];
+  missingAttributes:      string[];
+  recommendations:        string[];
+  // Intelligence module extensions
+  platformPresence?:      PlatformPresence;
+  fragmentationRisk?:     boolean;
+  fragmentationRiskReason?: string;
 }
 
 // ─── v2 — Machine Readability ────────────────────────────────────────────────
@@ -397,11 +401,14 @@ export interface CitationPageAnalysis {
 }
 
 export interface CitationAnalysis {
-  citationProbabilityScore: number;
-  pageAnalyses: CitationPageAnalysis[];
-  topCitationCandidates: string[];
-  citationBlockers: string[];
-  recommendations: string[];
+  citationProbabilityScore:       number;
+  pageAnalyses:                   CitationPageAnalysis[];
+  topCitationCandidates:          string[];
+  citationBlockers:               string[];
+  recommendations:                string[];
+  // Intelligence module extensions
+  contentFormatClassification?:   ContentFormatType;
+  retrievalCitationGap?:          number;  // positive = citations exceed retrieval; negative = retrieval exceeds citation
 }
 
 // ─── v2 — Semantic Trust ─────────────────────────────────────────────────────
@@ -572,15 +579,19 @@ export interface TemporalIssue {
 }
 
 export interface TemporalAuthorityResult {
-  isBaseline: boolean;
-  authorityVelocityScore: number | null;
-  trustStabilityIndex: number;
-  contentFreshnessImpactFactor: number;
-  semanticDriftIndex: number;
+  isBaseline:                    boolean;
+  authorityVelocityScore:        number | null;
+  trustStabilityIndex:           number;
+  contentFreshnessImpactFactor:  number;
+  semanticDriftIndex:            number;
   updateFrequencyClassification: UpdateFrequencyClassification;
-  stalePagesAtRisk: string[];
-  driftedPages: SemanticDriftRecord[];
-  temporalIssues: TemporalIssue[];
+  stalePagesAtRisk:              string[];
+  driftedPages:                  SemanticDriftRecord[];
+  temporalIssues:                TemporalIssue[];
+  // Intelligence module extensions
+  freshnessVelocityScore?:       number;            // 0–100 composite
+  visibilityRampDays?:           number;            // days to reach full AI visibility
+  rampCurve?:                    VisibilityRampPoint[];
 }
 
 // ─── v3 — Recommendation Surface Mapping ─────────────────────────────────────
@@ -693,6 +704,127 @@ export function getScoreTailwindClass(score: number): string {
   if (score >= 70) return 'text-teal-400';
   if (score >= 50) return 'text-amber-400';
   return 'text-red-500';
+}
+
+// ─── Intelligence Modules — Citation extensions ───────────────────────────────
+
+export type ContentFormatType =
+  | 'best_x'          // "Best X for Y", "Top N tools"
+  | 'comparison'      // "A vs B", "X compared to Y"
+  | 'definition'      // "What is X", "X explained"
+  | 'guide'           // "Guide to X", "How to X" (multi-step)
+  | 'procedural'      // Step-by-step, numbered lists
+  | 'evaluative'      // "Review of X", "Is X good?"
+  | 'factual'         // Data-dense, statistical
+  | 'general';        // No dominant format pattern
+
+// ─── Intelligence Modules — Entity extensions ─────────────────────────────────
+
+export interface PlatformPresence {
+  wikipedia:  boolean;
+  wikidata:   boolean;
+  linkedin:   boolean;
+  github:     boolean;
+  youtube:    boolean;
+  crunchbase: boolean;
+}
+
+// ─── Intelligence Modules — Temporal extensions ───────────────────────────────
+
+export interface VisibilityRampPoint {
+  day: number;
+  estimatedVisibility: number; // 0–100
+}
+
+// ─── Intelligence Modules — Discovery Engine ─────────────────────────────────
+
+export interface AICrawlerAllowance {
+  gptBot:         boolean;
+  claudeBot:      boolean;
+  perplexityBot:  boolean;
+  googleExtended: boolean;
+  googleBot:      boolean;
+  allAllowed:     boolean;
+}
+
+export interface DiscoveryBottleneck {
+  type:           string;
+  severity:       SEOIssueSeverity;
+  description:    string;
+  recommendation: string;
+}
+
+export interface DiscoveryScore {
+  score:                       number;  // 0–100
+  estimatedDiscoveryDelayDays: number;
+  crawlAccessibilityScore:     number;  // 0–100
+  indexabilityScore:           number;  // 0–100
+  aiCrawlerAllowance:          AICrawlerAllowance;
+  multiSourceDiscoveryScore:   number;  // 0–100
+  bottlenecks:                 DiscoveryBottleneck[];
+  accelerationOpportunities:   string[];
+}
+
+// ─── Intelligence Modules — Authority Stability Engine ───────────────────────
+
+export type AggregationRisk     = 'low' | 'medium' | 'high';
+export type SiteClassification  = 'first_party_authority' | 'aggregator' | 'hybrid';
+
+export interface AuthorityStabilityScore {
+  score:                          number;           // 0–100
+  aggregationRisk:                AggregationRisk;
+  coreUpdateSurvivalProbability:  number;           // 0–100
+  firstPartyDepthScore:           number;           // 0–100
+  contentOriginalityScore:        number;           // 0–100
+  expertAttributionScore:         number;           // 0–100
+  classification:                 SiteClassification;
+  weakSignals:                    string[];
+  strengtheningRecommendations:   string[];
+}
+
+// ─── Intelligence Modules — Core Update Simulation Engine ────────────────────
+
+export type UpdateScenario     = 'authority_first' | 'aggregation_filter' | 'ai_citation_alignment';
+export type ScenarioPrediction = 'gain' | 'neutral' | 'loss';
+export type StabilityForecast  = 'stable' | 'at_risk' | 'growth_likely';
+
+export interface ScenarioResult {
+  scenario:            UpdateScenario;
+  prediction:          ScenarioPrediction;
+  confidenceLevel:     number;   // 0–1
+  predictedScoreChange: number;  // –30 to +30
+  riskZones:           string[];
+  opportunityZones:    string[];
+  reasoning:           string;
+}
+
+export interface CoreUpdateSimulationResult {
+  scenarios:               ScenarioResult[];
+  overallStabilityForecast: StabilityForecast;
+  primaryRiskFactor:       string;
+  primaryOpportunity:      string;
+  stabilityScore:          number;  // 0–100
+}
+
+// ─── Intelligence Modules — Self-Audit Benchmark ─────────────────────────────
+
+export interface BenchmarkGap {
+  dimension:         string;
+  currentScore:      number;
+  benchmarkMinimum:  number;
+  gap:               number;
+  severity:          SEOIssueSeverity;
+}
+
+export interface BenchmarkComparisonResult {
+  passed:                    boolean;
+  selfInconsistencyDetected: boolean;
+  selfInconsistencyReason?:  string;
+  overallGapScore:           number;   // 0–100 (100 = meets benchmark)
+  gapReport:                 BenchmarkGap[];
+  passingDimensions:         string[];
+  failingDimensions:         string[];
+  verdict:                   string;
 }
 
 // ─── Plan limits (v3 — includes layer4Analysis + competitiveAnalysis) ────────

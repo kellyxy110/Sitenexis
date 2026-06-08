@@ -67,6 +67,10 @@ export interface SIIResult {
   insights: string[];
   critical_gaps: string[];
   recommendation_priority: SIIRecommendation[];
+  /** Maximum achievable SII score given structural constraints (entity clarity, schema, external validation).
+   *  A site with entity_clarity=10 cannot reach 90 even if every other dimension is perfect.
+   *  Used to set realistic expectations and prioritise foundational fixes over surface optimisations. */
+  growthCeiling: number;
 }
 
 // ─── Weights ──────────────────────────────────────────────────────────────────
@@ -282,6 +286,49 @@ function generateRecommendations(breakdown: SIIBreakdown): SIIRecommendation[] {
     .map(({ dim, score }) => RECOMMENDATION_TEMPLATES[dim](score));
 }
 
+// ─── Intelligence Module: Growth ceiling ──────────────────────────────────────
+
+/**
+ * Computes the maximum achievable SII score given the site's structural
+ * constraints. Some constraints (no entity definitions, no schema at all)
+ * place a hard ceiling on total score regardless of other improvements.
+ *
+ * The ceiling is advisory — it tells the user "fix these foundational issues
+ * before optimising surface signals."
+ */
+function computeGrowthCeiling(breakdown: SIIBreakdown): number {
+  let ceiling = 100;
+
+  // Entity clarity is the single most constraining factor:
+  // AI systems that can't identify the primary entity will never cite the content.
+  const entityScore = breakdown.entity_clarity;
+  if (entityScore !== null) {
+    if (entityScore < 20)      ceiling = Math.min(ceiling, 55);
+    else if (entityScore < 40) ceiling = Math.min(ceiling, 70);
+    else if (entityScore < 60) ceiling = Math.min(ceiling, 82);
+  }
+
+  // No schema = no structured trust signal: caps at 78
+  const schemaScore = breakdown.semantic_structure;
+  if (schemaScore !== null && schemaScore < 20) {
+    ceiling = Math.min(ceiling, 78);
+  }
+
+  // Poor AI visibility (machine readability + semantic trust) caps at 85
+  const aiScore = breakdown.ai_visibility;
+  if (aiScore !== null && aiScore < 30) {
+    ceiling = Math.min(ceiling, 85);
+  }
+
+  // Critically low citation potential (< 20) caps at 72
+  const citationScore = breakdown.citation_potential;
+  if (citationScore !== null && citationScore < 20) {
+    ceiling = Math.min(ceiling, 72);
+  }
+
+  return ceiling;
+}
+
 // ─── Main export ──────────────────────────────────────────────────────────────
 
 export function computeSIIScore(input: SIIInput): SIIResult {
@@ -329,6 +376,8 @@ export function computeSIIScore(input: SIIInput): SIIResult {
   // 7. Recommendations
   const recommendation_priority = generateRecommendations(breakdown);
 
+  const growthCeiling = computeGrowthCeiling(breakdown);
+
   return {
     url: input.url,
     sii_score,
@@ -338,5 +387,6 @@ export function computeSIIScore(input: SIIInput): SIIResult {
     insights,
     critical_gaps,
     recommendation_priority,
+    growthCeiling,
   };
 }

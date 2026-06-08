@@ -7,3 +7,5 @@ export * from './queries/scores';
 export * from './queries/users';
 export * from './queries/v3';
 export * from './queries/self-audit';
+export * from './queries/teams';
+export * from './queries/scheduled-reports';

@@ -344,6 +344,55 @@ function scoreEntityDisambiguation(
   return { score: Math.max(0, score), issues };
 }
 
+// ─── Intelligence Module: Platform presence + fragmentation risk ─────────────
+
+import type { PlatformPresence } from '@sitenexis/shared';
+
+const PLATFORM_PATTERNS: Record<keyof PlatformPresence, RegExp> = {
+  wikipedia:  /wikipedia\.org/i,
+  wikidata:   /wikidata\.org/i,
+  linkedin:   /linkedin\.com/i,
+  github:     /github\.com/i,
+  youtube:    /youtube\.com|youtu\.be/i,
+  crunchbase: /crunchbase\.com/i,
+};
+
+function detectPlatformPresence(allSameAsUrls: string[]): PlatformPresence {
+  const result = {} as PlatformPresence;
+  for (const [platform, pattern] of Object.entries(PLATFORM_PATTERNS) as [keyof PlatformPresence, RegExp][]) {
+    result[platform] = allSameAsUrls.some((url) => pattern.test(url));
+  }
+  return result;
+}
+
+function assessFragmentationRisk(
+  entityConsistencyScore: number,
+  disambiguationScore: number,
+  platformPresence: PlatformPresence,
+): { fragmentationRisk: boolean; fragmentationRiskReason?: string } {
+  const hasCriticalPresence = platformPresence.wikipedia || platformPresence.wikidata || platformPresence.linkedin;
+
+  if (entityConsistencyScore < 40) {
+    return {
+      fragmentationRisk: true,
+      fragmentationRiskReason: `Entity consistency score (${entityConsistencyScore}) is critically low — AI systems will see conflicting identity signals across pages.`,
+    };
+  }
+  if (disambiguationScore < 40 && !hasCriticalPresence) {
+    return {
+      fragmentationRisk: true,
+      fragmentationRiskReason: `Disambiguation score (${disambiguationScore}) is low and no authoritative external presence (Wikipedia, Wikidata, LinkedIn) is linked. AI systems cannot reliably identify this entity.`,
+    };
+  }
+  if (entityConsistencyScore < 60 && disambiguationScore < 50) {
+    return {
+      fragmentationRisk: true,
+      fragmentationRiskReason: `Both consistency (${entityConsistencyScore}) and disambiguation (${disambiguationScore}) are below threshold. AI identity fragmentation risk is elevated.`,
+    };
+  }
+  return { fragmentationRisk: false };
+}
+
 // ─── Main export ──────────────────────────────────────────────────────────────
 
 export async function analyzeEntityIntelligence(
@@ -446,6 +495,9 @@ export async function analyzeEntityIntelligence(
       recommendations: [
         'No validated entities detected. Verify that content contains clear named entities and that the Groq API key is configured.',
       ],
+      platformPresence: detectPlatformPresence([]),
+      fragmentationRisk: true,
+      fragmentationRiskReason: 'No validated entities detected — AI systems cannot identify this domain as a coherent entity.',
     };
   }
 
@@ -494,6 +546,13 @@ export async function analyzeEntityIntelligence(
     recommendations.push('Enrich content with explicit named entities. Entity-sparse pages are invisible to AI knowledge extraction pipelines.');
   }
 
+  // Intelligence module extensions
+  const allSameAsUrls = entitiesDetected.flatMap((e) => e.sameAsUrls);
+  const platformPresence = detectPlatformPresence(allSameAsUrls);
+  const { fragmentationRisk, fragmentationRiskReason } = assessFragmentationRisk(
+    consistencyScore, disambiguationScore, platformPresence,
+  );
+
   return {
     entitiesDetected,
     primaryEntity: primaryEntityObj,
@@ -506,5 +565,8 @@ export async function analyzeEntityIntelligence(
     ),
     missingAttributes: uniqueMissingAttributes,
     recommendations,
+    platformPresence,
+    fragmentationRisk,
+    ...(fragmentationRiskReason !== undefined ? { fragmentationRiskReason } : {}),
   };
 }

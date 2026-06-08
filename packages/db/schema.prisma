@@ -51,6 +51,10 @@ model User {
   apiKeys            ApiKey[]
   usageLogs          UsageLog[]
   creditTransactions CreditTransaction[]
+  ownedTeamMembers   TeamMember[]        @relation("TeamOwner")
+  memberOfTeams      TeamMember[]        @relation("TeamMember")
+  sentInvites        TeamInvite[]        @relation("InviteOwner")
+  scheduledReports   ScheduledReport[]
 
   @@map("users")
 }
@@ -559,4 +563,61 @@ model SIIScore {
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("sii_scores")
+}
+
+// ─── Team workspaces ─────────────────────────────────────────────────────────
+
+model TeamMember {
+  id       String   @id @default(cuid())
+  ownerId  String   @map("owner_id")
+  userId   String   @map("user_id")
+  role     String   @default("viewer")
+  joinedAt DateTime @default(now()) @map("joined_at")
+
+  owner  User @relation("TeamOwner",  fields: [ownerId], references: [id])
+  member User @relation("TeamMember", fields: [userId],  references: [id])
+
+  @@unique([ownerId, userId])
+  @@index([ownerId])
+  @@map("team_members")
+}
+
+model TeamInvite {
+  id        String    @id @default(cuid())
+  ownerId   String    @map("owner_id")
+  email     String
+  role      String    @default("viewer")
+  token     String    @unique @default(cuid())
+  accepted  Boolean   @default(false)
+  expiresAt DateTime  @map("expires_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  owner User @relation("InviteOwner", fields: [ownerId], references: [id])
+
+  @@index([ownerId])
+  @@index([email])
+  @@map("team_invites")
+}
+
+// ─── Scheduled reports ───────────────────────────────────────────────────────
+
+model ScheduledReport {
+  id         String    @id @default(cuid())
+  userId     String    @map("user_id")
+  domain     String?
+  frequency  String    // 'daily' | 'weekly' | 'monthly'
+  dayOfWeek  Int?      @map("day_of_week")
+  hour       Int       @default(8)
+  email      String
+  enabled    Boolean   @default(true)
+  lastSentAt DateTime? @map("last_sent_at")
+  nextSendAt DateTime  @map("next_send_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([nextSendAt])
+  @@map("scheduled_reports")
 }
