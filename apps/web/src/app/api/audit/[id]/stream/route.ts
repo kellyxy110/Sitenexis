@@ -4,192 +4,164 @@ import { requireAuth } from '@/lib/auth';
 import { getDemoAudit } from '@/lib/demo-store';
 import { isFullyConfigured } from '@/lib/mode';
 
-interface Params {
-  params: Promise<{ id: string }>;
-}
+interface Params { params: Promise<{ id: string }> }
 
-function stageFromPageCount(pageCount: number): string {
-  if (pageCount === 0) return 'crawl';
-  if (pageCount < 4)  return 'seo';
-  if (pageCount < 6)  return 'ai';
-  if (pageCount < 7)  return 'schema';
-  return 'links';
-}
+const SSE_HEADERS = {
+  'Content-Type': 'text/event-stream',
+  'Cache-Control': 'no-cache, no-transform',
+  'Connection': 'keep-alive',
+  'X-Accel-Buffering': 'no',
+} as const;
 
-function statusMessage(status: string, pageCount: number, stage: string): string {
-  if (status === 'queued')   return 'Waiting to start...';
-  if (status === 'complete') return 'Audit complete — redirecting...';
-  if (status === 'failed')   return 'Audit failed.';
-  const labels: Record<string, string> = {
-    crawl:  `Crawled ${pageCount} pages so far...`,
-    seo:    `Analysing SEO signals across ${pageCount} pages...`,
-    ai:     `Scoring AI readability — this may take a moment...`,
-    schema: `Validating structured data...`,
-    links:  `Building internal link graph...`,
-    report: `Finalising results...`,
-  };
-  return labels[stage] ?? 'Processing...';
-}
-
-function demoStream(id: string): Response {
-  const encoder = new TextEncoder();
-
-  const stream = new ReadableStream({
-    async start(controller) {
-      const send = (data: Record<string, unknown>): void => {
-        try {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
-        } catch {
-          // already closed
-        }
-      };
-
-      const delay = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
-      let pollCount = 0;
-
-      while (pollCount++ < 60) {
-        const audit = getDemoAudit(id);
-        if (!audit) {
-          send({ error: 'Audit not found.' });
-          controller.close();
-          return;
-        }
-
-        const pc    = audit.pageCount ?? 0;
-        const stage = audit.status === 'complete' ? 'report' : stageFromPageCount(pc);
-
-        send({
-          status:      audit.status,
-          stage,
-          pagesCount:  pc,
-          issuesCount: audit.status === 'complete' ? (audit.issues?.length ?? 0) : 0,
-          message:     statusMessage(audit.status, pc, stage),
-        });
-
-        if (audit.status === 'complete' || audit.status === 'failed') {
-          controller.close();
-          return;
-        }
-
-        await delay(500);
-      }
-
-      send({ status: 'failed', error: 'Audit timed out.' });
-      controller.close();
-    },
-  });
-
-  return new Response(stream, {
-    headers: {
-      'Content-Type':      'text/event-stream',
-      'Cache-Control':     'no-cache, no-store',
-      'Connection':        'keep-alive',
-      'X-Accel-Buffering': 'no',
-    },
-  });
+function sseMsg(payload: Record<string, unknown>, encoder: TextEncoder): Uint8Array {
+  return encoder.encode(`data: ${JSON.stringify(payload)}\n\n`);
 }
 
 export async function GET(req: NextRequest, { params }: Params): Promise<Response> {
+  // Soft auth — validates ownership per audit, doesn't block demo streams on auth failure
+  let userId: string | null = null;
   try {
-    await requireAuth(req);
-  } catch {
-    return new Response('Unauthorized', { status: 401 });
-  }
+    const user = await requireAuth(req);
+    userId = user.id;
+  } catch { /* unauthenticated — will 404 on real audits, demo proceeds */ }
 
   const { id } = await params;
+  const signal = req.signal;
+  const encoder = new TextEncoder();
 
-  // Always try demo store first — covers demo mode and fallback from failed real mode
-  if (!isFullyConfigured() || getDemoAudit(id)) {
-    return demoStream(id);
-  }
+  const send = (controller: ReadableStreamDefaultController, payload: Record<string, unknown>) => {
+    try { controller.enqueue(sseMsg(payload, encoder)); } catch { /* controller already closed */ }
+  };
 
-  // ── Real mode ─────────────────────────────────────────────────────────────
-  try {
-    const { getAuditById, db } = await import('@sitenexis/db');
-
-    const initial = await getAuditById(id);
-    if (!initial) return new Response('Not found', { status: 404 });
-
-    const encoder = new TextEncoder();
-
-    async function countIssues(auditId: string): Promise<number> {
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return await (db as any).issue.count({ where: { auditId } });
-      } catch {
-        return 0;
-      }
-    }
-
+  // ── Demo mode ────────────────────────────────────────────────────────────────
+  const demoAudit = getDemoAudit(id);
+  if (demoAudit || !isFullyConfigured()) {
     const stream = new ReadableStream({
       async start(controller) {
-        const send = (data: Record<string, unknown>): void => {
-          try {
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
-          } catch { /* closed */ }
-        };
-
-        const heartbeat = setInterval(() => send({ heartbeat: true }), 15_000);
-        let pollCount = 0;
-
-        const poll = async (): Promise<void> => {
-          if (pollCount++ > 300) {
-            send({ status: 'failed', error: 'Audit timed out.' });
-            clearInterval(heartbeat);
-            controller.close();
-            return;
-          }
-
-          const audit = await getAuditById(id);
-          if (!audit) {
-            send({ error: 'Audit not found.' });
-            clearInterval(heartbeat);
-            controller.close();
-            return;
-          }
-
-          const issuesCount = await countIssues(id);
-          const pc    = audit.pageCount ?? 0;
-          const stage = audit.status === 'running' ? (pc ? 'seo' : 'crawl') : 'report';
-
-          send({
-            status:     audit.status,
-            stage,
-            pagesCount: pc,
-            issuesCount,
-            message:    statusMessage(audit.status, pc, stage),
-            updatedAt:  audit.updatedAt,
-          });
-
-          if (audit.status === 'complete' || audit.status === 'failed') {
-            clearInterval(heartbeat);
-            controller.close();
-            return;
-          }
-
-          await new Promise<void>((r) => setTimeout(r, 2000));
-          await poll();
-        };
-
-        try {
-          await poll();
-        } catch {
-          clearInterval(heartbeat);
-          try { controller.close(); } catch { /* already closed */ }
+        if (!demoAudit) {
+          send(controller, { error: 'Audit not found' });
+          controller.close();
+          return;
         }
+
+        let lastPageCount = -1;
+        let lastStage = '';
+        const deadline = Date.now() + 90_000;
+
+        while (Date.now() < deadline && !signal.aborted) {
+          const audit = getDemoAudit(id);
+          if (!audit) break;
+
+          const pc = audit.pageCount ?? 0;
+
+          if (audit.status === 'running' && lastPageCount === -1) {
+            lastPageCount = 0;
+            send(controller, { status: 'running', stage: 'crawl' });
+            lastStage = 'crawl';
+          }
+
+          if (pc > 0 && pc !== lastPageCount) {
+            lastPageCount = pc;
+            const stage =
+              pc <= 2 ? 'crawl' :
+              pc <= 4 ? 'seo' :
+              pc <= 6 ? 'ai' :
+              pc === 7 ? 'schema' : 'links';
+
+            if (stage !== lastStage) {
+              lastStage = stage;
+              send(controller, { status: 'running', stage, pagesCount: pc });
+            } else {
+              send(controller, { pagesCount: pc });
+            }
+          }
+
+          if (audit.status === 'complete') {
+            send(controller, { stage: 'report', message: 'Finalising report…' });
+            await new Promise<void>((r) => setTimeout(r, 200));
+            send(controller, {
+              status: 'complete',
+              pagesCount: audit.pageCount ?? 0,
+              issuesCount: audit.issues.length,
+            });
+            controller.close();
+            return;
+          }
+
+          if (audit.status === 'failed') {
+            send(controller, { status: 'failed', error: 'Audit failed. Please try again.' });
+            controller.close();
+            return;
+          }
+
+          await new Promise<void>((r) => setTimeout(r, 250));
+        }
+
+        if (!signal.aborted) {
+          send(controller, { error: 'Audit stream timed out.' });
+        }
+        try { controller.close(); } catch { /* already closed */ }
       },
     });
 
-    return new Response(stream, {
-      headers: {
-        'Content-Type':      'text/event-stream',
-        'Cache-Control':     'no-cache, no-store',
-        'Connection':        'keep-alive',
-        'X-Accel-Buffering': 'no',
-      },
-    });
-  } catch {
-    // DB unreachable — fall back to demo stream (will show "not found" if ID isn't in demo store)
-    return demoStream(id);
+    return new Response(stream, { headers: SSE_HEADERS });
   }
+
+  // ── Real mode ─────────────────────────────────────────────────────────────────
+  const stream = new ReadableStream({
+    async start(controller) {
+      try {
+        const { getAuditById } = await import('@sitenexis/db');
+
+        const initial = await getAuditById(id);
+        if (!initial || (userId !== null && initial.userId !== userId)) {
+          send(controller, { error: 'Audit not found' });
+          controller.close();
+          return;
+        }
+
+        let lastStatus: string = initial.status;
+        if (initial.status === 'running' || initial.status === 'queued') {
+          send(controller, { status: 'running', stage: 'crawl' });
+        }
+
+        const deadline = Date.now() + 600_000;
+
+        while (Date.now() < deadline && !signal.aborted) {
+          const audit = await getAuditById(id);
+          if (!audit) break;
+
+          if (audit.status !== lastStatus) {
+            lastStatus = audit.status;
+            if (audit.status === 'running') {
+              send(controller, { status: 'running', stage: 'crawl' });
+            } else if (audit.status === 'complete') {
+              send(controller, { stage: 'report', message: 'Finalising report…' });
+              await new Promise<void>((r) => setTimeout(r, 300));
+              send(controller, { status: 'complete', pagesCount: audit.pageCount ?? 0 });
+              controller.close();
+              return;
+            } else if (audit.status === 'failed') {
+              send(controller, { status: 'failed', error: 'Audit failed. Please try again.' });
+              controller.close();
+              return;
+            }
+          }
+
+          await new Promise<void>((r) => setTimeout(r, 2_000));
+        }
+
+        if (!signal.aborted) {
+          send(controller, { error: 'Audit timed out after 10 minutes.' });
+        }
+        try { controller.close(); } catch { /* already closed */ }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Stream error';
+        send(controller, { error: msg });
+        try { controller.close(); } catch { /* already closed */ }
+      }
+    },
+  });
+
+  return new Response(stream, { headers: SSE_HEADERS });
 }

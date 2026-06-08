@@ -18,7 +18,9 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    const { getUserById, getUserCredits } = await import('@sitenexis/db');
+    const { upsertUser, getUserById, getUserCredits } = await import('@sitenexis/db');
+    // Ensure user record exists (creates with 10-credit default if first login)
+    await upsertUser(user.id, user.email);
     const [dbUser, credits] = await Promise.all([
       getUserById(user.id),
       getUserCredits(user.id),

@@ -1011,13 +1011,40 @@ export default function HomePage() {
                 <br />
                 Built for the machine-first web.
               </p>
+              <div className="mt-5 flex items-center gap-3">
+                <a
+                  href="https://x.com/Sitenexis"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="SiteNexis on X"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.03] text-[13px] text-[#475569] transition-colors hover:border-white/[0.15] hover:text-white"
+                >
+                  𝕏
+                </a>
+                <a
+                  href="https://www.linkedin.com/in/sitenexis"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="SiteNexis on LinkedIn"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.03] text-[11px] font-bold text-[#475569] transition-colors hover:border-blue-500/30 hover:text-blue-400"
+                >
+                  in
+                </a>
+                <a
+                  href="mailto:sitenexisintel@gmail.com"
+                  title="Email SiteNexis"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.03] text-[11px] text-[#475569] transition-colors hover:border-teal-500/30 hover:text-teal-400"
+                >
+                  @
+                </a>
+              </div>
             </div>
 
             <div className="flex flex-wrap gap-12 text-[13px]">
               {[
                 { heading: 'Product',    links: [['Features', '#features'], ['Pricing', '#pricing'], ['Changelog', '/changelog'], ['Status', '/status']] },
                 { heading: 'Developers',links: [['Docs', '/docs'], ['API', '/api'], ['Blog', '/blog']] },
-                { heading: 'Company',   links: [['About', '/about'], ['Privacy', '/privacy'], ['Terms', '/terms']] },
+                { heading: 'Company',   links: [['About', '/about'], ['Privacy', '/privacy'], ['Terms', '/terms'], ['Contact', 'mailto:sitenexisintel@gmail.com']] },
               ].map(({ heading, links }) => (
                 <div key={heading}>
                   <p className="mb-4 text-[11px] font-semibold uppercase tracking-widest text-[#334155]">{heading}</p>
@@ -1035,7 +1062,10 @@ export default function HomePage() {
 
           <div className="mt-12 flex flex-col items-center justify-between gap-3 border-t border-white/[0.04] pt-8 md:flex-row">
             <p className="text-[12px] text-[#1E293B]">© {new Date().getFullYear()} SiteNexis. All rights reserved.</p>
-            <p className="text-[12px] text-[#1E293B]">Built for the machine-first web.</p>
+            <div className="flex items-center gap-4 text-[12px] text-[#1E293B]">
+              <a href="https://x.com/Sitenexis" target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-[#475569]">@Sitenexis</a>
+              <a href="mailto:sitenexisintel@gmail.com" className="transition-colors hover:text-[#475569]">sitenexisintel@gmail.com</a>
+            </div>
           </div>
         </div>
       </footer>

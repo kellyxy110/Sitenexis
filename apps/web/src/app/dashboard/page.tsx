@@ -188,6 +188,8 @@ export default function DashboardPage() {
         isAuditing={isStarting}
         userName={userName}
         plan={userPlan}
+        creditBalance={me?.isDemo ? undefined : creditBalance}
+        isUnlimited={isUnlimited}
       />
 
       <main className="flex-1 overflow-y-auto px-6 py-8 lg:px-8">

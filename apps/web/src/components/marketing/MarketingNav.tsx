@@ -26,10 +26,10 @@ function PentagonMark({ size = 16 }: { size?: number }) {
 // ── Nav links config ──────────────────────────────────────────────────────────
 
 const NAV_LINKS = [
-  { label: 'Platform', href: '/platform' },
-  { label: 'Pricing',  href: '/pricing'  },
-  { label: 'Docs',     href: '/docs'     },
-  { label: 'Blog',     href: '/blog'     },
+  { label: 'Platform',    href: '/platform'    },
+  { label: 'Methodology', href: '/methodology' },
+  { label: 'Pricing',     href: '/pricing'     },
+  { label: 'Blog',        href: '/blog'        },
 ]
 
 // ── Component ─────────────────────────────────────────────────────────────────
