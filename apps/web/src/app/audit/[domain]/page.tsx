@@ -218,9 +218,9 @@ function ScoreGauge({ label, score }: { label: string; score: number | null }) {
   const color = scoreColor(score);
 
   return (
-    <div ref={ref} className="flex flex-col items-center gap-2">
-      <div className="relative flex h-28 w-28 items-center justify-center">
-        <svg className="absolute inset-0 -rotate-90" width="112" height="112" viewBox="0 0 112 112">
+    <div ref={ref} className="flex flex-col items-center gap-1.5 sm:gap-2">
+      <div className="relative flex h-20 w-20 sm:h-28 sm:w-28 items-center justify-center">
+        <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 112 112">
           <circle cx="56" cy="56" r={r} fill="none" stroke={color} strokeWidth="5" strokeOpacity="0.15" />
           <motion.circle
             cx="56" cy="56" r={r}
@@ -232,9 +232,9 @@ function ScoreGauge({ label, score }: { label: string; score: number | null }) {
           />
         </svg>
         <div className="relative text-center">
-          <span className="block text-2xl font-bold text-white tabular-nums">{count}</span>
+          <span className="block text-lg sm:text-2xl font-bold text-white tabular-nums">{count}</span>
           {score != null && (
-            <span className="block text-[10px] font-medium" style={{ color }}>
+            <span className="block text-[9px] sm:text-[10px] font-medium" style={{ color }}>
               {scoreLabel(score)}
             </span>
           )}
@@ -1216,24 +1216,24 @@ export default function AuditPage() {
     <div className="min-h-screen bg-[#050B09]">
 
       {/* ── Sticky nav ──────────────────────────────────────────────────────── */}
-      <nav className="sticky top-0 z-30 flex items-center justify-between border-b border-white/10 bg-[#050B09]/95 px-6 py-3 backdrop-blur-md">
-        <div className="flex items-center gap-3">
-          <button onClick={() => router.push('/dashboard')} className="text-[#4A6280] hover:text-white transition-colors text-sm">← Dashboard</button>
+      <nav className="sticky top-0 z-30 flex items-center justify-between border-b border-white/10 bg-[#050B09]/95 px-4 py-3 backdrop-blur-md sm:px-6">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+          <button onClick={() => router.push('/dashboard')} className="shrink-0 text-[#4A6280] hover:text-white transition-colors text-sm">← <span className="hidden sm:inline">Dashboard</span></button>
           <span className="text-white/20">/</span>
-          <span className="font-semibold text-white">{domain}</span>
+          <span className="truncate font-semibold text-white text-sm">{domain}</span>
           {data.status === 'complete' && (
-            <span className="rounded-full bg-green-500/15 px-2 py-0.5 text-xs text-green-400">Complete</span>
+            <span className="hidden sm:inline rounded-full bg-green-500/15 px-2 py-0.5 text-xs text-green-400">Complete</span>
           )}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
           <span className="hidden text-xs text-[#4A6280] md:block">
             Overall: <span className="font-bold text-white">{data.scores?.overall ?? '—'}</span>
           </span>
           <button
             onClick={() => router.push(`/dashboard`)}
-            className="rounded-lg bg-cyan px-4 py-2 text-xs font-semibold text-navy hover:bg-teal transition-colors"
+            className="rounded-lg bg-cyan px-3 py-1.5 sm:px-4 sm:py-2 text-xs font-semibold text-navy hover:bg-teal transition-colors"
           >
-            Re-run Audit
+            Re-run
           </button>
         </div>
       </nav>
@@ -1241,8 +1241,8 @@ export default function AuditPage() {
       <div className="mx-auto max-w-6xl px-6 py-8">
 
         {/* ── Score hero ───────────────────────────────────────────────────── */}
-        <div className="mb-8 card-glass rounded-2xl p-8">
-          <div className="mb-6 flex flex-wrap justify-center gap-8">
+        <div className="mb-8 card-glass rounded-2xl p-4 sm:p-8">
+          <div className="mb-6 flex flex-wrap justify-center gap-4 sm:gap-8">
             <ScoreGauge label="SEO Health"         score={data.scores?.seoScore ?? null} />
             <ScoreGauge label="AI Readability"     score={data.scores?.aiScore ?? null} />
             <ScoreGauge label="Machine Readability"score={data.scores?.breakdown?.machineReadability ? Math.round((data.scores.breakdown.machineReadability.renderingFidelity + data.scores.breakdown.machineReadability.boilerplateRatio + data.scores.breakdown.machineReadability.chunkBoundaryQuality + data.scores.breakdown.machineReadability.signalToNoiseRatio + data.scores.breakdown.machineReadability.headingHierarchy + data.scores.breakdown.machineReadability.readingOrderConsistency + data.scores.breakdown.machineReadability.linkAnchorQuality) / 7) : null} />
@@ -1285,7 +1285,7 @@ export default function AuditPage() {
         )}
 
         {/* ── Tab nav ──────────────────────────────────────────────────────── */}
-        <div className="mb-6 flex overflow-x-auto border-b border-white/10 gap-1">
+        <div className="mb-6 flex overflow-x-auto border-b border-white/10 gap-1 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
           {TAB_IDS.map((tab) => (
             <button
               key={tab}

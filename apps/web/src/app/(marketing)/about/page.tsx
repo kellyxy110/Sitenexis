@@ -3,6 +3,35 @@ import Link from 'next/link';
 import { MarketingNav } from '@/components/marketing/MarketingNav';
 import { ArrowRight } from 'lucide-react';
 
+const FOUNDER_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  '@id': 'https://sitenexis.com/#founder',
+  name: 'Ekeleme David Kelechi',
+  alternateName: 'Kellyxyhub',
+  url: 'https://sitenexis.com/about',
+  jobTitle: 'Founder & CEO',
+  worksFor: {
+    '@id': 'https://sitenexis.com/#organization',
+    '@type': 'Organization',
+    name: 'SiteNexis',
+  },
+  knowsAbout: [
+    'AI Retrieval Systems',
+    'Machine Trust Intelligence',
+    'Entity SEO',
+    'AI Visibility Engineering',
+    'Next.js',
+    'Generative AI',
+  ],
+  sameAs: [
+    'https://github.com/kellyxy110',
+    'https://x.com/Sitenexis',
+    'https://www.linkedin.com/in/sitenexis',
+    'https://www.reddit.com/user/Sitenexis',
+  ],
+};
+
 export const metadata: Metadata = {
   title: 'About SiteNexis — AI Retrieval & Machine Trust Intelligence',
   description:
@@ -25,10 +54,10 @@ function PentagonMark({ size = 20 }: { size?: number }) {
 }
 
 const TEAM_ROLES = [
-  { role: 'Founders', description: 'Building the infrastructure layer for the machine-first web.' },
   { role: 'AI Research', description: 'Modeling retrieval behavior across all major AI systems.' },
   { role: 'Engineering', description: 'Building the 16-agent analysis pipeline and real-time monitoring.' },
   { role: 'Product', description: 'Translating machine intelligence into actionable human insight.' },
+  { role: 'Data & Scoring', description: 'Calibrating trust decay models, citation weights, and retrieval simulation parameters.' },
 ];
 
 const VALUES = [
@@ -53,6 +82,10 @@ const VALUES = [
 export default function AboutPage() {
   return (
     <div className="min-h-screen bg-midnight font-ui text-white antialiased">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(FOUNDER_SCHEMA) }}
+      />
       <MarketingNav />
 
       {/* Hero */}
@@ -120,11 +153,80 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* Team */}
+      {/* Founder */}
       <section className="border-t border-white/[0.05] bg-[#0A1628] py-20 px-6">
         <div className="mx-auto max-w-4xl">
-          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan/70">Team</p>
-          <h2 className="mb-10 text-[28px] font-bold text-white">Built by AI researchers and engineers</h2>
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan/70">Founder</p>
+          <h2 className="mb-10 text-[28px] font-bold text-white">Built by someone who needed it</h2>
+          <div className="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-8 md:flex md:items-start md:gap-8">
+            {/* Avatar placeholder */}
+            <div className="mb-6 flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl border border-cyan-500/20 bg-gradient-to-br from-cyan-500/10 to-teal-500/10 md:mb-0">
+              <PentagonMark size={36} />
+            </div>
+            <div className="flex-1">
+              <p className="text-[18px] font-bold text-white">Ekeleme David Kelechi</p>
+              <p className="mt-0.5 text-[13px] font-medium text-cyan-400">Founder &amp; CEO · Kellyxyhub</p>
+              <p className="mt-4 text-[14px] leading-[1.8] text-slate-400">
+                SiteNexis was built because existing SEO tools couldn&apos;t answer the questions that
+                actually mattered: why was high-ranking content invisible to AI systems, why did schema
+                markup seem to be ignored by retrieval pipelines, and why did entity inconsistencies
+                produce trust failures that no traditional audit tool could diagnose?
+              </p>
+              <p className="mt-3 text-[14px] leading-[1.8] text-slate-400">
+                The platform is the answer — a four-layer intelligence stack that models AI retrieval,
+                trust formation, and recommendation probability from first principles. Built in public,
+                audited by the tools it powers.
+              </p>
+              <div className="mt-5 flex flex-wrap gap-3">
+                <a
+                  href="https://github.com/kellyxy110"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 rounded-lg border border-white/[0.1] bg-white/[0.04] px-4 py-2 text-[12px] font-medium text-slate-300 transition-colors hover:border-white/[0.18] hover:text-white"
+                >
+                  GitHub · kellyxy110
+                </a>
+                <a
+                  href="https://x.com/Sitenexis"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 rounded-lg border border-white/[0.1] bg-white/[0.04] px-4 py-2 text-[12px] font-medium text-slate-300 transition-colors hover:border-cyan-500/30 hover:text-cyan-400"
+                >
+                  𝕏 · @Sitenexis
+                </a>
+                <a
+                  href="https://www.linkedin.com/in/sitenexis"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 rounded-lg border border-white/[0.1] bg-white/[0.04] px-4 py-2 text-[12px] font-medium text-slate-300 transition-colors hover:border-blue-500/30 hover:text-blue-400"
+                >
+                  LinkedIn · SiteNexis
+                </a>
+                <a
+                  href="https://www.reddit.com/user/Sitenexis"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 rounded-lg border border-white/[0.1] bg-white/[0.04] px-4 py-2 text-[12px] font-medium text-slate-300 transition-colors hover:border-orange-500/30 hover:text-orange-400"
+                >
+                  Reddit · u/Sitenexis
+                </a>
+                <a
+                  href="mailto:sitenexisintel@gmail.com"
+                  className="flex items-center gap-2 rounded-lg border border-white/[0.1] bg-white/[0.04] px-4 py-2 text-[12px] font-medium text-slate-300 transition-colors hover:border-teal-500/30 hover:text-teal-400"
+                >
+                  sitenexisintel@gmail.com
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Team */}
+      <section className="border-t border-white/[0.05] py-20 px-6">
+        <div className="mx-auto max-w-4xl">
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan/70">Disciplines</p>
+          <h2 className="mb-10 text-[28px] font-bold text-white">The expertise behind the platform</h2>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {TEAM_ROLES.map((t) => (
               <div key={t.role} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">

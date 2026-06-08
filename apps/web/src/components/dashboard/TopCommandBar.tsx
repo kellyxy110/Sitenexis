@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Search, Play, Bell, ChevronDown, User, CreditCard, LogOut, Settings } from 'lucide-react';
+import { Search, Play, Bell, ChevronDown, User, CreditCard, LogOut, Settings, Zap } from 'lucide-react';
 import Link from 'next/link';
 
 interface TopCommandBarProps {
@@ -10,6 +10,8 @@ interface TopCommandBarProps {
   userName?: string | null | undefined;
   plan?: string | undefined;
   notificationCount?: number | undefined;
+  creditBalance?: number | undefined;
+  isUnlimited?: boolean | undefined;
 }
 
 function UserMenu({ userName, plan }: { userName?: string | null | undefined; plan?: string | undefined }) {
@@ -89,6 +91,8 @@ export function TopCommandBar({
   userName,
   plan,
   notificationCount = 0,
+  creditBalance,
+  isUnlimited = false,
 }: TopCommandBarProps) {
   const [inputValue, setInputValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -101,7 +105,7 @@ export function TopCommandBar({
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b border-white/[0.06] bg-deepspace/90 px-6 backdrop-blur-xl">
+    <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b border-white/[0.06] bg-deepspace/90 pl-14 pr-4 md:px-6 backdrop-blur-xl">
       {/* Domain search */}
       <form
         onSubmit={handleSubmit}
@@ -135,17 +139,38 @@ export function TopCommandBar({
         {isAuditing ? (
           <>
             <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
-            Auditing...
+            <span className="hidden sm:inline">Auditing...</span>
           </>
         ) : (
           <>
             <Play className="h-3.5 w-3.5 fill-current" />
-            Run Audit
+            <span className="hidden sm:inline">Run Audit</span>
           </>
         )}
       </button>
 
       <div className="flex items-center gap-2">
+        {/* Credits badge — hidden on mobile (accessible via dashboard credit widget) */}
+        {(creditBalance !== undefined || isUnlimited) && (
+          <Link
+            href="/dashboard/settings/billing"
+            className={[
+              'hidden md:flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors',
+              isUnlimited
+                ? 'border-cyan/20 bg-cyan/5 text-cyan hover:bg-cyan/10'
+                : (creditBalance ?? 0) <= 2
+                ? 'border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/15'
+                : (creditBalance ?? 0) <= 5
+                ? 'border-amber-500/30 bg-amber-500/10 text-amber-400 hover:bg-amber-500/15'
+                : 'border-white/[0.06] bg-white/[0.03] text-[#4A6280] hover:text-white',
+            ].join(' ')}
+          >
+            <Zap className="h-3 w-3" strokeWidth={2} />
+            {isUnlimited ? '∞' : (creditBalance ?? 0)}
+            <span className="hidden sm:inline text-[10px] opacity-70">credits</span>
+          </Link>
+        )}
+
         {/* Notifications */}
         <button className="relative flex h-8 w-8 items-center justify-center rounded-lg text-[#4A6280] transition-colors hover:bg-white/5 hover:text-white">
           <Bell className="h-4 w-4" strokeWidth={1.6} />

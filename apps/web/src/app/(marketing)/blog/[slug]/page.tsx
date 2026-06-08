@@ -3,6 +3,8 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 import { ArrowLeft, ArrowRight, Clock, Tag } from 'lucide-react'
 import { BLOG_POSTS, getPost, getRelatedPosts, type ContentBlock } from '@/lib/blog-posts'
+import { MarketingNav } from '@/components/marketing/MarketingNav'
+import { ShareButtons } from '@/components/ShareButtons'
 
 // ── Static generation ─────────────────────────────────────────────────────────
 
@@ -48,9 +50,38 @@ function getStyle(cat: string) {
   return CAT_COLORS[cat] ?? { text: 'text-slate-400', bg: 'bg-white/[0.04]', border: 'border-white/[0.08]' }
 }
 
+// ── Inline rich-text: parse [label](href) patterns inside paragraph text ─────
+
+function RichText({ text }: { text: string }) {
+  const segments = text.split(/(\[[^\]]+\]\([^)]+\))/g)
+  return (
+    <>
+      {segments.map((seg, i) => {
+        const m = /^\[([^\]]+)\]\(([^)]+)\)$/.exec(seg)
+        if (m) {
+          const [, label, href] = m
+          const isExternal = href.startsWith('http')
+          return isExternal ? (
+            <a key={i} href={href} target="_blank" rel="noopener noreferrer"
+              className="text-cyan-400 underline decoration-cyan-400/30 underline-offset-2 transition-all hover:decoration-cyan-400/70">
+              {label}
+            </a>
+          ) : (
+            <Link key={i} href={href}
+              className="text-cyan-400 underline decoration-cyan-400/30 underline-offset-2 transition-all hover:decoration-cyan-400/70">
+              {label}
+            </Link>
+          )
+        }
+        return <span key={i}>{seg}</span>
+      })}
+    </>
+  )
+}
+
 // ── Content block renderer ────────────────────────────────────────────────────
 
-function RenderBlock({ block }: { block: ContentBlock }) {
+function RenderBlock({ block, allPosts }: { block: ContentBlock; allPosts: ReturnType<typeof getPost>[] }) {
   switch (block.type) {
     case 'h2':
       return (
@@ -67,7 +98,7 @@ function RenderBlock({ block }: { block: ContentBlock }) {
     case 'p':
       return (
         <p className="mt-4 text-[15px] leading-[1.85] text-slate-400">
-          {block.text}
+          <RichText text={block.text} />
         </p>
       )
     case 'list':
@@ -78,7 +109,7 @@ function RenderBlock({ block }: { block: ContentBlock }) {
               <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-teal-500/25 bg-teal-500/[0.08] text-[10px] font-bold text-teal-400">
                 {i + 1}
               </span>
-              <span className="flex-1">{item}</span>
+              <span className="flex-1"><RichText text={item} /></span>
             </li>
           ))}
         </ol>
@@ -87,7 +118,7 @@ function RenderBlock({ block }: { block: ContentBlock }) {
           {block.items.map((item, i) => (
             <li key={i} className="flex items-start gap-3 text-[14px] leading-[1.75] text-slate-400">
               <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-teal-400/60" />
-              <span className="flex-1">{item}</span>
+              <span className="flex-1"><RichText text={item} /></span>
             </li>
           ))}
         </ul>
@@ -103,8 +134,41 @@ function RenderBlock({ block }: { block: ContentBlock }) {
         <div className={`mt-7 rounded-2xl border ${v.bg} ${v.border} p-5`}>
           <p className="flex items-start gap-3 text-[13px] leading-[1.8] text-slate-300">
             <span className={`mt-0.5 shrink-0 text-[10px] ${v.iconColor}`}>{v.icon}</span>
-            {block.text}
+            <RichText text={block.text} />
           </p>
+        </div>
+      )
+    }
+    case 'cta':
+      return (
+        <div className="my-8 rounded-2xl border border-cyan-500/[0.18] bg-gradient-to-br from-cyan-500/[0.05] to-teal-500/[0.03] p-6">
+          <p className="text-[14px] leading-[1.8] text-slate-300">{block.body}</p>
+          <Link
+            href={block.href}
+            className="mt-4 inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-cyan-500 to-teal-500 px-5 py-2.5 text-[13px] font-bold text-[#050816] transition-all hover:-translate-y-px active:scale-[0.98]"
+          >
+            {block.btnText} <ArrowRight size={13} />
+          </Link>
+        </div>
+      )
+    case 'related': {
+      const posts = block.slugs.map(s => allPosts.find(p => p?.slug === s)).filter(Boolean)
+      if (!posts.length) return null
+      return (
+        <div className="my-8 rounded-2xl border border-white/[0.06] bg-white/[0.015] p-5">
+          <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-600">
+            {block.label ?? 'Related Reading'}
+          </p>
+          <div className="space-y-2">
+            {posts.map((p) => p && (
+              <Link key={p.slug} href={`/blog/${p.slug}`}
+                className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-white/[0.04] group">
+                <span className="h-1 w-1 shrink-0 rounded-full bg-teal-400/50" />
+                <span className="flex-1 text-[13px] text-slate-400 group-hover:text-slate-200 transition-colors leading-snug">{p.title}</span>
+                <ArrowRight size={11} className="shrink-0 text-slate-700 group-hover:text-teal-400 transition-colors" />
+              </Link>
+            ))}
+          </div>
         </div>
       )
     }
@@ -182,37 +246,45 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
   const related = getRelatedPosts(post)
   const style = getStyle(post.category)
+  const allPosts = BLOG_POSTS.map(p => getPost(p.slug))
+
+  const articleSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: post.title,
+    description: post.excerpt,
+    datePublished: post.publishedAt,
+    dateModified: post.publishedAt,
+    url: `https://sitenexis.com/blog/${post.slug}`,
+    mainEntityOfPage: {
+      '@type': 'WebPage',
+      '@id': `https://sitenexis.com/blog/${post.slug}`,
+    },
+    author: {
+      '@type': 'Person',
+      '@id': 'https://sitenexis.com/#founder',
+      name: 'Ekeleme David Kelechi',
+      url: 'https://sitenexis.com/about',
+    },
+    publisher: {
+      '@id': 'https://sitenexis.com/#organization',
+      '@type': 'Organization',
+      name: 'SiteNexis',
+      logo: { '@type': 'ImageObject', url: 'https://sitenexis.com/favicon.svg' },
+    },
+    keywords: post.tags.join(', '),
+    articleSection: post.category,
+  };
 
   return (
     <main className="min-h-screen bg-[#07111F] text-white antialiased font-sans">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }}
+      />
 
       {/* ── Nav ───────────────────────────────────────────────────────────── */}
-      <header className="fixed inset-x-0 top-0 z-50">
-        <div className="border-b border-white/[0.05] bg-[#07111F]/90 backdrop-blur-xl">
-          <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 md:px-10 md:py-5">
-            <Link href="/" className="flex items-center gap-2.5 group">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.03] transition-colors group-hover:border-white/[0.14]">
-                <PentagonMark size={16} />
-              </div>
-              <span className="text-[15px] font-semibold tracking-[-0.01em] text-white">SiteNexis</span>
-            </Link>
-            <nav className="hidden items-center gap-7 md:flex">
-              {['Platform', 'Pricing', 'Docs', 'Blog'].map(label => (
-                <Link key={label} href={label === 'Blog' ? '/blog' : `/${label.toLowerCase()}`}
-                  className={`text-sm transition-colors duration-150 ${label === 'Blog' ? 'text-white' : 'text-slate-400 hover:text-slate-200'}`}>
-                  {label}
-                </Link>
-              ))}
-            </nav>
-            <div className="flex items-center gap-3">
-              <Link href="/login" className="hidden text-sm text-slate-400 hover:text-slate-200 sm:block transition-colors">Log in</Link>
-              <Link href="/signup" className="rounded-lg border border-white/[0.12] bg-white/[0.05] px-4 py-2 text-sm font-medium text-white transition-all hover:border-white/[0.2] hover:bg-white/[0.08] backdrop-blur-sm">
-                Get started
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
+      <MarketingNav />
 
       <BlogWatermark />
 
@@ -251,24 +323,39 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                 {post.excerpt}
               </p>
 
-              {/* Divider */}
-              <div className="mt-10 mb-2 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+              {/* Divider + share */}
+              <div className="mt-8 mb-6 flex items-center gap-4">
+                <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+                <ShareButtons
+                  url={`https://sitenexis.com/blog/${post.slug}`}
+                  title={post.title}
+                  compact
+                />
+              </div>
 
               {/* Body */}
               <div className="py-4">
                 {post.content.map((block, i) => (
-                  <RenderBlock key={i} block={block} />
+                  <RenderBlock key={i} block={block} allPosts={allPosts} />
                 ))}
               </div>
 
-              {/* Tags */}
-              <div className="mt-14 flex flex-wrap gap-2 border-t border-white/[0.05] pt-8">
-                <span className="text-[11px] text-slate-700 self-center mr-2">Tags:</span>
-                {post.tags.map(tag => (
-                  <span key={tag} className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.06] bg-white/[0.03] px-3 py-1 text-[11px] text-slate-500">
-                    <Tag size={9} strokeWidth={1.5} /> {tag}
-                  </span>
-                ))}
+              {/* Tags + bottom share */}
+              <div className="mt-14 border-t border-white/[0.05] pt-8">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex flex-wrap gap-2">
+                    <span className="text-[11px] text-slate-700 self-center mr-2">Tags:</span>
+                    {post.tags.map(tag => (
+                      <span key={tag} className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.06] bg-white/[0.03] px-3 py-1 text-[11px] text-slate-500">
+                        <Tag size={9} strokeWidth={1.5} /> {tag}
+                      </span>
+                    ))}
+                  </div>
+                  <ShareButtons
+                    url={`https://sitenexis.com/blog/${post.slug}`}
+                    title={post.title}
+                  />
+                </div>
               </div>
 
               {/* Nav between posts */}
