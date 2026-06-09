@@ -46,14 +46,14 @@ export async function GET(req: NextRequest, { params }: Params): Promise<NextRes
     ]);
 
     const breakdown = (visScore?.breakdown as Record<string, unknown> | null) ?? {};
-    const entityBreakdown = (breakdown['entityIntelligence'] as Record<string, number> | undefined) ?? {};
+    const entityBreakdown = (breakdown['entityIntelligence'] as Record<string, unknown> | undefined) ?? {};
 
     return NextResponse.json({
       auditId: id,
       entityConfidenceScore: visScore?.entityConfidenceScore ?? null,
-      entityConsistencyScore: entityBreakdown['consistencyScore'] ?? null,
-      entityCoverageScore: entityBreakdown['coverageScore'] ?? null,
-      disambiguationScore: entityBreakdown['disambiguationScore'] ?? null,
+      entityConsistencyScore: (entityBreakdown['consistencyScore'] as number | undefined) ?? null,
+      entityCoverageScore: (entityBreakdown['coverageScore'] as number | undefined) ?? null,
+      disambiguationScore: (entityBreakdown['disambiguationScore'] as number | undefined) ?? null,
       entities: entities.map((e) => ({
         id: e.id,
         name: e.name,
@@ -65,6 +65,9 @@ export async function GET(req: NextRequest, { params }: Params): Promise<NextRes
         disambiguationScore: e.disambiguationScore,
       })),
       primaryEntity: entities[0] ? { id: entities[0].id, name: entities[0].name, type: entities[0].type } : null,
+      inconsistencies: (entityBreakdown['inconsistencies'] as string[] | undefined) ?? [],
+      missingAttributes: (entityBreakdown['missingAttributes'] as string[] | undefined) ?? [],
+      recommendations: (entityBreakdown['recommendations'] as string[] | undefined) ?? [],
     });
   } catch (err) {
     logger.error({ err }, 'GET /api/audit/[id]/entities failed');

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { TopCommandBar } from '@/components/dashboard/TopCommandBar';
 import {
@@ -12,7 +13,7 @@ import Link from 'next/link';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-interface MeResponse { plan: string; isDemo: boolean; }
+interface MeResponse { plan: string; isDemo: boolean; email?: string; }
 
 interface CompetitorScore {
   domain: string;
@@ -108,6 +109,7 @@ function PlanGate({ plan }: { plan: string }) {
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function CompetitiveAnalysisPage() {
+  const router = useRouter();
   const [primaryDomain, setPrimaryDomain] = useState('');
   const [competitors, setCompetitors] = useState<string[]>(['', '']);
   const [analyzed, setAnalyzed] = useState(false);
@@ -120,7 +122,8 @@ export default function CompetitiveAnalysisPage() {
   });
 
   const plan = me?.plan ?? 'free';
-  const hasAccess = PLAN_WITH_COMPETITIVE.includes(plan);
+  // Demo users always get access — plan gate only applies to authenticated non-demo accounts
+  const hasAccess = (me?.isDemo === true) || PLAN_WITH_COMPETITIVE.includes(plan);
 
   const addCompetitor = () => {
     if (competitors.length < 5) setCompetitors(c => [...c, '']);
@@ -148,9 +151,9 @@ export default function CompetitiveAnalysisPage() {
     <DashboardLayout>
       <div className="flex min-h-screen flex-col">
         <TopCommandBar
-          onRunAudit={() => {}}
+          onRunAudit={(d) => router.push(`/audit/${encodeURIComponent(d)}`)}
           isAuditing={false}
-          userName={null}
+          userName={me?.isDemo ? null : me?.email?.split('@')[0] ?? null}
           plan={plan}
         />
 

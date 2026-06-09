@@ -2,6 +2,28 @@
 
 import { useQuery } from '@tanstack/react-query';
 
+export interface MeData {
+  id?: string;
+  email?: string;
+  plan: string;
+  isDemo: boolean;
+  creditBalance?: number;
+  isUnlimited?: boolean;
+}
+
+/** Returns the current authenticated user's profile and plan. */
+export function useMe() {
+  return useQuery<MeData>({
+    queryKey: ['me'],
+    queryFn: () =>
+      fetch('/api/me').then((r) => {
+        if (!r.ok) return { plan: 'free', isDemo: true } as MeData;
+        return r.json() as Promise<MeData>;
+      }),
+    staleTime: 60_000,
+  });
+}
+
 export interface AuditSummary {
   id: string;
   domain: string;

@@ -2,7 +2,7 @@
 
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { TopCommandBar } from '@/components/dashboard/TopCommandBar';
-import { useLatestAudit, useAuditSubReport } from '@/lib/use-audit-data';
+import { useLatestAudit, useAuditSubReport, useMe } from '@/lib/use-audit-data';
 import { useRouter } from 'next/navigation';
 import { ShieldCheck, ExternalLink, CheckCircle2, AlertTriangle } from 'lucide-react';
 
@@ -57,6 +57,7 @@ const TRUST_SIGNALS_DESC = [
 
 export default function SemanticTrustPage() {
   const router = useRouter();
+  const { data: me } = useMe();
   const { audit, isLoading: auditLoading } = useLatestAudit();
   const { data, isLoading } = useAuditSubReport<AIVisData>(audit?.id ?? null, 'ai-visibility');
 
@@ -66,7 +67,11 @@ export default function SemanticTrustPage() {
 
   return (
     <DashboardLayout>
-      <TopCommandBar onRunAudit={(d) => router.push(`/audit/${encodeURIComponent(d)}`)} />
+      <TopCommandBar
+        onRunAudit={(d) => router.push(`/audit/${encodeURIComponent(d)}`)}
+        userName={me?.email?.split('@')[0] ?? null}
+        plan={me?.plan}
+      />
       <main className="flex-1 overflow-y-auto px-6 py-8 lg:px-8">
 
         <div className="mb-6 flex items-start justify-between">

@@ -2,7 +2,7 @@
 
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { TopCommandBar } from '@/components/dashboard/TopCommandBar';
-import { useLatestAudit, useAuditSubReport } from '@/lib/use-audit-data';
+import { useLatestAudit, useAuditSubReport, useMe } from '@/lib/use-audit-data';
 import { useRouter } from 'next/navigation';
 import { Network, ExternalLink, CheckCircle2, AlertCircle, Link2 } from 'lucide-react';
 
@@ -55,6 +55,7 @@ const ENTITY_TYPE_COLORS: Record<string, string> = {
 
 export default function EntityPage() {
   const router = useRouter();
+  const { data: me } = useMe();
   const { audit, isLoading: auditLoading } = useLatestAudit();
   const { data, isLoading } = useAuditSubReport<EntityData>(audit?.id ?? null, 'entities');
 
@@ -69,7 +70,11 @@ export default function EntityPage() {
 
   return (
     <DashboardLayout>
-      <TopCommandBar onRunAudit={(d) => router.push(`/audit/${encodeURIComponent(d)}`)} />
+      <TopCommandBar
+        onRunAudit={(d) => router.push(`/audit/${encodeURIComponent(d)}`)}
+        userName={me?.email?.split('@')[0] ?? null}
+        plan={me?.plan}
+      />
       <main className="flex-1 overflow-y-auto px-6 py-8 lg:px-8">
 
         {/* Header */}

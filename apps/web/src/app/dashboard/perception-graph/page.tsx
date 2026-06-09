@@ -2,7 +2,7 @@
 
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { TopCommandBar } from '@/components/dashboard/TopCommandBar';
-import { useLatestAudit, useAuditSubReport } from '@/lib/use-audit-data';
+import { useLatestAudit, useAuditSubReport, useMe } from '@/lib/use-audit-data';
 import { useRouter } from 'next/navigation';
 import { GitFork, ExternalLink } from 'lucide-react';
 
@@ -57,6 +57,7 @@ const REL_LABELS: Record<string, string> = {
 
 export default function PerceptionGraphPage() {
   const router = useRouter();
+  const { data: me } = useMe();
   const { audit, isLoading: auditLoading } = useLatestAudit();
   const { data, isLoading } = useAuditSubReport<GraphData>(audit?.id ?? null, 'perception-graph');
 
@@ -66,7 +67,11 @@ export default function PerceptionGraphPage() {
 
   return (
     <DashboardLayout>
-      <TopCommandBar onRunAudit={(d) => router.push(`/audit/${encodeURIComponent(d)}`)} />
+      <TopCommandBar
+        onRunAudit={(d) => router.push(`/audit/${encodeURIComponent(d)}`)}
+        userName={me?.email?.split('@')[0] ?? null}
+        plan={me?.plan}
+      />
       <main className="flex-1 overflow-y-auto px-6 py-8 lg:px-8">
 
         <div className="mb-6 flex items-start justify-between">
@@ -77,7 +82,7 @@ export default function PerceptionGraphPage() {
             </div>
             <p className="text-sm text-[#4A6280]">
               {audit
-                ? <>For <span className="text-[#7A9AB4]">{audit.domain}</span> — <a href={`/audit/${encodeURIComponent(audit.domain)}?auditId=${audit.id}#perception-graph`} className="text-cyan hover:underline inline-flex items-center gap-1">interactive graph <ExternalLink className="h-3 w-3" /></a></>
+                ? <>For <span className="text-[#7A9AB4]">{audit.domain}</span> — <a href={`/audit/${encodeURIComponent(audit.domain)}?auditId=${audit.id}`} className="text-cyan hover:underline inline-flex items-center gap-1">interactive graph <ExternalLink className="h-3 w-3" /></a></>
                 : 'How AI systems model your content — entities, topics, claims, and semantic relationships'}
             </p>
           </div>
@@ -126,7 +131,7 @@ export default function PerceptionGraphPage() {
                   <p className="text-xs text-[#4A6280]">The full interactive force-directed perception graph is available on the audit results page.</p>
                 </div>
                 <a
-                  href={`/audit/${encodeURIComponent(audit.domain)}?auditId=${audit.id}#perception-graph`}
+                  href={`/audit/${encodeURIComponent(audit.domain)}?auditId=${audit.id}`}
                   className="ml-auto shrink-0 rounded-lg border border-cyan/20 bg-cyan/10 px-3 py-1.5 text-xs font-semibold text-cyan hover:bg-cyan/20 transition-colors flex items-center gap-1"
                 >
                   Open Graph <ExternalLink className="h-3 w-3" />
