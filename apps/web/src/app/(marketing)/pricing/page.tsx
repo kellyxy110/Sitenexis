@@ -230,8 +230,58 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 export default function PricingPage() {
   const [annual, setAnnual] = useState(false)
 
+  const pricingSchema = [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: [
+        {
+          '@type': 'Question',
+          name: 'What is included in the SiteNexis free plan?',
+          acceptedAnswer: { '@type': 'Answer', text: 'The free plan includes 1 audit per month covering SEO health, AI readability, machine readability, entity intelligence, citation probability, semantic trust, schema analysis, link graph, content quality, and performance scoring.' },
+        },
+        {
+          '@type': 'Question',
+          name: 'What is Layer 4 Machine Trust analysis?',
+          acceptedAnswer: { '@type': 'Answer', text: 'Layer 4 analysis includes Retrieval Simulation, Machine Trust Scoring, Temporal Authority Modeling, Recommendation Surface Mapping, and Synthetic Entity Detection. These advanced AI trust intelligence features are available on Pro and Agency plans.' },
+        },
+        {
+          '@type': 'Question',
+          name: 'Can I cancel my SiteNexis subscription?',
+          acceptedAnswer: { '@type': 'Answer', text: 'Yes. You can cancel at any time from your billing settings. Your plan remains active until the end of the current billing period with no further charges.' },
+        },
+        {
+          '@type': 'Question',
+          name: 'What is the difference between Pro and Agency plans?',
+          acceptedAnswer: { '@type': 'Answer', text: 'Both Pro and Agency plans include unlimited audits, Layer 4 Machine Trust analysis, and competitive AI visibility comparison. Agency adds bulk domain auditing and API access for integrating SiteNexis data into your own tools and client reports.' },
+        },
+        {
+          '@type': 'Question',
+          name: 'Do you offer annual billing discounts?',
+          acceptedAnswer: { '@type': 'Answer', text: 'Yes. Annual billing is available at a discounted rate compared to monthly billing. You can toggle between monthly and annual pricing on this page to see your savings.' },
+        },
+      ],
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'SoftwareApplication',
+      '@id': 'https://sitenexis.com/#app',
+      name: 'SiteNexis',
+      applicationCategory: 'BusinessApplication',
+      operatingSystem: 'Web',
+      url: 'https://sitenexis.com',
+      offers: [
+        { '@type': 'Offer', name: 'Free', price: '0', priceCurrency: 'USD', description: '1 audit per month — SEO, AI readability, entity intelligence, citation probability, and more.' },
+        { '@type': 'Offer', name: 'Starter', price: '29', priceCurrency: 'USD', priceSpecification: { '@type': 'UnitPriceSpecification', price: '29', priceCurrency: 'USD', unitText: 'MONTH' }, description: '50 audits per month.' },
+        { '@type': 'Offer', name: 'Pro', price: '79', priceCurrency: 'USD', priceSpecification: { '@type': 'UnitPriceSpecification', price: '79', priceCurrency: 'USD', unitText: 'MONTH' }, description: 'Unlimited audits, Layer 4 Machine Trust analysis, competitive AI visibility comparison.' },
+        { '@type': 'Offer', name: 'Agency', price: '199', priceCurrency: 'USD', priceSpecification: { '@type': 'UnitPriceSpecification', price: '199', priceCurrency: 'USD', unitText: 'MONTH' }, description: 'Unlimited audits, Layer 4 analysis, bulk domains, and API access.' },
+      ],
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-midnight font-ui text-white antialiased">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(pricingSchema) }} />
       <MarketingNav />
 
       {/* ── Hero ── */}

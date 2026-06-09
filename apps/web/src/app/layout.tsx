@@ -79,8 +79,13 @@ const SITE_SCHEMA = {
         name: 'Ekeleme David Kelechi',
         alternateName: 'Kellyxyhub',
         url: 'https://sitenexis.com/about',
+        jobTitle: 'Founder & CEO',
+        worksFor: { '@id': 'https://sitenexis.com/#organization' },
         sameAs: [
           'https://github.com/kellyxy110',
+          'https://x.com/Sitenexis',
+          'https://www.linkedin.com/in/sitenexis',
+          'https://www.reddit.com/user/Sitenexis',
         ],
       },
       sameAs: [

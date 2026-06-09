@@ -359,8 +359,46 @@ export default function HomePage() {
     router.push(`/audit/${encodeURIComponent(domain)}`);
   };
 
+  const faqSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: [
+      {
+        '@type': 'Question',
+        name: 'What is SiteNexis?',
+        acceptedAnswer: { '@type': 'Answer', text: 'SiteNexis is an AI Retrieval and Machine Trust Intelligence platform that models how AI systems retrieve, interpret, trust, and recommend your website — across every layer from semantic structure to machine trust formation.' },
+      },
+      {
+        '@type': 'Question',
+        name: 'How is SiteNexis different from traditional SEO tools?',
+        acceptedAnswer: { '@type': 'Answer', text: 'Traditional SEO tools audit for search engine bots. SiteNexis models how large language models like ChatGPT, Perplexity, Gemini, and Claude retrieve and cite your content — measuring AI Visibility Score, Machine Trust Score, Entity Confidence, Citation Probability, and Retrieval Quality.' },
+      },
+      {
+        '@type': 'Question',
+        name: 'What is a Machine Trust Score?',
+        acceptedAnswer: { '@type': 'Answer', text: 'The Machine Trust Score measures the confidence an AI model would have in using your content as a reliable source. It is composed of entity credibility consistency, schema trust alignment, external validation depth, contradiction absence, and trust degradation resistance.' },
+      },
+      {
+        '@type': 'Question',
+        name: 'Is SiteNexis free to use?',
+        acceptedAnswer: { '@type': 'Answer', text: 'Yes. SiteNexis offers a free tier with 1 audit per month. Paid plans (Starter, Pro, Agency, Enterprise) unlock unlimited audits, Layer 4 Machine Trust analysis, competitive AI visibility comparison, and API access.' },
+      },
+      {
+        '@type': 'Question',
+        name: 'Which AI systems does SiteNexis analyze?',
+        acceptedAnswer: { '@type': 'Answer', text: 'SiteNexis models visibility and trust across Google AI Overviews, ChatGPT (browsing and RAG), Perplexity, Gemini, Claude web search, voice assistants, and autonomous AI agents.' },
+      },
+      {
+        '@type': 'Question',
+        name: 'What is the AI Visibility Score?',
+        acceptedAnswer: { '@type': 'Answer', text: 'The AI Visibility Score is a 0–100 composite that measures how well AI systems can find, extract, and trust your content. It combines Machine Readability (15%), Entity Confidence (20%), Retrieval Readiness (20%), Citation Probability (20%), Semantic Trust (15%), and Schema Completeness (10%).' },
+      },
+    ],
+  };
+
   return (
     <main className="min-h-screen bg-midnight font-ui text-white antialiased">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
 
       <MarketingNav />
 
