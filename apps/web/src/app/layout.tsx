@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     apple: '/apple-icon',
   },
   verification: {
-    google: 'UGNtJ73myesjEE_GZZsCozqWC15UdFQ0ORJ9LrlK2co',
+    google: 'CaEcRc5T29RfSmPq7HJekJ47dIYu9AEXJ20IuQ49_9s',
   },
   openGraph: {
     title: 'SiteNexis — AI Retrieval & Machine Trust Intelligence',
