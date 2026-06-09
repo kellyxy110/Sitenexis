@@ -192,7 +192,7 @@ export default function DashboardPage() {
         isUnlimited={isUnlimited}
       />
 
-      <main className="flex-1 overflow-y-auto px-6 py-8 lg:px-8">
+      <main className="flex-1 overflow-y-auto px-3 py-5 sm:px-6 sm:py-8 lg:px-8">
         {/* Demo mode banner */}
         {isDemo && (
           <div className="mb-6 flex items-start gap-3 rounded-xl border border-amber-500/20 bg-amber-500/[0.05] px-4 py-3">

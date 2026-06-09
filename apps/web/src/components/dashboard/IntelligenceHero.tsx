@@ -42,9 +42,9 @@ export function IntelligenceHero({ scores, domain, loading }: IntelligenceHeroPr
         <div className="absolute left-1/2 top-0 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-cyan/5 blur-3xl" />
       </div>
 
-      <div className="relative px-8 py-10">
+      <div className="relative px-4 py-6 sm:px-8 sm:py-10">
         {/* Section header */}
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 sm:mb-8">
           <div className="flex items-center gap-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan/10">
               <Brain className="h-4 w-4 text-cyan" strokeWidth={1.75} />

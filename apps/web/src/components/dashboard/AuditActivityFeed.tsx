@@ -125,8 +125,8 @@ export function AuditActivityFeed({ audits, loading, onRerun, onDelete }: AuditA
                   {fmtRelative(audit.createdAt)}
                 </span>
 
-                {/* Actions (visible on hover) */}
-                <div className="flex items-center gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+                {/* Actions — always visible on touch, fade-in on hover for desktop */}
+                <div className="flex items-center gap-1 md:opacity-0 md:transition-opacity md:duration-150 md:group-hover:opacity-100">
                   {audit.status === 'complete' && (
                     <button
                       onClick={() => router.push(`/audit/${encodeURIComponent(audit.domain)}`)}

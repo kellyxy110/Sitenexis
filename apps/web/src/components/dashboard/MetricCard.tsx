@@ -95,7 +95,7 @@ export function MetricCard({ label, score, icon: Icon, trend, description, loadi
       <div>
         <p className="text-sm font-medium text-[#C8DFE8] leading-tight">{label}</p>
         {description && (
-          <p className="mt-0.5 text-xs text-[#4A6280] leading-relaxed">{description}</p>
+          <p className="mt-0.5 hidden text-xs leading-relaxed text-[#4A6280] sm:block">{description}</p>
         )}
       </div>
 
