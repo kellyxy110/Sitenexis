@@ -18,6 +18,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://sitenexis.com'),
   title: 'SiteNexis — AI Retrieval & Machine Trust Intelligence',
   description:
     'SiteNexis models how AI systems retrieve, interpret, trust, and recommend your website — across every layer from semantic structure to machine trust formation.',
@@ -29,6 +30,21 @@ export const metadata: Metadata = {
   },
   verification: {
     google: 'UGNtJ73myesjEE_GZZsCozqWC15UdFQ0ORJ9LrlK2co',
+  },
+  openGraph: {
+    title: 'SiteNexis — AI Retrieval & Machine Trust Intelligence',
+    description: 'SiteNexis models how AI systems retrieve, interpret, trust, and recommend your website — across every layer from semantic structure to machine trust formation.',
+    url: 'https://sitenexis.com',
+    siteName: 'SiteNexis',
+    type: 'website',
+    locale: 'en_US',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    site: '@Sitenexis',
+    creator: '@Sitenexis',
+    title: 'SiteNexis — AI Retrieval & Machine Trust Intelligence',
+    description: 'SiteNexis models how AI systems retrieve, interpret, trust, and recommend your website — across every layer from semantic structure to machine trust formation.',
   },
 };
 

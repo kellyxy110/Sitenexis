@@ -1,4 +1,5 @@
 export const dynamic = 'force-dynamic';
+export const maxDuration = 300;
 import { type NextRequest } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { getDemoAudit } from '@/lib/demo-store';

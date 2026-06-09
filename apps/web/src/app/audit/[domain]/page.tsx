@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
@@ -659,12 +660,12 @@ function CitationTab({ data }: { data: AuditData }) {
   return (
     <div className="space-y-8">
       <div className="card-glass rounded-xl p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
+        <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
+          <div className="min-w-0">
             <h3 className="font-semibold text-white">Citation Probability Score</h3>
             <p className="mt-1 text-xs text-[#4A6280]">Likelihood that AI systems select this content as a citation source</p>
           </div>
-          <div className="text-right">
+          <div className="shrink-0 text-right">
             <span className="text-4xl font-bold tabular-nums" style={{ color: scoreColor(score) }}>{score != null ? Math.round(score) : '—'}</span>
             <span className="block text-xs text-[#4A6280]">/ 100</span>
           </div>
@@ -709,22 +710,22 @@ function SemanticTrustTab({ data }: { data: AuditData }) {
   return (
     <div className="space-y-8">
       <div className="card-glass rounded-xl p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div>
+        <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
+          <div className="min-w-0">
             <h3 className="font-semibold text-white">Semantic Trust Score</h3>
             <p className="mt-1 text-xs text-[#4A6280]">How much credibility AI systems assign to content on this site</p>
           </div>
-          <span className="text-4xl font-bold tabular-nums" style={{ color: scoreColor(st.score) }}>{Math.round(st.score)}</span>
+          <span className="shrink-0 text-4xl font-bold tabular-nums" style={{ color: scoreColor(st.score) }}>{Math.round(st.score)}</span>
         </div>
         <div className="space-y-4">
           {trustBreakdown.map(({ label, score, desc }) => (
             <div key={label}>
-              <div className="flex justify-between text-xs mb-1">
-                <div>
+              <div className="flex items-center justify-between gap-2 text-xs mb-1">
+                <div className="min-w-0">
                   <span className="text-white font-medium">{label}</span>
-                  <span className="ml-2 text-[#4A6280]">{desc}</span>
+                  <span className="ml-2 text-[#4A6280] hidden sm:inline">{desc}</span>
                 </div>
-                <span className="font-semibold tabular-nums" style={{ color: scoreColor(score) }}>{Math.round(score)}</span>
+                <span className="shrink-0 font-semibold tabular-nums" style={{ color: scoreColor(score) }}>{Math.round(score)}</span>
               </div>
               <div className="h-1.5 rounded-full bg-white/10">
                 <div className="h-full rounded-full bg-teal transition-all" style={{ width: `${Math.min(100, score)}%` }} />
@@ -804,12 +805,12 @@ function MachineTrustTab({ d }: { d: MachineTrustData | undefined; loading: bool
   return (
     <div className="space-y-6">
       <div className="card-glass rounded-xl p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div>
+        <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
+          <div className="min-w-0">
             <h3 className="font-semibold text-white">Machine Trust Score</h3>
             <p className="mt-1 text-xs text-[#4A6280]">Confidence an AI model would have in using this content as a reliable source</p>
           </div>
-          <div className="text-right">
+          <div className="shrink-0 text-right">
             <span className="text-4xl font-bold tabular-nums" style={{ color: scoreColor(d.overall) }}>{d.overall}</span>
             <p className="mt-0.5 text-xs text-[#4A6280]">Cross-source validation: {Math.round(d.crossSourceValidationIndex * 100)}%</p>
           </div>
@@ -817,9 +818,9 @@ function MachineTrustTab({ d }: { d: MachineTrustData | undefined; loading: bool
         <div className="space-y-4">
           {subScores.map(({ label, score, desc }) => (
             <div key={label}>
-              <div className="flex justify-between text-xs mb-1">
-                <div><span className="text-white font-medium">{label}</span><span className="ml-2 text-[#4A6280]">{desc}</span></div>
-                <span className="font-semibold tabular-nums" style={{ color: score != null ? scoreColor(score) : '#4A6280' }}>{score != null ? Math.round(score) : 'N/A'}</span>
+              <div className="flex items-center justify-between gap-2 text-xs mb-1">
+                <div className="min-w-0"><span className="text-white font-medium">{label}</span><span className="ml-2 text-[#4A6280] hidden sm:inline">{desc}</span></div>
+                <span className="shrink-0 font-semibold tabular-nums" style={{ color: score != null ? scoreColor(score) : '#4A6280' }}>{score != null ? Math.round(score) : 'N/A'}</span>
               </div>
               <div className="h-1.5 rounded-full bg-white/10">
                 <div className="h-full rounded-full bg-teal transition-all" style={{ width: `${Math.min(100, score ?? 0)}%` }} />
@@ -1105,7 +1106,7 @@ function generateSnippetPreview(type: string): string {
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
-export default function AuditPage() {
+function AuditPageInner() {
   const params = useParams<{ domain: string }>();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -1242,7 +1243,7 @@ export default function AuditPage() {
 
         {/* ── Score hero ───────────────────────────────────────────────────── */}
         <div className="mb-8 card-glass rounded-2xl p-4 sm:p-8">
-          <div className="mb-6 flex flex-wrap justify-center gap-4 sm:gap-8">
+          <div className="mb-6 grid grid-cols-3 justify-items-center gap-4 sm:grid-cols-5 lg:grid-cols-9 sm:gap-6">
             <ScoreGauge label="SEO Health"         score={data.scores?.seoScore ?? null} />
             <ScoreGauge label="AI Readability"     score={data.scores?.aiScore ?? null} />
             <ScoreGauge label="Machine Readability"score={data.scores?.breakdown?.machineReadability ? Math.round((data.scores.breakdown.machineReadability.renderingFidelity + data.scores.breakdown.machineReadability.boilerplateRatio + data.scores.breakdown.machineReadability.chunkBoundaryQuality + data.scores.breakdown.machineReadability.signalToNoiseRatio + data.scores.breakdown.machineReadability.headingHierarchy + data.scores.breakdown.machineReadability.readingOrderConsistency + data.scores.breakdown.machineReadability.linkAnchorQuality) / 7) : null} />
@@ -1377,5 +1378,21 @@ export default function AuditPage() {
       </div>
 
     </div>
+  );
+}
+
+function AuditPageFallback() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-[#050B09]">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-cyan border-t-transparent" />
+    </div>
+  );
+}
+
+export default function AuditPage() {
+  return (
+    <Suspense fallback={<AuditPageFallback />}>
+      <AuditPageInner />
+    </Suspense>
   );
 }

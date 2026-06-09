@@ -139,58 +139,74 @@ export function AuditProgress({ domain, auditId }: AuditProgressProps) {
   }, []);
 
   useEffect(() => {
-    const es = new EventSource(`/api/audit/${auditId}/stream`);
-    esRef.current = es;
+    let unmounted = false;
+    let reconnects = 0;
+    const MAX_RECONNECTS = 5;
 
-    es.onmessage = (event: MessageEvent<string>) => {
-      let payload: SSEPayload;
-      try {
-        payload = JSON.parse(event.data) as SSEPayload;
-      } catch {
-        return;
-      }
+    function connect() {
+      if (unmounted) return;
+      const es = new EventSource(`/api/audit/${auditId}/stream`);
+      esRef.current = es;
 
-      if (payload.error) {
-        setFailed(true);
-        setFailReason(payload.error);
-        es.close();
-        return;
-      }
-
-      if (payload.pagesCount != null) setPagesCount(payload.pagesCount);
-      if (payload.issuesCount != null) setIssuesCount(payload.issuesCount);
-
-      if (payload.stage) {
-        const mapped = STAGE_MAP[payload.stage.toLowerCase()] ?? null;
-        if (mapped) advanceToStage(mapped);
-        if (payload.message) {
-          setStageSubStatus((prev) => ({ ...prev, [mapped ?? payload.stage!]: payload.message! }));
+      es.onmessage = (event: MessageEvent<string>) => {
+        let payload: SSEPayload;
+        try {
+          payload = JSON.parse(event.data) as SSEPayload;
+        } catch {
+          return;
         }
-      }
 
-      if (payload.status === 'complete') {
-        markAllComplete();
-        setTimeout(() => {
-          router.push(`/audit/${encodeURIComponent(domain)}`);
-        }, 800);
+        if (payload.error) {
+          setFailed(true);
+          setFailReason(payload.error);
+          es.close();
+          return;
+        }
+
+        if (payload.pagesCount != null) setPagesCount(payload.pagesCount);
+        if (payload.issuesCount != null) setIssuesCount(payload.issuesCount);
+
+        if (payload.stage) {
+          const mapped = STAGE_MAP[payload.stage.toLowerCase()] ?? null;
+          if (mapped) advanceToStage(mapped);
+          if (payload.message) {
+            setStageSubStatus((prev) => ({ ...prev, [mapped ?? payload.stage!]: payload.message! }));
+          }
+        }
+
+        if (payload.status === 'complete') {
+          markAllComplete();
+          setTimeout(() => {
+            router.push(`/audit/${encodeURIComponent(domain)}`);
+          }, 800);
+          es.close();
+        }
+
+        if (payload.status === 'failed') {
+          setFailed(true);
+          setFailReason('The audit failed. Please try again.');
+          es.close();
+        }
+      };
+
+      es.onerror = () => {
         es.close();
-      }
+        if (unmounted) return;
+        reconnects += 1;
+        if (reconnects < MAX_RECONNECTS) {
+          setTimeout(connect, 3000);
+        } else {
+          setFailed(true);
+          setFailReason('Lost connection to the audit stream. Please refresh.');
+        }
+      };
+    }
 
-      if (payload.status === 'failed') {
-        setFailed(true);
-        setFailReason('The audit failed. Please try again.');
-        es.close();
-      }
-    };
-
-    es.onerror = () => {
-      setFailed(true);
-      setFailReason('Lost connection to the audit stream. Please refresh.');
-      es.close();
-    };
+    connect();
 
     return () => {
-      es.close();
+      unmounted = true;
+      esRef.current?.close();
     };
   }, [auditId, domain, advanceToStage, markAllComplete, router]);
 
