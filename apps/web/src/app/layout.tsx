@@ -27,6 +27,9 @@ export const metadata: Metadata = {
     ],
     apple: '/apple-icon',
   },
+  verification: {
+    google: 'UGNtJ73myesjEE_GZZsCozqWC15UdFQ0ORJ9LrlK2co',
+  },
 };
 
 // ─── Global structured data (Organization + WebSite + SoftwareApplication) ────
