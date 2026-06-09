@@ -218,7 +218,7 @@ function LoginForm() {
       </div>
 
       <h2 className="text-[24px] font-bold tracking-[-0.02em] text-white">Welcome back</h2>
-      <p className="mt-1.5 text-[14px] text-slate-500">Sign in to your SiteNexis account.</p>
+      <p className="mt-1.5 text-[14px] text-slate-400">Sign in to your SiteNexis account.</p>
 
       {/* Demo mode */}
       {!configured && (
@@ -261,18 +261,18 @@ function LoginForm() {
 
           <div className="relative my-6 flex items-center gap-3">
             <div className="flex-1 border-t border-white/[0.07]" />
-            <span className="shrink-0 text-[11px] font-medium text-slate-600">or continue with email</span>
+            <span className="shrink-0 text-[11px] font-medium text-slate-400">or continue with email</span>
             <div className="flex-1 border-t border-white/[0.07]" />
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             {/* Email */}
             <div>
-              <label htmlFor="email" className="mb-1.5 block text-[12px] font-medium text-slate-500">
+              <label htmlFor="email" className="mb-1.5 block text-[12px] font-medium text-slate-300">
                 Email address
               </label>
               <div className="relative">
-                <Mail size={14} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-600" strokeWidth={1.5} />
+                <Mail size={14} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" strokeWidth={1.5} />
                 <input
                   id="email"
                   type="email"
@@ -290,13 +290,13 @@ function LoginForm() {
             {/* Password */}
             <div>
               <div className="mb-1.5 flex items-center justify-between">
-                <label htmlFor="password" className="text-[12px] font-medium text-slate-500">Password</label>
-                <Link href="/reset-password" className="text-[11px] text-slate-600 transition hover:text-slate-400">
+                <label htmlFor="password" className="text-[12px] font-medium text-slate-300">Password</label>
+                <Link href="/reset-password" className="text-[11px] text-slate-400 transition hover:text-white">
                   Forgot password?
                 </Link>
               </div>
               <div className="relative">
-                <Lock size={14} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-600" strokeWidth={1.5} />
+                <Lock size={14} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" strokeWidth={1.5} />
                 <input
                   id="password"
                   type={showPass ? 'text' : 'password'}
@@ -310,7 +310,7 @@ function LoginForm() {
                 <button
                   type="button"
                   onClick={() => setShowPass(v => !v)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-600 transition hover:text-slate-400"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-white"
                   aria-label={showPass ? 'Hide password' : 'Show password'}
                 >
                   {showPass ? <EyeOff size={14} strokeWidth={1.5} /> : <Eye size={14} strokeWidth={1.5} />}
@@ -327,7 +327,7 @@ function LoginForm() {
             <button
               type="submit"
               disabled={loading || !email || !password}
-              className="mt-1 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500 py-3 text-[13px] font-bold text-[#050816] transition-all hover:shadow-[0_0_20px_rgba(0,200,255,0.25)] hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40 disabled:translate-y-0 disabled:shadow-none"
+              className="mt-1 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-teal-400 to-cyan-400 py-3 text-[14px] font-bold text-[#050816] shadow-[0_0_24px_rgba(0,200,255,0.18)] transition-all hover:from-teal-300 hover:to-cyan-300 hover:shadow-[0_0_32px_rgba(0,200,255,0.35)] hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:translate-y-0 disabled:shadow-none"
             >
               {loading ? (
                 <>
@@ -339,10 +339,10 @@ function LoginForm() {
           </form>
 
           {/* Trust signals */}
-          <div className="mt-5 flex items-center justify-center gap-4 text-[11px] text-slate-600">
+          <div className="mt-5 flex items-center justify-center gap-4 text-[11px] text-slate-400">
             {['End-to-end encrypted', 'No card required', 'Cancel anytime'].map(t => (
               <span key={t} className="flex items-center gap-1">
-                <CheckCircle2 size={10} className="text-teal-600" />
+                <CheckCircle2 size={10} className="text-teal-400" />
                 {t}
               </span>
             ))}
@@ -350,9 +350,9 @@ function LoginForm() {
         </>
       )}
 
-      <p className="mt-7 text-center text-[13px] text-slate-600">
+      <p className="mt-7 text-center text-[13px] text-slate-400">
         Don&apos;t have an account?{' '}
-        <Link href="/signup" className="font-medium text-slate-400 transition hover:text-white">
+        <Link href="/signup" className="font-semibold text-cyan-400 transition hover:text-cyan-300">
           Sign up free
         </Link>
       </p>
