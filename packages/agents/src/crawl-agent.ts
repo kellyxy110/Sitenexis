@@ -1,6 +1,6 @@
 import { type CrawledPage } from '@sitenexis/shared';
 import { saveCrawledPages, updateAuditStatus } from '@sitenexis/db';
-import { crawlDomain } from '@sitenexis/crawler';
+import { crawlDomain } from '@sitenexis/crawler/crawler';
 import { emitAgentEvent } from './registry';
 
 export interface CrawlAgentInput {

@@ -8,6 +8,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./crawler": {
+      "types": "./dist/crawler.d.ts",
+      "default": "./dist/crawler.js"
     }
   },
   "scripts": {
