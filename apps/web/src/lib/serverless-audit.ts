@@ -253,7 +253,107 @@ function analyseSchema(pages: ParsedPage[]): { score: number; schemaUrls: string
   return { score: Math.min(100, score), schemaUrls };
 }
 
-// ── AI visibility scoring ─────────────────────────────────────────────────────
+// ── Groq AI analysis ──────────────────────────────────────────────────────────
+
+interface GroqAIScores {
+  machineReadabilityScore: number;
+  entityConfidenceScore: number;
+  retrievalReadinessScore: number;
+  citationProbabilityScore: number;
+  semanticTrustScore: number;
+  recommendationConfidence: number;
+  aiVisibilityScore: number;
+}
+
+async function callGroqAnalysis(pages: ParsedPage[], domain: string): Promise<GroqAIScores | null> {
+  const key = process.env['GROQ_API_KEY'];
+  if (!key || key.includes('placeholder') || key.length < 10) return null;
+
+  const siteData = {
+    domain,
+    pagesAnalyzed: pages.length,
+    pages: pages.slice(0, 8).map((p) => ({
+      url: p.url,
+      title: p.title,
+      h1: p.h1,
+      wordCount: p.wordCount,
+      schemaTypes: p.schemaTypes,
+      hasCanonical: Boolean(p.canonical),
+      headingCount: p.headings.length,
+      excerpt: p.bodyText.slice(0, 500),
+    })),
+  };
+
+  const prompt = `Analyze this website for AI retrievability and machine trust. Return scores based strictly on the content signals provided.
+
+${JSON.stringify(siteData, null, 2)}
+
+Return a JSON object with these exact numeric keys (all 0-100 integers):
+{
+  "machineReadabilityScore": <how cleanly AI systems can extract structured content>,
+  "entityConfidenceScore": <how confidently AI identifies the primary entity/brand>,
+  "retrievalReadinessScore": <probability AI selects this content when answering queries>,
+  "citationProbabilityScore": <likelihood AI cites this as an authoritative source>,
+  "semanticTrustScore": <authorship, organisational, structural trust signals composite>,
+  "recommendationConfidence": <probability AI recommends this domain unprompted>,
+  "aiVisibilityScore": <weighted composite: machineReadability×0.15 + entityConfidence×0.20 + retrievalReadiness×0.20 + citationProbability×0.20 + semanticTrust×0.15>
+}
+
+Be specific and differentiated. Do not cluster scores around 50. Return ONLY valid JSON.`;
+
+  try {
+    const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${key}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        temperature: 0.1,
+        max_tokens: 256,
+        response_format: { type: 'json_object' },
+        messages: [
+          { role: 'system', content: 'You are an AI visibility analysis engine. Return ONLY valid JSON.' },
+          { role: 'user', content: prompt },
+        ],
+      }),
+      signal: AbortSignal.timeout(25_000),
+    });
+
+    if (!resp.ok) return null;
+
+    const data = await resp.json() as { choices?: [{ message?: { content?: string } }] };
+    const content = data.choices?.[0]?.message?.content;
+    if (!content) return null;
+
+    const parsed = JSON.parse(content) as Partial<GroqAIScores>;
+
+    // Validate all required keys are present numbers
+    const keys: (keyof GroqAIScores)[] = [
+      'machineReadabilityScore', 'entityConfidenceScore', 'retrievalReadinessScore',
+      'citationProbabilityScore', 'semanticTrustScore', 'recommendationConfidence', 'aiVisibilityScore',
+    ];
+    for (const k of keys) {
+      if (typeof parsed[k] !== 'number') return null;
+    }
+
+    // Clamp all scores to 0–100
+    return {
+      machineReadabilityScore: Math.min(100, Math.max(0, Math.round(parsed.machineReadabilityScore!))),
+      entityConfidenceScore: Math.min(100, Math.max(0, Math.round(parsed.entityConfidenceScore!))),
+      retrievalReadinessScore: Math.min(100, Math.max(0, Math.round(parsed.retrievalReadinessScore!))),
+      citationProbabilityScore: Math.min(100, Math.max(0, Math.round(parsed.citationProbabilityScore!))),
+      semanticTrustScore: Math.min(100, Math.max(0, Math.round(parsed.semanticTrustScore!))),
+      recommendationConfidence: Math.min(100, Math.max(0, Math.round(parsed.recommendationConfidence!))),
+      aiVisibilityScore: Math.min(100, Math.max(0, Math.round(parsed.aiVisibilityScore!))),
+    };
+  } catch {
+    return null;
+  }
+}
+
+// ── AI visibility scoring (heuristic fallback) ────────────────────────────────
 
 function scoreAIVisibility(pages: ParsedPage[]): {
   aiScore: number;
@@ -408,7 +508,19 @@ export async function runServerlessAudit(
     // ── 3. Analyse ────────────────────────────────────────────────────────────
     const { score: seoScore, issues: seoIssues } = analyseSEO(pages);
     const { score: schemaScore, schemaUrls } = analyseSchema(pages);
-    const aiScores = scoreAIVisibility(pages);
+
+    // Try Groq AI analysis first; fall back to heuristics if unavailable
+    const heuristicScores = scoreAIVisibility(pages);
+    const groqScores = await callGroqAnalysis(pages, domain);
+    const aiScores = {
+      aiScore:                  groqScores?.aiVisibilityScore      ?? heuristicScores.aiScore,
+      machineReadabilityScore:  groqScores?.machineReadabilityScore  ?? heuristicScores.machineReadabilityScore,
+      entityConfidenceScore:    groqScores?.entityConfidenceScore    ?? heuristicScores.entityConfidenceScore,
+      retrievalReadinessScore:  groqScores?.retrievalReadinessScore  ?? heuristicScores.retrievalReadinessScore,
+      citationProbabilityScore: groqScores?.citationProbabilityScore ?? heuristicScores.citationProbabilityScore,
+      semanticTrustScore:       groqScores?.semanticTrustScore       ?? heuristicScores.semanticTrustScore,
+      recommendationConfidence: groqScores?.recommendationConfidence ?? heuristicScores.recommendationConfidence,
+    };
 
     const overall = Math.round(seoScore * 0.25 + aiScores.aiScore * 0.40 + schemaScore * 0.15 + 60 * 0.20);
 
