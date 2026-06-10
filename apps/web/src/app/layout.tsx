@@ -38,6 +38,14 @@ export const metadata: Metadata = {
     siteName: 'SiteNexis',
     type: 'website',
     locale: 'en_US',
+    images: [
+      {
+        url: '/opengraph-image',
+        width: 1200,
+        height: 630,
+        alt: 'SiteNexis — AI Retrieval & Machine Trust Intelligence',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
@@ -45,6 +53,7 @@ export const metadata: Metadata = {
     creator: '@Sitenexis',
     title: 'SiteNexis — AI Retrieval & Machine Trust Intelligence',
     description: 'SiteNexis models how AI systems retrieve, interpret, trust, and recommend your website — across every layer from semantic structure to machine trust formation.',
+    images: ['/opengraph-image'],
   },
 };
 
