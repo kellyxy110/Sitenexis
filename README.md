@@ -51,7 +51,7 @@ SiteNexis runs audits in two modes, selected automatically:
 Requires Redis (Upstash) and a running BullMQ worker process (Railway). Runs the complete 16-agent pipeline with Puppeteer crawling, all analyzer modules, PDF report generation, and Layer 4 Machine Trust analysis. Supports up to 500 pages per audit. Requires Pro+ plan for Layer 4.
 
 ### Serverless Mode (Vercel-native, no Redis required)
-When Redis is unavailable, audits automatically fall back to serverless execution using Next.js `after()`. Uses `fetch()` + HTML parsing to crawl up to 20 pages, runs all Layers 1–3, and saves full results to Supabase. No BullMQ worker or Redis required. Available on all plans.
+When Redis is unavailable, audits automatically fall back to serverless execution using Next.js `after()`. Uses `fetch()` + HTML parsing to crawl up to 20 pages. AI scoring (entity confidence, retrieval readiness, citation probability, semantic trust) is powered by Groq `llama-3.3-70b-versatile` — the same model used in the full pipeline — via direct API call. Falls back to heuristic scoring if `GROQ_API_KEY` is unavailable. Saves full results to Supabase. No BullMQ worker or Redis required. Available on all plans.
 
 **In both modes:** audits produce real scores from real data. The only case that returns a 503 is if the Supabase database itself is unreachable.
 
@@ -552,9 +552,6 @@ You've set `redis://localhost:6379` or similar. This never works on Railway. Use
 
 ### Audits complete instantly with low scores (serverless mode)
 Redis is not configured or unreachable. Serverless mode only crawls 20 pages. Set `REDIS_URL` and deploy the Railway worker for full pipeline.
-
-### Build fails: "Cannot find module 'puppeteer'"
-The health route imports `@sitenexis/crawler` to check BullMQ stats. If puppeteer is not installed in the Vercel serverless environment, this check fails. This is expected — audits use the serverless fallback and are not affected. The real Redis/BullMQ check uses the worker heartbeat, not the Vercel health check.
 
 ### Build fails: TypeScript errors on credit types
 `credits.ts` re-exports types from `credits-config.ts`. If you see `Cannot find name 'CreditAction'` or similar, ensure `credits.ts` imports (not just re-exports) the types it uses internally.
