@@ -3,6 +3,8 @@ import { Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import { Providers } from '@/components/Providers';
 
+const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://sitenexis.vercel.app';
+
 const inter = Inter({
   subsets: ['latin'],
   weight: ['300', '400', '500', '600', '700', '800'],
@@ -18,7 +20,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://sitenexis.com'),
+  metadataBase: new URL(appUrl),
   title: 'SiteNexis — AI Retrieval & Machine Trust Intelligence',
   description:
     'SiteNexis models how AI systems retrieve, interpret, trust, and recommend your website — across every layer from semantic structure to machine trust formation.',
@@ -34,7 +36,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'SiteNexis — AI Retrieval & Machine Trust Intelligence',
     description: 'SiteNexis models how AI systems retrieve, interpret, trust, and recommend your website — across every layer from semantic structure to machine trust formation.',
-    url: 'https://sitenexis.com',
+    url: appUrl,
     siteName: 'SiteNexis',
     type: 'website',
     locale: 'en_US',

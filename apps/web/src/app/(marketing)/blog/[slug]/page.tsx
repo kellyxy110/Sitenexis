@@ -16,13 +16,14 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params
   const post = getPost(slug)
   if (!post) return { title: 'Not Found' }
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://sitenexis.vercel.app'
   return {
     title: `${post.title} — SiteNexis Blog`,
     description: post.excerpt,
     openGraph: {
       title: `${post.title} — SiteNexis Blog`,
       description: post.excerpt,
-      url: `https://sitenexis.com/blog/${slug}`,
+      url: `${appUrl}/blog/${slug}`,
       siteName: 'SiteNexis',
       type: 'article',
       images: [{ url: '/opengraph-image', width: 1200, height: 630, alt: post.title }],
