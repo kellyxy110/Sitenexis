@@ -6,6 +6,13 @@
  */
 
 import { logger } from '@/lib/logger';
+import type {
+  RetrievalSimulationResult,
+  MachineTrustScore,
+  TemporalAuthorityResult,
+  RecommendationSurfaceMap,
+  SyntheticEntityAnalysis,
+} from '@sitenexis/shared';
 
 // ── HTML extraction helpers ───────────────────────────────────────────────────
 
@@ -125,7 +132,7 @@ function parseHtml(html: string, baseUrl: string): Omit<ParsedPage, 'url' | 'sta
 // ── Fetch helpers ─────────────────────────────────────────────────────────────
 
 const FETCH_TIMEOUT_MS = 12_000;
-const MAX_PAGES = 20;
+const MAX_PAGES = 50;
 
 async function fetchPage(url: string): Promise<{ html: string; statusCode: number; ms: number } | null> {
   const controller = new AbortController();
@@ -445,6 +452,302 @@ function scoreAIVisibility(pages: ParsedPage[]): {
   };
 }
 
+// ── Layer 4 — Retrieval Simulation ───────────────────────────────────────────
+
+function computeRetrievalSimulations(
+  pages: ParsedPage[],
+  citationScore: number,
+): RetrievalSimulationResult[] {
+  return pages.slice(0, 30).map((page) => {
+    const wc = page.wordCount;
+    const hc = page.headings.length;
+    const hasSchema = page.hasStructuredData;
+    const hasFAQ = page.schemaTypes.includes('FAQPage') || page.schemaTypes.includes('HowTo');
+
+    const expectedChunks = Math.max(1, Math.ceil(wc / 400));
+    const chunkStabilityIndex = Math.min(0.97, Math.max(0.15,
+      0.30 + Math.min(0.40, (hc / expectedChunks) * 0.40) + (wc > 300 ? 0.15 : 0) + (hasSchema ? 0.12 : 0),
+    ));
+
+    const answerFormationProbability = Math.min(0.95, Math.max(0.10,
+      0.20 + (page.h1 ? 0.15 : 0) + (page.metaDescription ? 0.10 : 0) +
+      (hasSchema ? 0.20 : 0) + (wc > 400 ? 0.20 : 0) + (hc > 2 ? 0.10 : 0) + (hasFAQ ? 0.20 : 0),
+    ));
+
+    const summarisationLossScore = Math.min(100, Math.max(20,
+      50 + (hc > 1 ? 15 : 0) + (hasSchema ? 12 : 0) + (wc > 300 ? 10 : 0) + (wc < 3000 ? 8 : 0) + (hasFAQ ? 5 : 0),
+    ));
+
+    const citationEligibilityScore = Math.min(100, Math.max(10,
+      citationScore * 0.6 + (hasSchema ? 20 : 0) + (page.h1 ? 10 : 0) + (wc > 500 ? 10 : 0),
+    ));
+
+    const retrievalQualityScore = Math.round(
+      chunkStabilityIndex * 25 +
+      answerFormationProbability * 25 +
+      (summarisationLossScore / 100) * 25 +
+      (citationEligibilityScore / 100) * 25,
+    );
+
+    const retrievalFailureReasons: RetrievalSimulationResult['retrievalFailureReasons'] = [];
+    if (wc < 200) {
+      retrievalFailureReasons.push({ stage: 'chunk_extraction', description: 'Page has too few words to form a stable chunk', severity: 'warning', affectedChunks: [], recommendation: 'Expand content to at least 300 words to improve chunk stability.' });
+    }
+    if (!hasSchema) {
+      retrievalFailureReasons.push({ stage: 'citation_filter', description: 'No structured data — page lacks authority signals for citation eligibility', severity: 'warning', affectedChunks: [], recommendation: 'Add JSON-LD schema markup (Article, Organization, or FAQPage).' });
+    }
+    if (wc > 3000) {
+      retrievalFailureReasons.push({ stage: 'truncation', description: `Page is ${wc} words — content past the context window may be ignored`, severity: 'info', affectedChunks: [], recommendation: 'Place key facts and entity definitions in the first 1500 words.' });
+    }
+
+    return {
+      pageUrl: page.url,
+      simulated: true,
+      retrievalQualityScore,
+      chunkStabilityIndex,
+      answerFormationProbability,
+      summarisationLossScore,
+      citationEligibilityScore,
+      retrievalFailureReasons,
+      truncationZoneWarnings: wc > 2000 ? [`Content beyond ~2000 words (≈${wc - 2000} words) may fall outside the retrieval context window.`] : [],
+      fragileClaimsCount: page.headings.filter((h) => /\d|percent|%|founded|launched|vs\.|compared/i.test(h.text)).length,
+    };
+  });
+}
+
+// ── Layer 4 — Machine Trust Score ────────────────────────────────────────────
+
+function computeMachineTrustScore(pages: ParsedPage[], schemaScore: number): MachineTrustScore {
+  const homepage = pages[0];
+  const authorityDomains = ['wikipedia.org', 'wikidata.org', 'linkedin.com', 'twitter.com', 'x.com', 'facebook.com', 'github.com', 'crunchbase.com', 'bloomberg.com', 'reuters.com'];
+  const allExternal = pages.flatMap((p) => p.externalLinks);
+  const authorityLinks = allExternal.filter((u) => authorityDomains.some((d) => u.includes(d)));
+  const uniqueAuthorityDomains = new Set(authorityLinks.map((u) => { try { return new URL(u).hostname; } catch { return u; } }));
+  const hasOrgSchema = pages.some((p) => p.schemaTypes.some((t) => ['Organization', 'LocalBusiness', 'Corporation'].includes(t)));
+  const hasSameAs = pages.some((p) => p.schemas.some((s) => typeof s === 'object' && s !== null && 'sameAs' in s));
+  const hasPersonSchema = pages.some((p) => p.schemaTypes.includes('Person'));
+  const pagesWithBothH1AndSchema = pages.filter((p) => p.h1 && p.hasStructuredData).length;
+
+  const entityCredibilityScore = Math.min(100, Math.max(10, 25 + (hasOrgSchema ? 35 : 0) + (authorityLinks.length > 0 ? 20 : 0) + (hasPersonSchema ? 10 : 0) + (hasSameAs ? 10 : 0)));
+  const schemaTrustAlignmentScore = Math.min(100, Math.max(10, Math.round(schemaScore * 0.75 + (pagesWithBothH1AndSchema / Math.max(1, pages.length)) * 25)));
+  const externalValidationScore = Math.min(100, Math.max(10, 20 + Math.min(60, uniqueAuthorityDomains.size * 15) + (hasSameAs ? 20 : 0)));
+  const trustDegradationResistance = Math.min(100, 68 + (hasOrgSchema ? 12 : 0) + (hasSameAs ? 5 : 0));
+  const crossSourceValidationIndex = allExternal.length > 0 ? Math.min(1, authorityLinks.length / allExternal.length + 0.1) : 0.1;
+  const overall = Math.min(100, Math.round(entityCredibilityScore * 0.35 + schemaTrustAlignmentScore * 0.25 + externalValidationScore * 0.30 + trustDegradationResistance * 0.10));
+
+  const trustIssues: MachineTrustScore['trustIssues'] = [];
+  if (!hasOrgSchema) trustIssues.push({ type: 'missing_entity_schema', severity: 'critical', entity: homepage?.title ?? 'Primary Entity', description: 'No Organisation schema detected — AI systems cannot verify the primary entity identity.', recommendation: 'Add an Organisation schema block to the homepage with name, url, description, and sameAs links.' });
+  if (!hasSameAs) trustIssues.push({ type: 'missing_same_as', severity: 'warning', entity: homepage?.title ?? 'Primary Entity', description: 'No sameAs links detected — AI systems cannot cross-validate against external knowledge bases.', recommendation: 'Add sameAs links pointing to Wikipedia, Wikidata, LinkedIn, or Crunchbase.' });
+  if (authorityLinks.length === 0) trustIssues.push({ type: 'no_external_validation', severity: 'warning', entity: 'Site', description: 'No links to authoritative external sources detected — trust signals are self-referential.', recommendation: 'Link to authoritative sources to strengthen external trust signals.' });
+
+  return { overall, entityCredibilityScore, schemaTrustAlignmentScore, externalValidationScore, contradictionAbsenceScore: null, trustDegradationResistance, crossSourceValidationIndex, trustIssues, degradationSignals: [] };
+}
+
+// ── Layer 4 — Temporal Authority ─────────────────────────────────────────────
+
+function computeTemporalAuthority(pages: ParsedPage[]): TemporalAuthorityResult {
+  const now = Date.now();
+  const sixMonthsAgo = now - 6 * 30 * 24 * 3600 * 1000;
+
+  const getSchemaDate = (s: unknown): string | null => {
+    if (typeof s !== 'object' || s === null) return null;
+    const o = s as Record<string, unknown>;
+    return (o['dateModified'] ?? o['datePublished'] ?? null) as string | null;
+  };
+
+  const hasDateSchema = pages.some((p) => p.schemas.some((s) => getSchemaDate(s) !== null));
+  const hasRecentDate = pages.some((p) =>
+    p.schemas.some((s) => { const d = getSchemaDate(s); try { return d ? new Date(d).getTime() > sixMonthsAgo : false; } catch { return false; } }),
+  );
+  const pagesWithDates = pages.filter((p) => p.schemas.some((s) => getSchemaDate(s) !== null));
+  const pagesWithCanonical = pages.filter((p) => p.canonical).length;
+  const pagesWithSchema = pages.filter((p) => p.hasStructuredData).length;
+
+  const trustStabilityIndex = Math.min(1.0, Math.max(0.10,
+    0.60 + (pagesWithCanonical / Math.max(1, pages.length)) * 0.15 + (pagesWithSchema / Math.max(1, pages.length)) * 0.15 + (hasDateSchema ? 0.10 : 0),
+  ));
+  const contentFreshnessImpactFactor = Math.min(1.0, Math.max(0.20,
+    0.45 + (hasDateSchema ? 0.20 : 0) + (hasRecentDate ? 0.25 : 0) + (pagesWithDates.length / Math.max(1, pages.length)) * 0.10,
+  ));
+  const updateFrequencyClassification: TemporalAuthorityResult['updateFrequencyClassification'] =
+    hasRecentDate ? 'active' : hasDateSchema ? 'periodic' : 'stale';
+  const stalePagesAtRisk = pages.filter((p) => p.wordCount < 200 && !p.hasStructuredData).map((p) => p.url).slice(0, 10);
+
+  const temporalIssues: TemporalAuthorityResult['temporalIssues'] = [];
+  if (!hasDateSchema) temporalIssues.push({ type: 'missing_date_schema', severity: 'warning', pageUrl: pages[0]?.url ?? '', description: 'No datePublished or dateModified schema detected. AI systems cannot assess content freshness.', recommendation: 'Add datePublished and dateModified to Article and BlogPosting schemas across all content pages.' });
+  if (stalePagesAtRisk.length > 3) temporalIssues.push({ type: 'stale_thin_pages', severity: 'info', pageUrl: stalePagesAtRisk[0] ?? '', description: `${stalePagesAtRisk.length} thin pages with no schema are at risk of trust decay.`, recommendation: 'Expand these pages with substantive content or add schema markup to signal their purpose.' });
+
+  return { isBaseline: true, authorityVelocityScore: null, trustStabilityIndex, contentFreshnessImpactFactor, semanticDriftIndex: 0, updateFrequencyClassification, stalePagesAtRisk, driftedPages: [], temporalIssues };
+}
+
+// ── Layer 4 — Recommendation Surface Map ─────────────────────────────────────
+
+function computeRecommendationSurfaces(
+  pages: ParsedPage[],
+  aiScore: number,
+  entityConfidenceScore: number,
+  citationScore: number,
+  semanticTrustScore: number,
+  schemaScore: number,
+): RecommendationSurfaceMap {
+  const hasFAQSchema = pages.some((p) => p.schemaTypes.includes('FAQPage'));
+  const hasHowToSchema = pages.some((p) => p.schemaTypes.includes('HowTo'));
+  const hasSpeakableSchema = pages.some((p) => p.schemas.some((s) => typeof s === 'object' && s !== null && 'speakable' in s));
+  const hasOrgSchema = pages.some((p) => p.schemaTypes.some((t) => ['Organization', 'LocalBusiness'].includes(t)));
+  const allExternal = pages.flatMap((p) => p.externalLinks);
+
+  const aiOverviewsProb = Math.min(95, Math.max(5,
+    20 + (schemaScore > 60 ? 20 : schemaScore > 40 ? 10 : 0) + (hasFAQSchema ? 25 : 0) + (hasHowToSchema ? 15 : 0) + (citationScore > 60 ? 20 : citationScore > 40 ? 10 : 0) + (schemaScore > 80 ? 10 : 0),
+  ));
+  const chatProb = Math.min(95, Math.max(5, Math.round(aiScore * 0.50 + entityConfidenceScore * 0.30 + semanticTrustScore * 0.20)));
+  const voiceProb = Math.min(95, Math.max(5, 15 + (hasSpeakableSchema ? 35 : 0) + (hasFAQSchema ? 20 : 0) + (hasOrgSchema ? 10 : 0) + (schemaScore > 70 ? 15 : 0)));
+  const agentProb = Math.min(95, Math.max(5, Math.round(entityConfidenceScore * 0.35 + schemaScore * 0.35 + Math.min(30, allExternal.length * 2) * 0.30)));
+  const overallSurfaceScore = Math.round(aiOverviewsProb * 0.30 + chatProb * 0.30 + voiceProb * 0.20 + agentProb * 0.20);
+
+  const toStatus = (p: number): RecommendationSurfaceMap['surfaces']['aiOverviews']['status'] => p >= 65 ? 'visible' : p >= 40 ? 'partial' : 'absent';
+  const coverageGaps: RecommendationSurfaceMap['coverageGaps'] = [];
+  if (aiOverviewsProb < 40) coverageGaps.push({ surface: 'AI Overviews', missedOpportunity: 'Featured in search-integrated AI responses', requiredSignals: ['FAQPage schema', 'schema completeness > 60', 'citation probability > 60'], estimatedImpact: 'high' });
+  if (voiceProb < 40) coverageGaps.push({ surface: 'Voice retrieval', missedOpportunity: 'Voice assistant answers', requiredSignals: ['speakable schema', 'FAQPage schema', 'concise direct answers'], estimatedImpact: 'medium' });
+
+  const missingChannels: string[] = [];
+  if (voiceProb < 40) missingChannels.push('Voice assistant retrieval');
+  if (aiOverviewsProb < 40) missingChannels.push('AI Overview inclusion');
+
+  return {
+    overallSurfaceScore,
+    surfaces: {
+      aiOverviews: { inclusionProbability: aiOverviewsProb, status: toStatus(aiOverviewsProb), blockers: [], recommendations: [...(!hasFAQSchema ? ['Add FAQPage schema.'] : []), ...(schemaScore < 60 ? ['Improve schema completeness.'] : [])] },
+      chatRecommendation: { inclusionProbability: chatProb, status: toStatus(chatProb), blockers: [], recommendations: [...(entityConfidenceScore < 60 ? ['Strengthen entity definition.'] : []), ...(semanticTrustScore < 60 ? ['Improve semantic trust signals.'] : [])] },
+      voiceRetrieval: { inclusionProbability: voiceProb, status: toStatus(voiceProb), blockers: [], recommendations: [...(!hasSpeakableSchema ? ['Add speakable schema.'] : []), ...(!hasFAQSchema ? ['Add FAQPage schema with concise answers.'] : [])] },
+      agentDiscovery: { inclusionProbability: agentProb, status: toStatus(agentProb), blockers: [], recommendations: [...(entityConfidenceScore < 60 ? ['Enhance entity schema completeness.'] : []), ...(allExternal.length < 5 ? ['Add links to authoritative external sources.'] : [])] },
+    },
+    coverageGaps,
+    missingVisibilityChannels: missingChannels,
+  };
+}
+
+// ── Layer 4 — Synthetic Entity Analysis ──────────────────────────────────────
+
+function computeSyntheticEntityAnalysis(pages: ParsedPage[]): SyntheticEntityAnalysis {
+  const allExternal = pages.flatMap((p) => p.externalLinks);
+  const hasOrgSchema = pages.some((p) => p.schemaTypes.some((t) => ['Organization', 'LocalBusiness'].includes(t)));
+  const hasSameAs = pages.some((p) => p.schemas.some((s) => typeof s === 'object' && s !== null && 'sameAs' in s));
+  const schemaPages = pages.filter((p) => p.hasStructuredData);
+  const thinSchemaPages = schemaPages.filter((p) => p.wordCount < 100);
+  const manipulationRatio = schemaPages.length > 0 ? thinSchemaPages.length / schemaPages.length : 0;
+
+  const detectedPatterns: SyntheticEntityAnalysis['detectedPatterns'] = [];
+  let riskScore = 8;
+
+  if (allExternal.length === 0) {
+    riskScore += 8;
+    detectedPatterns.push({ patternType: 'authority_network', confidence: 0.30, evidence: ['No external links detected — all authority signals are self-referential'], affectedEntities: [], severity: 'info' });
+  }
+  if (manipulationRatio > 0.5 && thinSchemaPages.length > 2) {
+    riskScore += 12;
+    detectedPatterns.push({ patternType: 'schema_manipulation', confidence: Math.min(0.65, manipulationRatio), evidence: [`${thinSchemaPages.length} pages have schema markup but fewer than 100 words of body content`], affectedEntities: [], severity: 'warning' });
+  }
+  if (!hasOrgSchema && !hasSameAs && schemaPages.length > 0) riskScore += 5;
+
+  const syntheticRiskScore = Math.min(40, riskScore);
+  const entityAuthenticityConfidence = 100 - syntheticRiskScore;
+  const networkIntegrityScore = Math.min(100, Math.max(30, 80 - (allExternal.length === 0 ? 15 : 0) - (!hasSameAs ? 10 : 0) - (thinSchemaPages.length > 2 ? 5 : 0)));
+
+  const recommendations: string[] = [];
+  if (!hasSameAs) recommendations.push('Add sameAs links in entity schema to enable cross-source identity validation.');
+  if (allExternal.length === 0) recommendations.push('Include links to authoritative external sources to create verifiable trust pathways.');
+
+  return { syntheticRiskScore, entityAuthenticityConfidence, networkIntegrityScore, detectedPatterns, flaggedEntities: [], recommendations };
+}
+
+// ── Perception Graph via Groq ─────────────────────────────────────────────────
+
+interface RawPerceptionGraph {
+  nodes: Array<{ id: string; type: string; label: string; confidence: number; citationReadiness: number; disambiguationStrength: number }>;
+  edges: Array<{ source: string; target: string; relationshipType: string; strength: number }>;
+}
+
+async function callGroqPerceptionGraph(pages: ParsedPage[], domain: string): Promise<RawPerceptionGraph | null> {
+  const key = process.env['GROQ_API_KEY'];
+  if (!key || key.includes('placeholder') || key.length < 10) return null;
+
+  const siteData = {
+    domain,
+    pages: pages.slice(0, 5).map((p) => ({
+      url: p.url, title: p.title, h1: p.h1, schemaTypes: p.schemaTypes,
+      headings: p.headings.slice(0, 6).map((h) => h.text),
+      excerpt: p.bodyText.slice(0, 700),
+    })),
+  };
+
+  const prompt = `Extract the AI Perception Graph for this website as an AI retrieval system would perceive it.
+
+${JSON.stringify(siteData, null, 2)}
+
+Return JSON with this structure:
+{
+  "nodes": [{"id":"n1","type":"entity","label":"Name","confidence":0.9,"citationReadiness":0.7,"disambiguationStrength":0.8}],
+  "edges": [{"source":"n1","target":"n2","relationshipType":"isA","strength":0.8}]
+}
+Node types: entity, topic, claim, page
+Relationship types: isA, partOf, relatedTo, contradicts, supports, authorOf, locatedIn, offers
+Include 6-12 nodes and 5-10 edges. All confidence/strength values are 0-1 floats.
+Return ONLY valid JSON.`;
+
+  try {
+    const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile', temperature: 0.2, max_tokens: 1024,
+        response_format: { type: 'json_object' },
+        messages: [
+          { role: 'system', content: 'You are an AI entity graph extraction engine. Return ONLY valid JSON.' },
+          { role: 'user', content: prompt },
+        ],
+      }),
+      signal: AbortSignal.timeout(20_000),
+    });
+
+    if (!resp.ok) return null;
+    const data = await resp.json() as { choices?: [{ message?: { content?: string } }] };
+    const content = data.choices?.[0]?.message?.content;
+    if (!content) return null;
+
+    const parsed = JSON.parse(content) as Partial<RawPerceptionGraph>;
+    if (!Array.isArray(parsed.nodes) || !Array.isArray(parsed.edges)) return null;
+
+    const validNodeTypes = new Set(['entity', 'topic', 'claim', 'page']);
+    const validEdgeTypes = new Set(['isA', 'partOf', 'relatedTo', 'contradicts', 'supports', 'authorOf', 'locatedIn', 'offers']);
+
+    const nodes = parsed.nodes
+      .filter((n) => n.id && n.label)
+      .map((n) => ({
+        id: String(n.id), type: validNodeTypes.has(n.type) ? n.type : 'entity',
+        label: String(n.label).slice(0, 100),
+        confidence: Math.min(1, Math.max(0, Number(n.confidence) || 0.7)),
+        citationReadiness: Math.min(1, Math.max(0, Number(n.citationReadiness) || 0.5)),
+        disambiguationStrength: Math.min(1, Math.max(0, Number(n.disambiguationStrength) || 0.5)),
+      }))
+      .slice(0, 20);
+
+    const nodeIds = new Set(nodes.map((n) => n.id));
+    const edges = parsed.edges
+      .filter((e) => e.source && e.target && nodeIds.has(e.source) && nodeIds.has(e.target))
+      .map((e) => ({
+        source: String(e.source), target: String(e.target),
+        relationshipType: validEdgeTypes.has(e.relationshipType) ? e.relationshipType : 'relatedTo',
+        strength: Math.min(1, Math.max(0, Number(e.strength) || 0.6)),
+      }))
+      .slice(0, 30);
+
+    if (nodes.length === 0) return null;
+    return { nodes, edges };
+  } catch {
+    return null;
+  }
+}
+
 // ── Main export ───────────────────────────────────────────────────────────────
 
 export async function runServerlessAudit(
@@ -509,9 +812,12 @@ export async function runServerlessAudit(
     const { score: seoScore, issues: seoIssues } = analyseSEO(pages);
     const { score: schemaScore, schemaUrls } = analyseSchema(pages);
 
-    // Try Groq AI analysis first; fall back to heuristics if unavailable
+    // Run both Groq calls in parallel with the heuristic fallback
     const heuristicScores = scoreAIVisibility(pages);
-    const groqScores = await callGroqAnalysis(pages, domain);
+    const [groqScores, perceptionGraph] = await Promise.all([
+      callGroqAnalysis(pages, domain),
+      callGroqPerceptionGraph(pages, domain),
+    ]);
     const aiScores = {
       aiScore:                  groqScores?.aiVisibilityScore      ?? heuristicScores.aiScore,
       machineReadabilityScore:  groqScores?.machineReadabilityScore  ?? heuristicScores.machineReadabilityScore,
@@ -649,6 +955,45 @@ export async function runServerlessAudit(
           recommendation: i.recommendation,
         })),
       );
+    }
+
+    // ── 5. Layer 4 — Machine Trust Intelligence ──────────────────────────────
+    try {
+      const {
+        saveRetrievalSimulations,
+        saveMachineTrustScore,
+        saveTemporalAuthorityRecord,
+        saveRecommendationSurfaceMap,
+        saveSyntheticEntityAnalysis,
+      } = await import('@sitenexis/db');
+
+      const retrievalSims = computeRetrievalSimulations(pages, aiScores.citationProbabilityScore);
+      const machineTrustData = computeMachineTrustScore(pages, schemaScore);
+      const temporalAuthorityData = computeTemporalAuthority(pages);
+      const surfaceMapData = computeRecommendationSurfaces(
+        pages, aiScores.aiScore, aiScores.entityConfidenceScore,
+        aiScores.citationProbabilityScore, aiScores.semanticTrustScore, schemaScore,
+      );
+      const syntheticData = computeSyntheticEntityAnalysis(pages);
+
+      // Save all Layer 4 results in parallel — partial failures are acceptable
+      await Promise.allSettled([
+        saveRetrievalSimulations(auditId, retrievalSims),
+        saveMachineTrustScore(auditId, machineTrustData),
+        saveTemporalAuthorityRecord(auditId, temporalAuthorityData),
+        saveRecommendationSurfaceMap(auditId, surfaceMapData),
+        saveSyntheticEntityAnalysis(auditId, syntheticData),
+        // Save perception graph if Groq returned nodes
+        perceptionGraph && perceptionGraph.nodes.length > 0
+          ? (db as unknown as { perceptionGraphSnapshot: { upsert: (o: unknown) => Promise<unknown> } }).perceptionGraphSnapshot.upsert({
+              where: { auditId },
+              create: { auditId, nodesJson: perceptionGraph.nodes, edgesJson: perceptionGraph.edges.map((e) => ({ ...e, evidencedBy: [] })) },
+              update: { nodesJson: perceptionGraph.nodes, edgesJson: perceptionGraph.edges.map((e) => ({ ...e, evidencedBy: [] })) },
+            })
+          : Promise.resolve(),
+      ]);
+    } catch (layer4Err) {
+      logger.warn({ auditId, err: layer4Err }, 'Layer 4 analysis failed (non-fatal)');
     }
 
     await updateAuditStatus(auditId, 'complete', { pageCount: pages.length });
