@@ -18,6 +18,7 @@ import {
   type ColumnFiltersState,
 } from '@tanstack/react-table';
 import { useVirtualizer } from '@tanstack/react-virtual';
+import { useQuery } from '@tanstack/react-query';
 import type { SEOIssue, SEOIssueSeverity } from '@sitenexis/shared';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -26,6 +27,7 @@ export interface IssuesTableProps {
   issues: SEOIssue[];
   isLoading?: boolean;
   showModuleFilter?: boolean;
+  auditId?: string;
 }
 
 // ─── Severity helpers ─────────────────────────────────────────────────────────
@@ -84,7 +86,7 @@ const VIRTUALISE_THRESHOLD = 100;
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function IssuesTable({ issues, isLoading = false }: IssuesTableProps) {
+export function IssuesTable({ issues, isLoading = false, auditId }: IssuesTableProps) {
   const [sorting, setSorting] = useState<SortingState>([
     { id: 'severity', desc: false },
   ]);
@@ -194,6 +196,9 @@ export function IssuesTable({ issues, isLoading = false }: IssuesTableProps) {
     warning:  issues.filter((i) => i.severity === 'warning').length,
     info:     issues.filter((i) => i.severity === 'info').length,
   }), [issues]);
+
+  // Active fix panel state — which issue is showing a fix
+  const [fixPanelId, setFixPanelId] = useState<string | null>(null);
 
   // Loading skeleton
   if (isLoading) {
@@ -325,7 +330,13 @@ export function IssuesTable({ issues, isLoading = false }: IssuesTableProps) {
                     className={rowClass(expanded, vrow.index)}
                     onClick={() => setExpandedRow(expanded ? null : row.id)}
                   >
-                    <RowContent row={row} expanded={expanded} />
+                    <RowContent
+                      row={row}
+                      expanded={expanded}
+                      auditId={auditId}
+                      fixPanelId={fixPanelId}
+                      onToggleFix={(id) => setFixPanelId((prev) => (prev === id ? null : id))}
+                    />
                   </div>
                 );
               })}
@@ -341,7 +352,13 @@ export function IssuesTable({ issues, isLoading = false }: IssuesTableProps) {
                   className={rowClass(expanded, idx)}
                   onClick={() => setExpandedRow(expanded ? null : row.id)}
                 >
-                  <RowContent row={row} expanded={expanded} />
+                  <RowContent
+                    row={row}
+                    expanded={expanded}
+                    auditId={auditId}
+                    fixPanelId={fixPanelId}
+                    onToggleFix={(id) => setFixPanelId((prev) => (prev === id ? null : id))}
+                  />
                 </div>
               );
             })}
@@ -386,8 +403,138 @@ function rowClass(expanded: boolean, idx: number): string {
   ].join(' ');
 }
 
+interface FixResponse {
+  problem: string;
+  solution: string;
+  fixCode: string;
+  fixLanguage: string;
+  expectedImpact?: string;
+  effort?: string;
+}
+
+function FixPanel({ auditId, issueId }: { auditId: string; issueId: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const { data, isLoading, error } = useQuery<FixResponse>({
+    queryKey: ['issue-fix', auditId, issueId],
+    queryFn: async () => {
+      const res = await fetch(`/api/audit/${auditId}/fix/${issueId}`);
+      if (!res.ok) throw new Error('Failed to generate fix');
+      return res.json() as Promise<FixResponse>;
+    },
+    staleTime: Infinity,
+    retry: 1,
+  });
+
+  function copyFix() {
+    if (!data?.fixCode) return;
+    void navigator.clipboard.writeText(data.fixCode);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  if (isLoading) {
+    return (
+      <div className="mt-4 rounded-xl border border-cyan/20 bg-[#05111F] p-4">
+        <div className="flex items-center gap-2 text-xs text-[#4A6280]">
+          <div className="h-3 w-3 animate-spin rounded-full border border-cyan border-t-transparent" />
+          Generating fix…
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="mt-4 rounded-xl border border-red-500/20 bg-red-500/5 p-4">
+        <p className="text-xs text-red-400">Fix generation failed. Try again.</p>
+      </div>
+    );
+  }
+
+  const langLabel: Record<string, string> = {
+    'json-ld': 'JSON-LD',
+    html: 'HTML',
+    typescript: 'TypeScript',
+    text: 'Text',
+  };
+
+  return (
+    <div className="mt-4 rounded-xl border border-cyan/20 bg-[#05111F] overflow-hidden">
+      <div className="border-b border-white/[0.06] px-4 py-3 flex items-center justify-between">
+        <span className="text-xs font-semibold text-cyan">Fix</span>
+        <div className="flex items-center gap-2">
+          {data.expectedImpact && (
+            <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium border ${
+              data.expectedImpact === 'high'
+                ? 'border-red-500/30 bg-red-500/10 text-red-400'
+                : data.expectedImpact === 'medium'
+                ? 'border-amber-500/30 bg-amber-500/10 text-amber-400'
+                : 'border-blue-500/30 bg-blue-500/10 text-blue-400'
+            }`}>
+              {data.expectedImpact} impact
+            </span>
+          )}
+          {data.effort && (
+            <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] text-[#4A6280]">
+              {data.effort} effort
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="px-4 py-3 space-y-3">
+        <div>
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-red-400">Problem</p>
+          <p className="text-xs text-slate-300 leading-relaxed">{data.problem}</p>
+        </div>
+        <div>
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-amber-400">Solution</p>
+          <p className="text-xs text-slate-300 leading-relaxed">{data.solution}</p>
+        </div>
+        <div>
+          <div className="mb-1.5 flex items-center justify-between">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-teal-400">
+              Fix · {langLabel[data.fixLanguage] ?? data.fixLanguage}
+            </p>
+            <button
+              onClick={(e) => { e.stopPropagation(); copyFix(); }}
+              className={`rounded px-2.5 py-1 text-[10px] font-medium transition-colors ${
+                copied
+                  ? 'bg-green-500/20 text-green-400'
+                  : 'bg-white/[0.06] text-[#4A6280] hover:bg-white/[0.1] hover:text-white'
+              }`}
+            >
+              {copied ? 'Copied!' : 'Copy fix'}
+            </button>
+          </div>
+          <pre className="overflow-x-auto rounded-lg bg-[#020A16] p-3 text-[11px] leading-relaxed text-slate-300 font-mono whitespace-pre-wrap max-h-64">
+            {data.fixCode}
+          </pre>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function RowContent({ row, expanded }: { row: any; expanded: boolean }) {
+function RowContent({
+  row,
+  expanded,
+  auditId,
+  fixPanelId,
+  onToggleFix,
+}: {
+  row: any;
+  expanded: boolean;
+  auditId: string | undefined;
+  fixPanelId: string | null;
+  onToggleFix: (id: string) => void;
+}) {
+  const issueId: string | undefined = row.original.id;
+  const showFixButton = !!auditId && !!issueId;
+  const fixOpen = fixPanelId === issueId;
+
   return (
     <>
       <div className="flex items-center px-4 py-3">
@@ -404,15 +551,37 @@ function RowContent({ row, expanded }: { row: any; expanded: boolean }) {
         <div className="border-t border-white/5 bg-[#0A1F14] px-5 py-4">
           <p className="mb-1 text-xs font-semibold text-cyan">Recommendation</p>
           <p className="text-sm text-white leading-relaxed">{row.original.recommendation}</p>
-          <a
-            href={row.original.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="mt-3 inline-block text-xs text-cyan underline hover:text-teal"
-          >
-            Open page ↗
-          </a>
+          <div className="mt-3 flex items-center gap-3">
+            <a
+              href={row.original.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="text-xs text-cyan underline hover:text-teal"
+            >
+              Open page ↗
+            </a>
+            {showFixButton && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleFix(issueId);
+                }}
+                className={`rounded-lg border px-3 py-1 text-xs font-medium transition-colors ${
+                  fixOpen
+                    ? 'border-cyan/40 bg-cyan/10 text-cyan'
+                    : 'border-white/10 bg-white/[0.04] text-[#4A6280] hover:border-cyan/30 hover:text-cyan'
+                }`}
+              >
+                {fixOpen ? 'Hide fix ↑' : 'View fix →'}
+              </button>
+            )}
+          </div>
+          {showFixButton && fixOpen && (
+            <div onClick={(e) => e.stopPropagation()}>
+              <FixPanel auditId={auditId} issueId={issueId} />
+            </div>
+          )}
         </div>
       )}
     </>

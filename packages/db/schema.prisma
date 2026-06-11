@@ -154,6 +154,10 @@ model Issue {
   severity       IssueSeverity
   message        String
   recommendation String
+  problem        String?
+  solution       String?
+  fixCode        String?       @map("fix_code")
+  fixLanguage    String?       @map("fix_language")
   createdAt      DateTime      @default(now()) @map("created_at")
 
   audit  Audit  @relation(fields: [auditId], references: [id])

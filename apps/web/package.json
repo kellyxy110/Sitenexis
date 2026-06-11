@@ -25,6 +25,7 @@
     "@react-three/fiber": "^9.6.1",
     "@react-three/postprocessing": "^3.0.4",
     "@sitenexis/agents": "workspace:*",
+    "@sitenexis/analyzers": "workspace:*",
     "@sitenexis/crawler": "workspace:*",
     "@sitenexis/db": "workspace:*",
     "@sitenexis/shared": "workspace:*",

@@ -12,6 +12,10 @@ export async function saveIssues(
     severity: IssueSeverity;
     message: string;
     recommendation: string;
+    problem?: string;
+    solution?: string;
+    fixCode?: string;
+    fixLanguage?: string;
   }>
 ): Promise<void> {
   await db.issue.createMany({
@@ -34,4 +38,35 @@ export async function getIssuesBySeverity(
   severity: IssueSeverity
 ): Promise<Issue[]> {
   return db.issue.findMany({ where: { auditId, severity } });
+}
+
+export async function getIssueById(id: string): Promise<Issue | null> {
+  return db.issue.findUnique({ where: { id } });
+}
+
+export async function saveFix(
+  issueId: string,
+  fix: {
+    problem: string;
+    solution: string;
+    fixCode: string;
+    fixLanguage: string;
+  }
+): Promise<void> {
+  await db.issue.update({
+    where: { id: issueId },
+    data: {
+      problem: fix.problem,
+      solution: fix.solution,
+      fixCode: fix.fixCode,
+      fixLanguage: fix.fixLanguage,
+    },
+  });
+}
+
+export async function getIssuesWithFixes(auditId: string): Promise<Issue[]> {
+  return db.issue.findMany({
+    where: { auditId, NOT: { fixCode: null } },
+    orderBy: [{ severity: 'asc' }, { module: 'asc' }],
+  });
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense } from 'react';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { motion, useInView } from 'framer-motion';
@@ -95,12 +95,14 @@ interface AuditData {
 }
 
 const TAB_IDS = [
+  'action-plan',
   'seo', 'ai', 'machine-readability', 'entity', 'citation', 'semantic-trust',
   'schema', 'links', 'content', 'performance',
   'retrieval', 'machine-trust', 'temporal', 'surfaces', 'authenticity', 'perception-graph',
 ] as const;
 type TabId = typeof TAB_IDS[number];
 const TAB_LABELS: Record<TabId, string> = {
+  'action-plan': 'Action Plan',
   seo: 'SEO',
   ai: 'AI Readability',
   'machine-readability': 'Machine Readability',
@@ -318,7 +320,7 @@ function SeoTab({ data }: { data: AuditData }) {
         </div>
       )}
 
-      <IssuesTable issues={seoIssues} />
+      <IssuesTable issues={seoIssues} auditId={data.id} />
     </div>
   );
 }
@@ -437,7 +439,7 @@ function SchemaTab({ data }: { data: AuditData }) {
         </div>
       )}
 
-      <IssuesTable issues={schemaIssues} />
+      <IssuesTable issues={schemaIssues} auditId={data.id} />
 
       {/* Snippet copy area */}
       {detectedTypes.slice(0, 3).map((type, i) => {
@@ -541,7 +543,7 @@ function PerformanceTab({ data }: { data: AuditData }) {
         <CwvBadge label="Avg Response" value={avgResponseMs} unit="ms" good={800} needsWork={2000} />
       </div>
 
-      <IssuesTable issues={perfIssues} />
+      <IssuesTable issues={perfIssues} auditId={data.id} />
     </div>
   );
 }
@@ -592,7 +594,7 @@ function MachineReadabilityTab({ data }: { data: AuditData }) {
         </ResponsiveContainer>
       </div>
 
-      {mrIssues.length > 0 && <IssuesTable issues={mrIssues} />}
+      {mrIssues.length > 0 && <IssuesTable issues={mrIssues} auditId={data.id} />}
     </div>
   );
 }
@@ -636,7 +638,7 @@ function EntityTab({ data }: { data: AuditData }) {
         ))}
       </div>
 
-      {entityIssues.length > 0 && <IssuesTable issues={entityIssues} />}
+      {entityIssues.length > 0 && <IssuesTable issues={entityIssues} auditId={data.id} />}
     </div>
   );
 }
@@ -680,7 +682,7 @@ function CitationTab({ data }: { data: AuditData }) {
         )}
       </div>
 
-      {citationIssues.length > 0 && <IssuesTable issues={citationIssues} />}
+      {citationIssues.length > 0 && <IssuesTable issues={citationIssues} auditId={data.id} />}
     </div>
   );
 }
@@ -735,7 +737,7 @@ function SemanticTrustTab({ data }: { data: AuditData }) {
         </div>
       </div>
 
-      {trustIssues.length > 0 && <IssuesTable issues={trustIssues} />}
+      {trustIssues.length > 0 && <IssuesTable issues={trustIssues} auditId={data.id} />}
     </div>
   );
 }
@@ -1081,6 +1083,242 @@ function PerceptionGraphTab({ d }: { d: PerceptionGraphData | undefined; loading
   );
 }
 
+// ─── Action Plan Tab ──────────────────────────────────────────────────────────
+
+type AuditIssue = SEOIssue & { module?: string };
+
+const SEV_ORDER_MAP: Record<string, number> = { critical: 0, warning: 1, info: 2 };
+
+const SEV_STYLES_AP: Record<string, { ring: string; label: string; dot: string }> = {
+  critical: { ring: 'border-red-500/30 bg-red-500/5',    label: 'bg-red-500/15 text-red-400 border border-red-500/30',    dot: 'bg-red-400' },
+  warning:  { ring: 'border-amber-500/30 bg-amber-500/5', label: 'bg-amber-500/15 text-amber-400 border border-amber-500/30', dot: 'bg-amber-400' },
+  info:     { ring: 'border-blue-500/30 bg-blue-500/5',   label: 'bg-blue-500/15 text-blue-400 border border-blue-500/30',   dot: 'bg-blue-400' },
+};
+
+interface FixState {
+  status: 'idle' | 'loading' | 'done' | 'error';
+  problem?: string;
+  solution?: string;
+  fixCode?: string;
+  fixLanguage?: string;
+  expectedImpact?: string;
+  effort?: string;
+}
+
+function ActionPlanIssueCard({ issue, auditId }: { issue: AuditIssue; auditId: string }) {
+  const [open, setOpen] = useState(false);
+  const [fix, setFix] = useState<FixState>({ status: 'idle' });
+  const [copied, setCopied] = useState(false);
+
+  const issueId: string | undefined = (issue as AuditIssue & { id?: string }).id;
+  const styles = SEV_STYLES_AP[issue.severity] ?? SEV_STYLES_AP.info!;
+
+  async function loadFix() {
+    if (!issueId || fix.status === 'loading' || fix.status === 'done') return;
+    setFix({ status: 'loading' });
+    try {
+      const res = await fetch(`/api/audit/${auditId}/fix/${issueId}`);
+      if (!res.ok) throw new Error('Failed');
+      const data = await res.json() as Omit<FixState, 'status'> & { problem: string; solution: string; fixCode: string };
+      setFix({ status: 'done', ...data });
+    } catch {
+      setFix({ status: 'error' });
+    }
+  }
+
+  function toggleOpen() {
+    const next = !open;
+    setOpen(next);
+    if (next && fix.status === 'idle') void loadFix();
+  }
+
+  function copyFix() {
+    if (!fix.fixCode) return;
+    void navigator.clipboard.writeText(fix.fixCode);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  const langLabel: Record<string, string> = {
+    'json-ld': 'JSON-LD', html: 'HTML', typescript: 'TypeScript', text: 'Text',
+  };
+
+  return (
+    <div className={`rounded-xl border overflow-hidden ${styles.ring}`}>
+      <button
+        className="w-full flex items-start gap-3 px-4 py-4 text-left hover:bg-white/[0.02] transition-colors"
+        onClick={toggleOpen}
+      >
+        <span className={`mt-0.5 h-2 w-2 shrink-0 rounded-full ${styles.dot}`} />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap mb-1">
+            <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${styles.label}`}>
+              {issue.severity}
+            </span>
+            {issue.module && (
+              <span className="rounded-full bg-white/[0.05] px-2 py-0.5 text-[10px] text-[#4A6280] border border-white/[0.06]">
+                {issue.module}
+              </span>
+            )}
+            <span className="font-mono text-[10px] text-[#4A6280]">
+              {issue.type.replace(/_/g, ' ')}
+            </span>
+          </div>
+          <p className="text-sm text-white leading-snug">{issue.message}</p>
+          {issue.url && (
+            <p className="mt-0.5 text-[11px] text-[#4A6280] truncate">{issue.url.replace(/^https?:\/\//, '')}</p>
+          )}
+        </div>
+        <span className="shrink-0 text-xs text-[#4A6280] mt-1">{open ? '▲' : '▼'}</span>
+      </button>
+
+      {open && (
+        <div className="border-t border-white/[0.06] bg-[#050B16] px-4 pb-4 pt-3 space-y-3">
+          <div>
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-cyan">Recommendation</p>
+            <p className="text-xs text-slate-300 leading-relaxed">{issue.recommendation}</p>
+          </div>
+
+          {!issueId ? (
+            <p className="text-xs text-[#4A6280]">Fix not available for this issue.</p>
+          ) : fix.status === 'idle' ? null : fix.status === 'loading' ? (
+            <div className="flex items-center gap-2 text-xs text-[#4A6280]">
+              <div className="h-3 w-3 animate-spin rounded-full border border-cyan border-t-transparent" />
+              Generating fix…
+            </div>
+          ) : fix.status === 'error' ? (
+            <p className="text-xs text-red-400">Fix generation failed.</p>
+          ) : (
+            <div className="space-y-3">
+              <div>
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-red-400">Problem</p>
+                <p className="text-xs text-slate-300 leading-relaxed">{fix.problem}</p>
+              </div>
+              <div>
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-amber-400">Solution</p>
+                <p className="text-xs text-slate-300 leading-relaxed">{fix.solution}</p>
+              </div>
+              <div>
+                <div className="mb-1.5 flex items-center justify-between">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-teal-400">
+                    Fix · {fix.fixLanguage ? (langLabel[fix.fixLanguage] ?? fix.fixLanguage) : ''}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    {fix.expectedImpact && (
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium border ${
+                        fix.expectedImpact === 'high' ? 'border-red-500/30 bg-red-500/10 text-red-400' :
+                        fix.expectedImpact === 'medium' ? 'border-amber-500/30 bg-amber-500/10 text-amber-400' :
+                        'border-blue-500/30 bg-blue-500/10 text-blue-400'
+                      }`}>{fix.expectedImpact} impact</span>
+                    )}
+                    <button
+                      onClick={copyFix}
+                      className={`rounded px-2.5 py-1 text-[10px] font-medium transition-colors ${
+                        copied ? 'bg-green-500/20 text-green-400' : 'bg-white/[0.06] text-[#4A6280] hover:text-white'
+                      }`}
+                    >
+                      {copied ? 'Copied!' : 'Copy fix'}
+                    </button>
+                  </div>
+                </div>
+                <pre className="overflow-x-auto rounded-lg bg-[#020A16] p-3 text-[11px] leading-relaxed text-slate-300 font-mono whitespace-pre-wrap max-h-64">
+                  {fix.fixCode}
+                </pre>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ActionPlanTab({ data }: { data: AuditData }) {
+  const [filterSev, setFilterSev] = useState<string>('all');
+  const [filterMod, setFilterMod] = useState<string>('all');
+
+  const issues = data.issues as AuditIssue[];
+  const modules = [...new Set(issues.map((i) => i.module).filter(Boolean))].sort();
+
+  const filtered = useMemo(() => {
+    return issues
+      .filter((i) => filterSev === 'all' || i.severity === filterSev)
+      .filter((i) => filterMod === 'all' || i.module === filterMod)
+      .sort((a, b) => (SEV_ORDER_MAP[a.severity] ?? 2) - (SEV_ORDER_MAP[b.severity] ?? 2));
+  }, [issues, filterSev, filterMod]);
+
+  const counts = useMemo(() => ({
+    critical: issues.filter((i) => i.severity === 'critical').length,
+    warning: issues.filter((i) => i.severity === 'warning').length,
+    info: issues.filter((i) => i.severity === 'info').length,
+  }), [issues]);
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="card-glass rounded-xl p-5">
+        <h2 className="text-lg font-bold text-white mb-1">Action Plan</h2>
+        <p className="text-xs text-[#4A6280]">
+          Every detected issue with a ready-to-paste fix. Sorted by severity. Click any issue to expand the Problem → Solution → Fix.
+        </p>
+        <div className="mt-4 flex gap-4 text-sm">
+          <span><span className="font-bold text-red-400">{counts.critical}</span> <span className="text-[#4A6280]">critical</span></span>
+          <span><span className="font-bold text-amber-400">{counts.warning}</span> <span className="text-[#4A6280]">warnings</span></span>
+          <span><span className="font-bold text-blue-400">{counts.info}</span> <span className="text-[#4A6280]">info</span></span>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-2">
+        {(['all', 'critical', 'warning', 'info'] as const).map((sev) => (
+          <button
+            key={sev}
+            onClick={() => setFilterSev(sev)}
+            className={`rounded-full px-3 py-1 text-xs font-medium transition-colors border ${
+              filterSev === sev
+                ? sev === 'critical' ? 'bg-red-500/15 text-red-400 border-red-500/30' :
+                  sev === 'warning'  ? 'bg-amber-500/15 text-amber-400 border-amber-500/30' :
+                  sev === 'info'     ? 'bg-blue-500/15 text-blue-400 border-blue-500/30' :
+                  'bg-white/10 text-white border-white/20'
+                : 'border-white/10 text-[#4A6280] hover:text-white'
+            }`}
+          >
+            {sev === 'all' ? `All (${issues.length})` : `${sev} (${counts[sev]})`}
+          </button>
+        ))}
+        {modules.length > 1 && (
+          <select
+            value={filterMod}
+            onChange={(e) => setFilterMod(e.target.value)}
+            className="rounded-full border border-white/10 bg-[#050B09] px-3 py-1 text-xs text-[#4A6280] outline-none focus:border-cyan/30"
+          >
+            <option value="all">All modules</option>
+            {modules.map((m) => <option key={m} value={m}>{m}</option>)}
+          </select>
+        )}
+      </div>
+
+      {/* Issue cards */}
+      {filtered.length === 0 ? (
+        <div className="card-glass rounded-xl p-10 text-center">
+          <p className="text-4xl mb-3">✅</p>
+          <p className="font-semibold text-white">No issues in this filter.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filtered.map((issue, i) => (
+            <ActionPlanIssueCard
+              key={(issue as AuditIssue & { id?: string }).id ?? `${issue.type}-${i}`}
+              issue={issue}
+              auditId={data.id}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── v3 Loading placeholder ───────────────────────────────────────────────────
 
 function V3Loading({ label }: { label: string }) {
@@ -1305,6 +1543,7 @@ function AuditPageInner() {
 
         {/* ── Tab content ──────────────────────────────────────────────────── */}
         <div>
+          {activeTab === 'action-plan'        && <ActionPlanTab data={data} />}
           {activeTab === 'seo'                && <SeoTab data={data} />}
           {activeTab === 'ai'                 && <AiTab data={data} />}
           {activeTab === 'machine-readability' && <MachineReadabilityTab data={data} />}

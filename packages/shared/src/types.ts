@@ -69,12 +69,28 @@ export type SEOIssueType =
   | 'missing_robots_txt'
   | 'missing_sitemap';
 
+export type FixLanguage = 'json-ld' | 'html' | 'typescript' | 'text';
+
+export interface IssueFix {
+  problem: string;
+  solution: string;
+  fixCode: string;
+  fixLanguage: FixLanguage;
+  expectedImpact: 'high' | 'medium' | 'low';
+  effort: 'low' | 'medium' | 'high';
+}
+
 export interface SEOIssue {
+  id?: string;
   type: SEOIssueType;
   severity: SEOIssueSeverity;
   url: string;
   message: string;
   recommendation: string;
+  problem?: string;
+  solution?: string;
+  fixCode?: string;
+  fixLanguage?: FixLanguage;
 }
 
 export interface SEOScore {
