@@ -12,6 +12,10 @@
     "./fixes": {
       "types": "./dist/fixes/index.d.ts",
       "default": "./dist/fixes/index.js"
+    },
+    "./adnexis": {
+      "types": "./dist/adnexis/index.d.ts",
+      "default": "./dist/adnexis/index.js"
     }
   },
   "scripts": {

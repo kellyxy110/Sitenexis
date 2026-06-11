@@ -24,6 +24,127 @@ importers:
         specifier: ^5.5.4
         version: 5.9.3
 
+  apps/adnexis:
+    dependencies:
+      '@radix-ui/react-dialog':
+        specifier: ^1.1.2
+        version: 1.1.15(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+      '@radix-ui/react-dropdown-menu':
+        specifier: ^2.1.2
+        version: 2.1.16(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+      '@radix-ui/react-label':
+        specifier: ^2.1.0
+        version: 2.1.8(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+      '@radix-ui/react-select':
+        specifier: ^2.1.2
+        version: 2.2.6(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+      '@radix-ui/react-slot':
+        specifier: ^1.1.0
+        version: 1.2.4(@types/react@19.2.15)(react@19.2.6)
+      '@radix-ui/react-tabs':
+        specifier: ^1.1.1
+        version: 1.1.13(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+      '@radix-ui/react-toast':
+        specifier: ^1.2.2
+        version: 1.2.15(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+      '@radix-ui/react-tooltip':
+        specifier: ^1.1.4
+        version: 1.2.8(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+      '@sitenexis/analyzers':
+        specifier: workspace:*
+        version: link:../../packages/analyzers
+      '@sitenexis/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@sitenexis/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      '@supabase/ssr':
+        specifier: ^0.5.1
+        version: 0.5.2(@supabase/supabase-js@2.106.1)
+      '@supabase/supabase-js':
+        specifier: ^2.45.3
+        version: 2.106.1
+      '@tanstack/react-query':
+        specifier: ^5.55.4
+        version: 5.100.13(react@19.2.6)
+      '@tanstack/react-table':
+        specifier: ^8.20.5
+        version: 8.21.3(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+      class-variance-authority:
+        specifier: ^0.7.0
+        version: 0.7.1
+      clsx:
+        specifier: ^2.1.1
+        version: 2.1.1
+      framer-motion:
+        specifier: ^11.5.4
+        version: 11.18.2(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+      lucide-react:
+        specifier: ^0.441.0
+        version: 0.441.0(react@19.2.6)
+      next:
+        specifier: 15.3.9
+        version: 15.3.9(@playwright/test@1.60.0)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+      pino:
+        specifier: ^9.4.0
+        version: 9.14.0
+      react:
+        specifier: ^19.0.0
+        version: 19.2.6
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.2.6(react@19.2.6)
+      recharts:
+        specifier: ^2.12.7
+        version: 2.15.4(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+      stripe:
+        specifier: ^16.10.0
+        version: 16.12.0
+      tailwind-merge:
+        specifier: ^2.5.2
+        version: 2.6.1
+      zod:
+        specifier: ^3.23.8
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: ^22.5.4
+        version: 22.19.19
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.2.15
+      '@types/react-dom':
+        specifier: ^19.0.0
+        version: 19.2.3(@types/react@19.2.15)
+      '@typescript-eslint/eslint-plugin':
+        specifier: ^8.0.0
+        version: 8.59.4(@typescript-eslint/parser@8.59.4(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3))(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3)
+      '@typescript-eslint/parser':
+        specifier: ^8.0.0
+        version: 8.59.4(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3)
+      autoprefixer:
+        specifier: ^10.5.0
+        version: 10.5.0(postcss@8.5.15)
+      eslint:
+        specifier: ^9.0.0
+        version: 9.39.4(jiti@1.21.7)
+      eslint-config-next:
+        specifier: 15.3.9
+        version: 15.3.9(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3)
+      postcss:
+        specifier: ^8.4.45
+        version: 8.5.15
+      prettier-plugin-tailwindcss:
+        specifier: ^0.6.6
+        version: 0.6.14(prettier@3.8.3)
+      tailwindcss:
+        specifier: ^3.4.11
+        version: 3.4.19(tsx@4.22.3)
+      typescript:
+        specifier: ^5.5.4
+        version: 5.9.3
+
   apps/web:
     dependencies:
       '@radix-ui/react-dialog':
@@ -3165,10 +3286,6 @@ packages:
 
   has-tostringtag@1.0.2:
     resolution: {integrity: sha512-NqADB8VjPFLM2V0VvHUewwwsw0ZWBaIdgo+ieHtK3hasLz4qeCRjYcqfB6AQrBggRKppKF8L52/VqdVsO47Dlw==}
-    engines: {node: '>= 0.4'}
-
-  hasown@2.0.3:
-    resolution: {integrity: sha512-ej4AhfhfL2Q2zpMmLo7U1Uv9+PyhIZpgQLGT1F9miIGmiCJIoCgSmczFdrc97mWT4kVY72KA+WnnhJ5pghSvSg==}
     engines: {node: '>= 0.4'}
 
   hasown@2.0.4:
@@ -7068,7 +7185,7 @@ snapshots:
       es-errors: 1.3.0
       get-intrinsic: 1.3.0
       has-tostringtag: 1.0.2
-      hasown: 2.0.3
+      hasown: 2.0.4
 
   es-shim-unscopables@1.1.0:
     dependencies:
@@ -7481,7 +7598,7 @@ snapshots:
       asynckit: 0.4.0
       combined-stream: 1.0.8
       es-set-tostringtag: 2.1.0
-      hasown: 2.0.3
+      hasown: 2.0.4
       mime-types: 2.1.35
 
   formdata-node@4.4.1:
@@ -7533,7 +7650,7 @@ snapshots:
       get-proto: 1.0.1
       gopd: 1.2.0
       has-symbols: 1.1.0
-      hasown: 2.0.3
+      hasown: 2.0.4
       math-intrinsics: 1.1.0
 
   get-nonce@1.0.1: {}
@@ -7612,10 +7729,6 @@ snapshots:
   has-tostringtag@1.0.2:
     dependencies:
       has-symbols: 1.1.0
-
-  hasown@2.0.3:
-    dependencies:
-      function-bind: 1.1.2
 
   hasown@2.0.4:
     dependencies:
@@ -7736,7 +7849,7 @@ snapshots:
 
   is-core-module@2.16.2:
     dependencies:
-      hasown: 2.0.3
+      hasown: 2.0.4
 
   is-data-view@1.0.2:
     dependencies:

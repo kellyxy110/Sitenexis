@@ -9,3 +9,4 @@ export * from './queries/v3';
 export * from './queries/self-audit';
 export * from './queries/teams';
 export * from './queries/scheduled-reports';
+export * from './queries/ads';

@@ -55,6 +55,8 @@ model User {
   memberOfTeams      TeamMember[]        @relation("TeamMember")
   sentInvites        TeamInvite[]        @relation("InviteOwner")
   scheduledReports   ScheduledReport[]
+  ads                Ad[]                @relation("UserAds")
+  adGenerations      AdGeneration[]      @relation("UserAdGenerations")
 
   @@map("users")
 }
@@ -624,4 +626,110 @@ model ScheduledReport {
   @@index([userId])
   @@index([nextSendAt])
   @@map("scheduled_reports")
+}
+
+// ─── AdNexis models ──────────────────────────────────────────────────────────
+
+enum AdPlatform {
+  meta
+  tiktok
+  youtube
+  native
+  other
+}
+
+enum AdMediaType {
+  video
+  image
+  text
+  carousel
+}
+
+enum HookType {
+  curiosity
+  shock
+  authority
+  story
+  fear
+  transformation
+}
+
+enum AdFunnelStage {
+  TOFU
+  MOFU
+  BOFU
+}
+
+enum AdCtaType {
+  scarcity
+  soft
+  urgency
+  curiosity_cta
+}
+
+enum AdFatigueRisk {
+  low
+  medium
+  high
+}
+
+model Ad {
+  id                 String         @id @default(cuid())
+  userId             String         @map("user_id")
+  platform           AdPlatform     @default(other)
+  mediaType          AdMediaType    @default(text) @map("media_type")
+  sourceUrl          String?        @map("source_url")
+  mediaUrl           String?        @map("media_url")
+  transcript         String?        @db.Text
+  title              String?
+  description        String?        @db.Text
+  hook               String?
+  hookType           HookType?      @map("hook_type")
+  emotions           String[]
+  funnelStage        AdFunnelStage? @map("funnel_stage")
+  ctaType            AdCtaType?     @map("cta_type")
+  ctaText            String?        @map("cta_text")
+  audience           String?
+  niche              String?
+  tags               String[]
+  performanceScore   Int?           @map("performance_score")
+  hookStrength       Int?           @map("hook_strength")
+  emotionalIntensity Int?           @map("emotional_intensity")
+  noveltyScore       Int?           @map("novelty_score")
+  fatigueRisk        AdFatigueRisk? @map("fatigue_risk")
+  conversionLikelihood String?      @map("conversion_likelihood")
+  estimatedRunwayDays  Int?         @map("estimated_runway_days")
+  analysisJson       Json?          @map("analysis_json")
+  analysisStatus     String         @default("pending") @map("analysis_status")
+  createdAt          DateTime       @default(now()) @map("created_at")
+  analyzedAt         DateTime?      @map("analyzed_at")
+  archivedAt         DateTime?      @map("archived_at")
+
+  user        User           @relation("UserAds", fields: [userId], references: [id])
+  generations AdGeneration[]
+
+  @@index([userId])
+  @@index([platform])
+  @@index([hookType])
+  @@index([funnelStage])
+  @@map("ads")
+}
+
+model AdGeneration {
+  id           String   @id @default(cuid())
+  adId         String?  @map("ad_id")
+  userId       String   @map("user_id")
+  inputText    String   @map("input_text") @db.Text
+  platforms    String[]
+  tone         String   @default("balanced")
+  localization String?
+  count        Int      @default(3)
+  variations   Json
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  ad   Ad?  @relation(fields: [adId], references: [id])
+  user User @relation("UserAdGenerations", fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("ad_generations")
 }

@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X, ArrowRight, ChevronRight } from 'lucide-react'
+import { Menu, X, ArrowRight, ChevronRight, ChevronDown, ExternalLink } from 'lucide-react'
 
 // ── Pentagon logo mark ────────────────────────────────────────────────────────
 
@@ -26,28 +26,132 @@ function PentagonMark({ size = 16 }: { size?: number }) {
 // ── Nav links config ──────────────────────────────────────────────────────────
 
 const NAV_LINKS = [
-  { label: 'Platform',    href: '/platform'    },
   { label: 'Methodology', href: '/methodology' },
   { label: 'Pricing',     href: '/pricing'     },
   { label: 'Blog',        href: '/blog'        },
 ]
+
+const PRODUCTS = [
+  {
+    name: 'SiteNexis',
+    tagline: 'AI Retrieval & Machine Trust Intelligence',
+    desc: 'Model how AI systems find, trust, and recommend your website.',
+    href: '/',
+    external: false,
+    accent: '#00C8FF',
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+        {Array.from({ length: 5 }, (_, i) => {
+          const a = (Math.PI * 2 * i) / 5 - Math.PI / 2
+          const r = 6
+          return `${8 + r * Math.cos(a)},${8 + r * Math.sin(a)}`
+        }).join(' ') && (
+          <polygon
+            points={Array.from({ length: 5 }, (_, i) => {
+              const a = (Math.PI * 2 * i) / 5 - Math.PI / 2
+              return `${8 + 6 * Math.cos(a)},${8 + 6 * Math.sin(a)}`
+            }).join(' ')}
+            stroke="#00C8FF"
+            strokeWidth="1.2"
+            fill="rgba(0,200,255,0.08)"
+          />
+        )}
+      </svg>
+    ),
+  },
+  {
+    name: 'AdNexis',
+    tagline: 'AI Creative Intelligence',
+    desc: 'Deconstruct top-performing ads and generate high-converting creative.',
+    href: 'https://adnexis-ai.vercel.app',
+    external: true,
+    accent: '#6C3EFF',
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+        <rect x="2" y="2" width="5" height="5" rx="1.2" stroke="#6C3EFF" strokeWidth="1.2" fill="rgba(108,62,255,0.1)" />
+        <rect x="9" y="2" width="5" height="5" rx="1.2" stroke="#6C3EFF" strokeWidth="1.2" fill="rgba(108,62,255,0.06)" />
+        <rect x="2" y="9" width="5" height="5" rx="1.2" stroke="#6C3EFF" strokeWidth="1.2" fill="rgba(108,62,255,0.06)" />
+        <rect x="9" y="9" width="5" height="5" rx="1.2" stroke="#00D4AA" strokeWidth="1.2" fill="rgba(0,212,170,0.06)" />
+      </svg>
+    ),
+  },
+]
+
+// ── Products dropdown ─────────────────────────────────────────────────────────
+
+function ProductsDropdown({ open }: { open: boolean }) {
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0, y: -6, scale: 0.97 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -6, scale: 0.97 }}
+          transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+          className="absolute left-1/2 top-full mt-2 w-[340px] -translate-x-1/2 overflow-hidden rounded-2xl border border-white/[0.1] bg-[#0A1628] shadow-[0_16px_48px_rgba(0,0,0,0.7)]"
+        >
+          <div className="p-1.5">
+            {PRODUCTS.map((p) => (
+              <a
+                key={p.name}
+                href={p.href}
+                target={p.external ? '_blank' : undefined}
+                rel={p.external ? 'noopener noreferrer' : undefined}
+                className="group flex items-start gap-3.5 rounded-xl p-3.5 transition-colors duration-150 hover:bg-white/[0.04]"
+              >
+                <div
+                  className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border"
+                  style={{ borderColor: `${p.accent}30`, backgroundColor: `${p.accent}10` }}
+                >
+                  {p.icon}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[13px] font-semibold text-white">{p.name}</span>
+                    {p.external && (
+                      <ExternalLink size={10} className="text-slate-600 group-hover:text-slate-400 transition-colors" />
+                    )}
+                  </div>
+                  <p className="text-[11px] font-medium mt-0.5" style={{ color: p.accent + 'CC' }}>{p.tagline}</p>
+                  <p className="text-[11px] leading-relaxed text-slate-600 mt-1">{p.desc}</p>
+                </div>
+              </a>
+            ))}
+          </div>
+          <div className="border-t border-white/[0.06] bg-white/[0.01] px-4 py-2.5">
+            <p className="text-[10px] text-slate-700">The AI Intelligence Suite · Built for the machine-first web</p>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
+}
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function MarketingNav() {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
+  const [productsOpen, setProductsOpen] = useState(false)
+  const [mobileProductsOpen, setMobileProductsOpen] = useState(false)
+  const productsRef = useRef<HTMLDivElement>(null)
 
-  // Close drawer on route change
   useEffect(() => { setOpen(false) }, [pathname])
-
-  // Prevent body scroll when drawer is open
   useEffect(() => {
     document.body.style.overflow = open ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
   }, [open])
 
-  // Derive breadcrumb label for current page
+  // Close products dropdown on outside click
+  useEffect(() => {
+    if (!productsOpen) return
+    const handler = (e: MouseEvent) => {
+      if (!productsRef.current?.contains(e.target as Node)) setProductsOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [productsOpen])
+
   const activeLink = NAV_LINKS.find(l => pathname === l.href || pathname.startsWith(l.href + '/'))
 
   return (
@@ -64,8 +168,6 @@ export function MarketingNav() {
                 </div>
                 <span className="text-[15px] font-semibold tracking-[-0.01em] text-white">SiteNexis</span>
               </Link>
-
-              {/* Breadcrumb — mobile only, shown when on a sub-page */}
               {activeLink && (
                 <div className="flex items-center gap-1.5 md:hidden">
                   <ChevronRight size={12} className="text-slate-600" />
@@ -74,8 +176,29 @@ export function MarketingNav() {
               )}
             </div>
 
-            {/* Desktop nav links */}
+            {/* Desktop nav */}
             <nav className="hidden items-center gap-7 md:flex" aria-label="Main navigation">
+
+              {/* Products dropdown trigger */}
+              <div ref={productsRef} className="relative">
+                <button
+                  onClick={() => setProductsOpen(v => !v)}
+                  className={[
+                    'flex items-center gap-1 text-sm transition-colors duration-150',
+                    productsOpen ? 'text-white' : 'text-slate-400 hover:text-slate-200',
+                  ].join(' ')}
+                  aria-expanded={productsOpen}
+                  aria-haspopup="true"
+                >
+                  Products
+                  <ChevronDown
+                    size={13}
+                    className={`transition-transform duration-200 ${productsOpen ? 'rotate-180' : ''}`}
+                  />
+                </button>
+                <ProductsDropdown open={productsOpen} />
+              </div>
+
               {NAV_LINKS.map(({ label, href }) => {
                 const isActive = pathname === href || pathname.startsWith(href + '/')
                 return (
@@ -84,9 +207,7 @@ export function MarketingNav() {
                     href={href}
                     className={[
                       'text-sm transition-colors duration-150',
-                      isActive
-                        ? 'font-medium text-white'
-                        : 'text-slate-400 hover:text-slate-200',
+                      isActive ? 'font-medium text-white' : 'text-slate-400 hover:text-slate-200',
                     ].join(' ')}
                   >
                     {label}
@@ -97,10 +218,7 @@ export function MarketingNav() {
 
             {/* Right: CTA + hamburger */}
             <div className="flex items-center gap-2 md:gap-3">
-              <Link
-                href="/login"
-                className="hidden text-sm text-slate-400 transition-colors hover:text-slate-200 sm:block"
-              >
+              <Link href="/login" className="hidden text-sm text-slate-400 transition-colors hover:text-slate-200 sm:block">
                 Log in
               </Link>
               <Link
@@ -109,8 +227,6 @@ export function MarketingNav() {
               >
                 Get started
               </Link>
-
-              {/* Hamburger — mobile only */}
               <button
                 onClick={() => setOpen(v => !v)}
                 className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.03] text-slate-300 transition-all hover:border-white/[0.15] hover:bg-white/[0.06] md:hidden"
@@ -128,7 +244,6 @@ export function MarketingNav() {
       <AnimatePresence>
         {open && (
           <>
-            {/* Backdrop */}
             <motion.div
               key="backdrop"
               initial={{ opacity: 0 }}
@@ -139,8 +254,6 @@ export function MarketingNav() {
               onClick={() => setOpen(false)}
               aria-hidden
             />
-
-            {/* Drawer panel */}
             <motion.div
               key="drawer"
               initial={{ opacity: 0, y: -8 }}
@@ -150,8 +263,6 @@ export function MarketingNav() {
               className="fixed inset-x-0 top-[65px] z-50 md:hidden"
             >
               <div className="mx-4 overflow-hidden rounded-2xl border border-white/[0.1] bg-[#0A1628] shadow-[0_16px_48px_rgba(0,0,0,0.6)]">
-
-                {/* Breadcrumb trail */}
                 {activeLink && (
                   <div className="flex items-center gap-1.5 border-b border-white/[0.06] px-5 py-3">
                     <span className="text-[11px] text-slate-600">SiteNexis</span>
@@ -160,8 +271,54 @@ export function MarketingNav() {
                   </div>
                 )}
 
-                {/* Nav links */}
                 <nav className="px-3 py-3" aria-label="Mobile navigation">
+                  {/* Products expandable */}
+                  <button
+                    onClick={() => setMobileProductsOpen(v => !v)}
+                    className="flex w-full items-center justify-between rounded-xl px-4 py-3.5 text-[15px] font-medium text-slate-400 hover:bg-white/[0.04] hover:text-white transition-all"
+                  >
+                    Products
+                    <ChevronDown size={14} className={`text-slate-600 transition-transform duration-200 ${mobileProductsOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  <AnimatePresence>
+                    {mobileProductsOpen && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="mx-2 mb-2 space-y-1 rounded-xl border border-white/[0.06] bg-white/[0.02] p-2">
+                          {PRODUCTS.map((p) => (
+                            <a
+                              key={p.name}
+                              href={p.href}
+                              target={p.external ? '_blank' : undefined}
+                              rel={p.external ? 'noopener noreferrer' : undefined}
+                              className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-white/[0.04]"
+                            >
+                              <div
+                                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border"
+                                style={{ borderColor: `${p.accent}30`, backgroundColor: `${p.accent}10` }}
+                              >
+                                {p.icon}
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-[13px] font-semibold text-white">{p.name}</span>
+                                  {p.external && <ExternalLink size={9} className="text-slate-600" />}
+                                </div>
+                                <p className="text-[11px]" style={{ color: p.accent + 'AA' }}>{p.tagline}</p>
+                              </div>
+                            </a>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
                   {NAV_LINKS.map(({ label, href }) => {
                     const isActive = pathname === href || pathname.startsWith(href + '/')
                     return (
@@ -170,9 +327,7 @@ export function MarketingNav() {
                         href={href}
                         className={[
                           'flex items-center justify-between rounded-xl px-4 py-3.5 text-[15px] font-medium transition-all',
-                          isActive
-                            ? 'bg-white/[0.07] text-white'
-                            : 'text-slate-400 hover:bg-white/[0.04] hover:text-white',
+                          isActive ? 'bg-white/[0.07] text-white' : 'text-slate-400 hover:bg-white/[0.04] hover:text-white',
                         ].join(' ')}
                       >
                         {label}
@@ -182,7 +337,6 @@ export function MarketingNav() {
                   })}
                 </nav>
 
-                {/* CTA row */}
                 <div className="flex flex-col gap-2.5 border-t border-white/[0.06] px-4 py-4">
                   <Link
                     href="/signup"

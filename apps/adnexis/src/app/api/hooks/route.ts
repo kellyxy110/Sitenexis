@@ -1,0 +1,32 @@
+import { type NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { requireAuth, AuthError, unauthorizedResponse } from '@/lib/auth';
+import { generateHooks } from '@sitenexis/analyzers/adnexis';
+
+const schema = z.object({
+  offer: z.string().min(3),
+  audience: z.string().min(3),
+  platform: z.string(),
+  painPoint: z.string().min(3),
+});
+
+export async function POST(req: NextRequest) {
+  try {
+    await requireAuth(req);
+    const body: unknown = await req.json();
+    const parsed = schema.safeParse(body);
+
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+    }
+
+    const result = await generateHooks(parsed.data, {
+      groqApiKey: process.env['GROQ_API_KEY'] ?? '',
+    });
+
+    return NextResponse.json(result);
+  } catch (e) {
+    if (e instanceof AuthError) return unauthorizedResponse();
+    return NextResponse.json({ error: 'Hook generation failed' }, { status: 500 });
+  }
+}

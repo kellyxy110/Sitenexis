@@ -1013,6 +1013,124 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ── Intelligence Suite ────────────────────────────────────────────── */}
+      <section className="border-t border-white/[0.05] bg-[#0A1628] py-32 px-6">
+        <div className="mx-auto max-w-6xl">
+          <Reveal className="mb-16 text-center">
+            <p className="mb-5 text-[11px] font-semibold tracking-[0.18em] text-cyan/70 uppercase">Product Suite</p>
+            <h2 className="text-[clamp(2rem,4vw,3rem)] font-bold leading-[1.1] tracking-[-0.03em] text-white">
+              Two platforms.
+              <br />
+              <span className="text-[#64748B] font-normal">One intelligence suite.</span>
+            </h2>
+            <p className="mx-auto mt-5 max-w-xl text-[16px] leading-[1.8] text-[#64748B]">
+              SiteNexis tells AI systems how to find and trust your brand.
+              AdNexis tells you what creative converts once they do.
+              Together, they close the full loop.
+            </p>
+          </Reveal>
+
+          <div className="grid gap-5 md:grid-cols-2">
+
+            {/* SiteNexis card */}
+            <Reveal delay={0}>
+              <div className="card-glow relative flex h-full flex-col overflow-hidden rounded-card border border-cyan/[0.15] bg-[#07111F] p-8">
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-cyan/[0.04] via-transparent to-transparent" />
+                <div className="relative flex-1">
+                  <div className="mb-5 flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan/20 bg-cyan/[0.08]">
+                      <PentagonMark size={20} />
+                    </div>
+                    <div>
+                      <h3 className="text-[17px] font-bold text-white">SiteNexis</h3>
+                      <p className="text-[11px] text-cyan/70">AI Retrieval & Machine Trust Intelligence</p>
+                    </div>
+                    <span className="ml-auto rounded-pill border border-cyan/20 bg-cyan/[0.07] px-2.5 py-1 text-[9px] font-semibold uppercase tracking-wide text-cyan">You are here</span>
+                  </div>
+                  <p className="mb-6 text-[14px] leading-[1.75] text-[#64748B]">
+                    Models how AI systems retrieve, interpret, trust, and recommend your website — across all four intelligence layers from crawl structure to machine trust formation.
+                  </p>
+                  <ul className="space-y-2.5">
+                    {[
+                      'Machine Trust Score — 5-dimension trust model',
+                      'Entity Intelligence — consistency + disambiguation',
+                      'Retrieval Simulation — 6-stage pipeline modeling',
+                      'Recommendation Surfaces — AI Overviews, chat, voice, agents',
+                    ].map((item) => (
+                      <li key={item} className="flex items-start gap-2.5 text-[13px] text-[#475569]">
+                        <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-cyan/40" />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="relative mt-8 border-t border-white/[0.05] pt-6">
+                  <a
+                    href="/signup"
+                    className="inline-flex items-center gap-2 rounded-button border border-cyan/20 bg-cyan/[0.07] px-5 py-2.5 text-[13px] font-semibold text-cyan transition-all duration-200 hover:bg-cyan/[0.12] hover:border-cyan/30"
+                  >
+                    Run your first audit <ArrowRight size={13} />
+                  </a>
+                </div>
+              </div>
+            </Reveal>
+
+            {/* AdNexis card */}
+            <Reveal delay={0.12}>
+              <div className="card-glow relative flex h-full flex-col overflow-hidden rounded-card border border-[#6C3EFF]/[0.2] bg-[#07111F] p-8">
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-[#6C3EFF]/[0.05] via-transparent to-transparent" />
+                <div className="relative flex-1">
+                  <div className="mb-5 flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#6C3EFF]/25 bg-[#6C3EFF]/[0.1]">
+                      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                        <rect x="2" y="2" width="7" height="7" rx="1.5" stroke="#6C3EFF" strokeWidth="1.4" fill="rgba(108,62,255,0.12)" />
+                        <rect x="11" y="2" width="7" height="7" rx="1.5" stroke="#6C3EFF" strokeWidth="1.4" fill="rgba(108,62,255,0.07)" />
+                        <rect x="2" y="11" width="7" height="7" rx="1.5" stroke="#6C3EFF" strokeWidth="1.4" fill="rgba(108,62,255,0.07)" />
+                        <rect x="11" y="11" width="7" height="7" rx="1.5" stroke="#00D4AA" strokeWidth="1.4" fill="rgba(0,212,170,0.07)" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-[17px] font-bold text-white">AdNexis</h3>
+                      <p className="text-[11px] text-[#6C3EFF]/80">AI Creative Intelligence</p>
+                    </div>
+                    <span className="ml-auto rounded-pill border border-[#6C3EFF]/20 bg-[#6C3EFF]/[0.07] px-2.5 py-1 text-[9px] font-semibold uppercase tracking-wide text-[#9B77FF]">New</span>
+                  </div>
+                  <p className="mb-6 text-[14px] leading-[1.75] text-[#64748B]">
+                    Deconstructs top-performing ads with AI to extract what makes them convert — then generates platform-specific creative variations in seconds.
+                  </p>
+                  <ul className="space-y-2.5">
+                    {[
+                      'Hook Intelligence — classify, score, and rank ad hooks',
+                      'Full Ad Analysis — funnel stage, CTA, emotion, audience',
+                      'Swipe Vault — your AI-analysed ad library',
+                      'Creative Generation — variations for Meta, TikTok, YouTube',
+                    ].map((item) => (
+                      <li key={item} className="flex items-start gap-2.5 text-[13px] text-[#475569]">
+                        <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#6C3EFF]/50" />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="relative mt-8 border-t border-white/[0.05] pt-6">
+                  <a
+                    href="https://adnexis-ai.vercel.app"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-button border border-[#6C3EFF]/25 bg-[#6C3EFF]/[0.1] px-5 py-2.5 text-[13px] font-semibold text-[#9B77FF] transition-all duration-200 hover:bg-[#6C3EFF]/[0.16] hover:border-[#6C3EFF]/35"
+                  >
+                    Try AdNexis free
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                      <path d="M2 10L10 2M10 2H5M10 2V7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </a>
+                </div>
+              </div>
+            </Reveal>
+          </div>
+        </div>
+      </section>
+
       {/* ── Final CTA ─────────────────────────────────────────────────────── */}
       <Reveal>
         <section className="border-t border-white/[0.05] bg-[#0A1628] py-32 px-6">
@@ -1079,6 +1197,24 @@ export default function HomePage() {
             </div>
 
             <div className="flex flex-wrap gap-12 text-[13px]">
+              {/* Products column */}
+              <div>
+                <p className="mb-4 text-[11px] font-semibold uppercase tracking-widest text-[#334155]">Products</p>
+                <ul className="space-y-3">
+                  <li>
+                    <a href="/" className="text-[#475569] transition-colors duration-150 hover:text-[#94A3B8]">SiteNexis</a>
+                  </li>
+                  <li>
+                    <a href="https://adnexis-ai.vercel.app" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-[#475569] transition-colors duration-150 hover:text-[#9B77FF]">
+                      AdNexis
+                      <svg width="9" height="9" viewBox="0 0 9 9" fill="none" aria-hidden="true" className="opacity-50">
+                        <path d="M1.5 7.5L7.5 1.5M7.5 1.5H3.5M7.5 1.5V5.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </a>
+                  </li>
+                </ul>
+              </div>
+
               {[
                 { heading: 'Product',    links: [['Features', '#features'], ['Pricing', '#pricing'], ['Changelog', '/changelog'], ['Status', '/status']] },
                 { heading: 'Developers',links: [['Docs', '/docs'], ['API', '/api'], ['Blog', '/blog']] },
