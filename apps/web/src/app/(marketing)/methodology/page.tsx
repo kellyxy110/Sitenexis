@@ -9,17 +9,29 @@ export const metadata: Metadata = {
     'A transparent, layer-by-layer explanation of how SiteNexis measures AI visibility and machine trust. Every score, every formula, every dimension — fully documented.',
 };
 
+const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://sitenexis.vercel.app';
+
 const METHOD_SCHEMA = {
   '@context': 'https://schema.org',
   '@type': 'TechArticle',
-  headline: 'SiteNexis AI Visibility Methodology',
+  headline: 'SiteNexis AI Visibility & Machine Trust Methodology',
   description:
-    'A transparent explanation of how SiteNexis measures AI visibility across four intelligence layers: Technical, Semantic, AI Visibility, and Machine Trust.',
+    'A transparent explanation of how SiteNexis measures AI visibility and machine trust across four intelligence layers: Crawl & Structure, Semantic Intelligence, AI Visibility, and Machine Trust.',
   author: { '@id': 'https://sitenexis.com/#founder' },
   publisher: { '@id': 'https://sitenexis.com/#organization' },
-  url: 'https://sitenexis.com/methodology',
+  url: `${appUrl}/methodology`,
   datePublished: '2025-01-01',
-  dateModified: '2026-06-01',
+  dateModified: '2026-06-10',
+  speakable: {
+    '@type': 'SpeakableSpecification',
+    cssSelector: ['h1', 'h2', '.speakable'],
+  },
+  about: [
+    { '@type': 'Thing', name: 'AI Visibility Scoring' },
+    { '@type': 'Thing', name: 'Machine Trust Intelligence' },
+    { '@type': 'Thing', name: 'Retrieval-Augmented Generation' },
+    { '@type': 'Thing', name: 'Entity SEO' },
+  ],
 };
 
 function PentagonMark({ size = 16 }: { size?: number }) {

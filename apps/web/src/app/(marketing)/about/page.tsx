@@ -3,25 +3,35 @@ import Link from 'next/link';
 import { MarketingNav } from '@/components/marketing/MarketingNav';
 import { ArrowRight } from 'lucide-react';
 
+const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://sitenexis.vercel.app';
+
 const FOUNDER_SCHEMA = {
   '@context': 'https://schema.org',
   '@type': 'Person',
   '@id': 'https://sitenexis.com/#founder',
   name: 'Ekeleme David Kelechi',
-  alternateName: 'Kellyxyhub',
-  url: 'https://sitenexis.com/about',
+  alternateName: ['Kellyxyhub', 'kellyxy110'],
+  url: `${appUrl}/about`,
   jobTitle: 'Founder & CEO',
+  description: 'Founder and CEO of SiteNexis. Builder of AI retrieval and machine trust intelligence systems. Expert in entity SEO, knowledge graph optimization, and how AI systems retrieve and recommend web content.',
   worksFor: {
     '@id': 'https://sitenexis.com/#organization',
     '@type': 'Organization',
     name: 'SiteNexis',
+    url: appUrl,
   },
   knowsAbout: [
     'AI Retrieval Systems',
     'Machine Trust Intelligence',
+    'Retrieval-Augmented Generation',
+    'Knowledge Graph Optimization',
     'Entity SEO',
     'AI Visibility Engineering',
+    'Large Language Models',
+    'Schema Markup',
+    'Semantic Search',
     'Next.js',
+    'TypeScript',
     'Generative AI',
   ],
   sameAs: [
@@ -35,7 +45,14 @@ const FOUNDER_SCHEMA = {
 export const metadata: Metadata = {
   title: 'About SiteNexis — AI Retrieval & Machine Trust Intelligence',
   description:
-    'SiteNexis is the first AI Visibility Operating System. We model how AI systems retrieve, interpret, trust, and recommend web content — across every layer of the intelligence stack.',
+    'SiteNexis is an AI Retrieval and Machine Trust Intelligence platform. We model how AI systems — ChatGPT, Gemini, Perplexity, Claude — retrieve, interpret, trust, and recommend web content across a four-layer intelligence stack.',
+  openGraph: {
+    title: 'About SiteNexis — AI Retrieval & Machine Trust Intelligence',
+    description: 'SiteNexis models how AI systems retrieve, interpret, trust, and recommend web content — across every layer from semantic structure to machine trust formation.',
+    url: `${appUrl}/about`,
+    siteName: 'SiteNexis',
+    type: 'website',
+  },
 };
 
 function PentagonMark({ size = 20 }: { size?: number }) {
