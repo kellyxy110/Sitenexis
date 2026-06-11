@@ -1356,17 +1356,17 @@ function AuditPageInner() {
   const { data, isLoading, error } = useQuery<AuditData>({
     queryKey: ['audit', domain],
     queryFn: async () => {
-      // Find most recent completed audit for this domain
       const listRes = await fetch(`/api/audits?pageSize=50`);
       if (!listRes.ok) throw new Error(`Failed to load audits (${listRes.status})`);
       const list = await listRes.json() as { data: AuditData[] };
       const match = list.data.find((a) => a.domain === domain && a.status === 'complete');
       if (!match) {
-        // Also accept any status (e.g. failed) so user gets feedback
         const anyMatch = list.data.find((a) => a.domain === domain);
         if (!anyMatch) throw new Error('Audit not found');
         if (anyMatch.status === 'failed') throw new Error('Audit failed — please try again.');
-        throw new Error('Audit not found');
+        // Audit exists but is still running/queued — race condition after AuditProgress
+        // navigates. Throw a retriable sentinel so the query keeps polling.
+        throw Object.assign(new Error('Audit completing…'), { retriable: true });
       }
       const detail = await fetch(`/api/audit/${match.id}`);
       if (!detail.ok) throw new Error(`Failed to load audit results (${detail.status})`);
@@ -1374,8 +1374,16 @@ function AuditPageInner() {
     },
     enabled: !auditId, // if auditId present, show progress first
     staleTime: 60_000,
-    retry: 3,
-    retryDelay: 1000,
+    // Retry aggressively for in-progress audits (race condition after SSE redirect),
+    // conservatively for genuine fetch failures.
+    retry: (count, err) => {
+      if ((err as Error & { retriable?: boolean }).retriable) return count < 12;
+      return count < 2;
+    },
+    retryDelay: (count, err) => {
+      if ((err as Error & { retriable?: boolean }).retriable) return 2000;
+      return 1000 * (count + 1);
+    },
   });
 
   // ── v3 lazy queries — only fetch when tab is active ───────────────────────
@@ -1435,10 +1443,23 @@ function AuditPageInner() {
   }
 
   if (error || !data) {
+    // Retriable sentinel = audit is completing (race condition) — keep showing a spinner
+    if (error && (error as Error & { retriable?: boolean }).retriable) {
+      return (
+        <div className="flex min-h-screen items-center justify-center bg-[#050B09]">
+          <div className="text-center">
+            <div className="mb-4 h-8 w-8 animate-spin rounded-full border-2 border-cyan border-t-transparent mx-auto" />
+            <p className="text-[#4A6280] text-sm">Finalizing audit results…</p>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#050B09]">
         <div className="text-center">
-          <p className="text-lg font-semibold text-white">Audit not found</p>
+          <p className="text-lg font-semibold text-white">
+            {error instanceof Error ? error.message : 'Audit not found'}
+          </p>
           <button onClick={() => router.push('/dashboard')} className="mt-4 text-sm text-cyan underline">
             Back to dashboard
           </button>
