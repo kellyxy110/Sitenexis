@@ -1478,7 +1478,14 @@ function AuditPageInner() {
       {/* ── Sticky nav ──────────────────────────────────────────────────────── */}
       <nav className="sticky top-0 z-30 flex items-center justify-between border-b border-white/10 bg-[#050B09]/95 px-4 py-3 backdrop-blur-md sm:px-6">
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-          <button onClick={() => router.push('/dashboard')} className="shrink-0 text-[#4A6280] hover:text-white transition-colors text-sm">← <span className="hidden sm:inline">Dashboard</span></button>
+          {/* Logo — click to go back to dashboard */}
+          <button
+            onClick={() => router.push('/dashboard')}
+            className="shrink-0 text-base font-bold text-white hover:opacity-80 transition-opacity"
+            aria-label="Back to dashboard"
+          >
+            Site<span className="text-cyan">Nexis</span>
+          </button>
           <span className="text-white/20">/</span>
           <span className="truncate font-semibold text-white text-sm">{domain}</span>
           {data.status === 'complete' && (
