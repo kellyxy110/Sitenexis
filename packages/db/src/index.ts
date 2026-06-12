@@ -10,3 +10,4 @@ export * from './queries/self-audit';
 export * from './queries/teams';
 export * from './queries/scheduled-reports';
 export * from './queries/ads';
+export * from './queries/sse';

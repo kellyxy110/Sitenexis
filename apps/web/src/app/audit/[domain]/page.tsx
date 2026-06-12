@@ -190,6 +190,20 @@ interface SchemaApiData {
   pagesWithSchema: number;
 }
 
+interface SseData {
+  auditId: string;
+  topicalAuthorityScore: number;
+  taBreakdown: { depth: number; breadth: number; interlinking: number; freshness: number };
+  semanticDensityScore: number;
+  sdsRawDensity: number;
+  sdsBreakdown: { entityCount: number; factCount: number; relationshipCount: number; totalWords: number };
+  aiCrawlabilityScore: number;
+  aciBreakdown: { robots: number; sitemap: number; renderability: number; indexability: number };
+  geoScore: number;
+  snsMasterScore: number;
+  snsLabel: string;
+}
+
 // ─── Score helpers ────────────────────────────────────────────────────────────
 
 function scoreColor(score: number | null | undefined): string {
@@ -272,6 +286,23 @@ function CwvBadge({ label, value, unit, good, needsWork }: {
       </span>
       <span className="mt-1 text-sm font-semibold">{label}</span>
       <span className="mt-1 text-xs opacity-70">{labels[status]}</span>
+    </div>
+  );
+}
+
+// ─── SSE sub-metric bar ───────────────────────────────────────────────────────
+
+function BarMini({ label, value }: { label: string; value: number }) {
+  const color = value >= 70 ? '#22C55E' : value >= 50 ? '#F59E0B' : '#EF4444';
+  return (
+    <div>
+      <div className="flex justify-between mb-0.5">
+        <span className="text-[10px] text-[#4A6280]">{label}</span>
+        <span className="text-[10px] font-medium" style={{ color }}>{value}</span>
+      </div>
+      <div className="h-1 w-full rounded-full bg-white/10">
+        <div className="h-1 rounded-full transition-all" style={{ width: `${value}%`, background: color }} />
+      </div>
     </div>
   );
 }
@@ -432,7 +463,7 @@ function SchemaTab({ data, schemaApi, schemaApiLoading }: { data: AuditData; sch
   ));
 
   // Real snippets from AI analysis, grouped by schema type
-  const snippetsByType = (schemaApi?.snippets ?? []).reduce<Record<string, typeof schemaApi.snippets>>((acc, s) => {
+  const snippetsByType = (schemaApi?.snippets ?? []).reduce<Record<string, SchemaApiData['snippets']>>((acc, s) => {
     if (!acc[s.schemaType]) acc[s.schemaType] = [];
     acc[s.schemaType]!.push(s);
     return acc;
@@ -1529,6 +1560,14 @@ function AuditPageInner() {
     staleTime: 120_000,
   });
 
+  // SSE scores — fetch as soon as the audit is complete (not tab-gated)
+  const { data: sseData } = useQuery<SseData>({
+    queryKey: ['audit-sse', auditId2],
+    queryFn: () => fetch(`/api/audit/${auditId2}/sse`).then((r) => r.json() as Promise<SseData>),
+    enabled: !!auditId2 && data?.status === 'complete',
+    staleTime: 300_000,
+  });
+
   // If audit is still running, show progress UI
   if (auditId && (!data || data.status === 'running' || data.status === 'queued')) {
     return <AuditProgress domain={domain} auditId={auditId} />;
@@ -1633,6 +1672,82 @@ function AuditPageInner() {
           </div>
         </div>
 
+        {/* ── SSE — SiteNexis Scoring Engine panel ─────────────────────────── */}
+        {sseData && (
+          <div className="mb-8 card-glass rounded-2xl p-5 sm:p-8">
+            <div className="mb-5 flex items-center justify-between">
+              <div>
+                <h2 className="font-bold text-white text-base sm:text-lg">SiteNexis Scoring Engine</h2>
+                <p className="text-xs text-[#4A6280] mt-0.5">SSE v3.1 — AI-native authority intelligence</p>
+              </div>
+              {/* SNS Master Score */}
+              <div className="text-right">
+                <div className="text-3xl sm:text-4xl font-black tabular-nums" style={{ color: scoreColor(sseData.snsMasterScore) }}>
+                  {sseData.snsMasterScore}
+                </div>
+                <div className="text-xs font-semibold mt-0.5" style={{ color: scoreColor(sseData.snsMasterScore) }}>
+                  SNS · {sseData.snsLabel}
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {/* GEO Score */}
+              <div className="rounded-xl border border-white/10 bg-white/3 p-4">
+                <div className="text-xs font-semibold uppercase tracking-widest text-[#4A6280] mb-2">GEO Score</div>
+                <div className="text-2xl font-bold tabular-nums" style={{ color: scoreColor(sseData.geoScore) }}>{sseData.geoScore}</div>
+                <div className="mt-2 space-y-1">
+                  <BarMini label="Citation Prob" value={sseData.taBreakdown.depth} />
+                  <BarMini label="Retrieval" value={sseData.taBreakdown.breadth} />
+                  <BarMini label="Semantic Trust" value={sseData.taBreakdown.interlinking} />
+                </div>
+              </div>
+
+              {/* Topical Authority */}
+              <div className="rounded-xl border border-white/10 bg-white/3 p-4">
+                <div className="text-xs font-semibold uppercase tracking-widest text-[#4A6280] mb-2">Topical Authority</div>
+                <div className="text-2xl font-bold tabular-nums" style={{ color: scoreColor(sseData.topicalAuthorityScore) }}>{sseData.topicalAuthorityScore}</div>
+                <div className="mt-2 space-y-1">
+                  <BarMini label="Depth" value={sseData.taBreakdown.depth} />
+                  <BarMini label="Breadth" value={sseData.taBreakdown.breadth} />
+                  <BarMini label="Interlinking" value={sseData.taBreakdown.interlinking} />
+                  <BarMini label="Freshness" value={sseData.taBreakdown.freshness} />
+                </div>
+              </div>
+
+              {/* Semantic Density */}
+              <div className="rounded-xl border border-white/10 bg-white/3 p-4">
+                <div className="text-xs font-semibold uppercase tracking-widest text-[#4A6280] mb-2">Semantic Density</div>
+                <div className="text-2xl font-bold tabular-nums" style={{ color: scoreColor(sseData.semanticDensityScore) }}>{sseData.semanticDensityScore}</div>
+                <div className="mt-3 space-y-1.5 text-xs text-[#4A6280]">
+                  <div className="flex justify-between"><span>Entities</span><span className="font-medium text-white">{sseData.sdsBreakdown.entityCount}</span></div>
+                  <div className="flex justify-between"><span>Facts</span><span className="font-medium text-white">{sseData.sdsBreakdown.factCount}</span></div>
+                  <div className="flex justify-between"><span>Raw density</span><span className="font-medium text-white">{sseData.sdsRawDensity}/1k</span></div>
+                </div>
+              </div>
+
+              {/* AI Crawlability */}
+              <div className="rounded-xl border border-white/10 bg-white/3 p-4">
+                <div className="text-xs font-semibold uppercase tracking-widest text-[#4A6280] mb-2">AI Crawlability</div>
+                <div className="text-2xl font-bold tabular-nums" style={{ color: scoreColor(sseData.aiCrawlabilityScore) }}>{sseData.aiCrawlabilityScore}</div>
+                <div className="mt-2 space-y-1">
+                  <BarMini label="Robots" value={sseData.aciBreakdown.robots} />
+                  <BarMini label="Sitemap" value={sseData.aciBreakdown.sitemap} />
+                  <BarMini label="Renderability" value={sseData.aciBreakdown.renderability} />
+                  <BarMini label="Indexability" value={sseData.aciBreakdown.indexability} />
+                </div>
+              </div>
+            </div>
+
+            {/* SNS formula legend */}
+            <p className="mt-4 text-[10px] text-[#3A5568] leading-relaxed">
+              SNS = AVS×15% + GEO×15% + RR×10% + EC×10% + CP×10% + ST×10% + TA×10% + KGS×5% + ACI×5% + Schema×10%
+              &nbsp;·&nbsp;
+              GEO = CP×25% + RR×20% + ST×20% + TA×15% + MR×10% + EC×10%
+            </p>
+          </div>
+        )}
+
         {/* ── Critical issues banner ───────────────────────────────────────── */}
         {criticalIssues.length > 0 && (
           <div className="mb-6 rounded-xl border border-red-500/30 bg-red-500/8 p-5">
@@ -1681,7 +1796,7 @@ function AuditPageInner() {
           {activeTab === 'entity'             && <EntityTab data={data} />}
           {activeTab === 'citation'           && <CitationTab data={data} />}
           {activeTab === 'semantic-trust'     && <SemanticTrustTab data={data} />}
-          {activeTab === 'schema'             && <SchemaTab data={data} schemaApi={schemaApiData} schemaApiLoading={schemaApiLoading} />}
+          {activeTab === 'schema'             && <SchemaTab data={data} {...(schemaApiData ? { schemaApi: schemaApiData } : {})} schemaApiLoading={schemaApiLoading} />}
           {activeTab === 'content'            && <ContentTab data={data} />}
           {activeTab === 'performance'        && <PerformanceTab data={data} />}
           {activeTab === 'retrieval'        && <RetrievalTab d={retrievalData} loading={retrievalLoading} />}

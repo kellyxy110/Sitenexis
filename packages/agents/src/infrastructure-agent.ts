@@ -2,9 +2,15 @@ import { type CrawledPage } from '@sitenexis/shared';
 import {
   updateAuditStatus, saveAuditScores, getAuditScores, getAIVisibilityScore, getPerceptionGraph,
   getPreviousCompletedAuditIdForDomain, getPriorSchemaUrls, saveSIIScore, getUserById,
+  saveSseScore,
 } from '@sitenexis/db';
 import { sendAuditCompleteEmail } from './email';
-import { analyzeLinkGraph, analyzeMachineReadability, buildPerceptionGraph, computeHealthScore, generateRecommendations, computeSIIScore } from '@sitenexis/analyzers';
+import {
+  analyzeLinkGraph, analyzeMachineReadability, buildPerceptionGraph,
+  computeHealthScore, generateRecommendations, computeSIIScore,
+  computeTopicalAuthority, computeSemanticDensity, computeAiCrawlability,
+  computeGeoScore, computeSnsScore,
+} from '@sitenexis/analyzers';
 import { emitAgentEvent } from './registry';
 import { runCrawlAgent } from './crawl-agent';
 import { runSEOAgent } from './seo-agent';
@@ -139,6 +145,81 @@ export async function runInfrastructureAgent(input: AuditJobInput): Promise<void
     await saveSIIScore(auditId, { ...siiResult, url: `https://${domain}` }).catch(() => {
       // Non-fatal — SII is additive; do not block audit completion
     });
+
+    // SSE — SiteNexis Scoring Engine (v3.1)
+    // Compute all 5 SSE scores synchronously from already-available data.
+    // saveSseScore is non-fatal: a DB schema push may be pending on first deploy.
+    try {
+      const ta = computeTopicalAuthority(pages);
+      const sds = computeSemanticDensity(pages, entityIntelligence);
+      const aci = computeAiCrawlability(pages, seo);
+
+      const geo = computeGeoScore({
+        citationProbabilityScore: citationAnalysis.citationProbabilityScore,
+        retrievalReadinessScore: aiReadability.score,
+        semanticTrustScore: semanticTrust.score,
+        topicalAuthorityScore: ta.score,
+        machineReadabilityScore: machineReadability.score,
+        entityConfidenceScore: entityIntelligence.entityConfidenceScore,
+      });
+
+      // KGS — perception graph strength: avg node confidence weighted by edge density
+      const kgsNodeCount = perceptionGraph.nodes.length;
+      const kgsAvgConfidence = kgsNodeCount > 0
+        ? perceptionGraph.nodes.reduce((s, n) => s + n.confidence, 0) / kgsNodeCount
+        : 0;
+      const kgsEdgeFactor = kgsNodeCount > 1
+        ? Math.min(1, perceptionGraph.edges.length / kgsNodeCount)
+        : 0;
+      const knowledgeGraphScore = Math.round(kgsAvgConfidence * (0.6 + kgsEdgeFactor * 0.4));
+
+      // AI Visibility Score from scores.ts formula (MR×0.15 + EC×0.20 + RR×0.20 + CP×0.20 + ST×0.15 + Schema×0.10)
+      const aiVisibilityScore = Math.round(
+        machineReadability.score * 0.15 +
+        entityIntelligence.entityConfidenceScore * 0.20 +
+        aiReadability.score * 0.20 +
+        citationAnalysis.citationProbabilityScore * 0.20 +
+        semanticTrust.score * 0.15 +
+        schema.score * 0.10,
+      );
+
+      const sns = computeSnsScore({
+        aiVisibilityScore,
+        geoScore: geo.score,
+        retrievalReadinessScore: aiReadability.score,
+        entityConfidenceScore: entityIntelligence.entityConfidenceScore,
+        citationProbabilityScore: citationAnalysis.citationProbabilityScore,
+        semanticTrustScore: semanticTrust.score,
+        topicalAuthorityScore: ta.score,
+        knowledgeGraphScore,
+        aiCrawlabilityScore: aci.score,
+        authorityMatchScore: schema.score, // AMS = schema completeness
+      });
+
+      await saveSseScore(auditId, {
+        topicalAuthorityScore: ta.score,
+        taDepth: ta.breakdown.depth,
+        taBreadth: ta.breakdown.breadth,
+        taInterlinking: ta.breakdown.interlinking,
+        taFreshness: ta.breakdown.freshness,
+        semanticDensityScore: sds.score,
+        sdsRawDensity: sds.rawDensity,
+        sdsEntityCount: sds.breakdown.entityCount,
+        sdsFactCount: sds.breakdown.factCount,
+        sdsRelationshipCount: sds.breakdown.relationshipCount,
+        sdsTotalWords: sds.breakdown.totalWords,
+        aiCrawlabilityScore: aci.score,
+        aciRobots: aci.breakdown.robots,
+        aciSitemap: aci.breakdown.sitemap,
+        aciRenderability: aci.breakdown.renderability,
+        aciIndexability: aci.breakdown.indexability,
+        geoScore: geo.score,
+        snsMasterScore: sns.score,
+        snsLabel: sns.label,
+      });
+    } catch (sseErr) {
+      console.error('[infrastructure-agent] SSE score computation failed (non-fatal):', sseErr instanceof Error ? sseErr.message : String(sseErr));
+    }
 
     // Phase 6 — Visualization (parallel)
     await runVisualizationAgent(auditId);

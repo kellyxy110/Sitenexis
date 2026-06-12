@@ -106,6 +106,7 @@ model Audit {
   recommendationSurfaceMap RecommendationSurfaceMap?
   syntheticEntityFlags     SyntheticEntityFlag[]
   siiScore                 SIIScore?
+  sseScore                 SseScore?
 
   @@index([userId])
   @@index([domain])
@@ -569,6 +570,47 @@ model SIIScore {
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("sii_scores")
+}
+
+// ─── SSE — SiteNexis Scoring Engine ──────────────────────────────────────────
+
+model SseScore {
+  id      String @id @default(cuid())
+  auditId String @unique @map("audit_id")
+  audit   Audit  @relation(fields: [auditId], references: [id])
+
+  // Topical Authority (TA = Depth×0.4 + Breadth×0.3 + Interlinking×0.2 + Freshness×0.1)
+  topicalAuthorityScore Float @map("topical_authority_score")
+  taDepth               Float @map("ta_depth")
+  taBreadth             Float @map("ta_breadth")
+  taInterlinking        Float @map("ta_interlinking")
+  taFreshness           Float @map("ta_freshness")
+
+  // Semantic Density Score (SDS = (entities+facts+relationships)/words×1000, normalised)
+  semanticDensityScore  Float @map("semantic_density_score")
+  sdsRawDensity         Float @map("sds_raw_density")
+  sdsEntityCount        Int   @map("sds_entity_count")
+  sdsFactCount          Int   @map("sds_fact_count")
+  sdsRelationshipCount  Int   @map("sds_relationship_count")
+  sdsTotalWords         Int   @map("sds_total_words")
+
+  // AI Crawlability Index (ACI = Robots×0.30 + Sitemap×0.25 + Renderability×0.20 + Indexability×0.25)
+  aiCrawlabilityScore   Float @map("ai_crawlability_score")
+  aciRobots             Float @map("aci_robots")
+  aciSitemap            Float @map("aci_sitemap")
+  aciRenderability      Float @map("aci_renderability")
+  aciIndexability       Float @map("aci_indexability")
+
+  // GEO Score (GEO = CP×0.25 + RR×0.20 + ST×0.20 + TA×0.15 + MR×0.10 + EC×0.10)
+  geoScore              Float @map("geo_score")
+
+  // SNS Master Score (SNS = AVS×0.15 + GEO×0.15 + … ten inputs weighted)
+  snsMasterScore        Float  @map("sns_master_score")
+  snsLabel              String @map("sns_label")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("sse_scores")
 }
 
 // ─── Team workspaces ─────────────────────────────────────────────────────────

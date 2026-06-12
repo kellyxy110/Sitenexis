@@ -63,6 +63,18 @@ export type { Recommendation } from './recommendations/engine';
 export { computeSIIScore } from './sii/engine';
 export type { SIIInput, SIIResult } from './sii/engine';
 
+// ─── SSE — SiteNexis Scoring Engine (v3.1) ───────────────────────────────────
+export { computeTopicalAuthority } from './topical-authority/engine';
+export type { TopicalAuthorityResult } from './topical-authority/engine';
+export { computeSemanticDensity } from './semantic-density/engine';
+export type { SemanticDensityResult } from './semantic-density/engine';
+export { computeAiCrawlability } from './ai-crawlability/engine';
+export type { AiCrawlabilityResult } from './ai-crawlability/engine';
+export { computeGeoScore } from './geo/engine';
+export type { GeoScoreResult } from './geo/engine';
+export { computeSnsScore } from './sns/engine';
+export type { SnsScoreResult, SnsLabel } from './sns/engine';
+
 // ─── Intelligence Modules (plug-in layer, non-breaking) ───────────────────────
 
 // Module 1: AI Discovery Intelligence Engine
