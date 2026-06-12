@@ -5,8 +5,8 @@ import { logger } from '@/lib/logger';
 export async function GET(req: NextRequest): Promise<NextResponse> {
   const { searchParams, origin } = new URL(req.url);
   const code = searchParams.get('code');
-  // Accept 'next' (from OAuth) or fall back to '/dashboard'
-  const rawNext = searchParams.get('next') ?? '/dashboard';
+  // Accept 'redirectTo' (from our OAuth options) or 'next' (Supabase default), fall back to '/dashboard'
+  const rawNext = searchParams.get('redirectTo') ?? searchParams.get('next') ?? '/dashboard';
   // Ensure next is a relative path (prevent open redirect)
   const next = rawNext.startsWith('/') ? rawNext : '/dashboard';
 

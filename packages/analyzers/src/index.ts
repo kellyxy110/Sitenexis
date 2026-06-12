@@ -42,6 +42,8 @@ export { runRetrievalSimulation } from './retrieval-simulation/engine';
 
 // ─── v3 — Machine Trust ───────────────────────────────────────────────────────
 export { runMachineTrustAnalysis } from './machine-trust/engine';
+export { detectContradictionsWithDeepSeek } from './machine-trust/deep-contradiction';
+export { isAnyOpenRouterAvailable } from './ai/model-router';
 
 // ─── v3 — Temporal Authority ──────────────────────────────────────────────────
 export { runTemporalAuthorityAnalysis } from './temporal-authority/engine';
@@ -62,6 +64,14 @@ export type { Recommendation } from './recommendations/engine';
 // ─── SiteNexis Intelligence Index ─────────────────────────────────────────────
 export { computeSIIScore } from './sii/engine';
 export type { SIIInput, SIIResult } from './sii/engine';
+
+// ─── Visual Analysis (Gemma 4 multimodal) ────────────────────────────────────
+export { analyzeVisualPage } from './visual-analysis/engine';
+export type { VisualAnalysisResult, VisualIssue } from './visual-analysis/engine';
+
+// ─── Multilingual Detection (Llama 3.3 70B) ──────────────────────────────────
+export { detectSiteLanguage } from './multilingual/engine';
+export type { LanguageDetectionResult, SupportedLanguage } from './multilingual/engine';
 
 // ─── SSE — SiteNexis Scoring Engine (v3.1) ───────────────────────────────────
 export { computeTopicalAuthority } from './topical-authority/engine';

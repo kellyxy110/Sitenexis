@@ -4,12 +4,18 @@ import type {
   SchemaScore,
   MachineTrustScore,
 } from '@sitenexis/shared';
-import { runMachineTrustAnalysis, callAI, contradictionDetectionPrompt } from '@sitenexis/analyzers';
+import {
+  runMachineTrustAnalysis,
+  callAI,
+  contradictionDetectionPrompt,
+  detectContradictionsWithDeepSeek,
+  isAnyOpenRouterAvailable,
+} from '@sitenexis/analyzers';
 import { saveMachineTrustScore } from '@sitenexis/db';
 import { emitAgentEvent } from './registry';
 
-// Top N pages for Claude API contradiction detection (CLAUDE.md §23: cost control)
-const CONTRADICTION_PAGE_LIMIT = 20;
+// Top N pages for pairwise fallback (used only when DeepSeek is not available)
+const CONTRADICTION_PAGE_LIMIT_FALLBACK = 20;
 
 interface ContradictionResponse {
   contradictions: Array<{
@@ -21,18 +27,16 @@ interface ContradictionResponse {
 }
 
 /**
- * Runs semantic contradiction detection via Claude API on the top 20 pages by PageRank.
- * Samples every page against the highest-PageRank page to maximise coverage at minimal API cost.
- * Returns a 0-100 contradiction absence score: 100 = no contradictions, lower = contradictions found.
- * Gracefully returns null on API failure so the agent can continue with the programmatic score.
+ * Pairwise fallback: used when DeepSeek is not configured.
+ * Runs callAI (Hermes 3 or Groq) on top 20 pages pairwise.
  */
-async function runSemanticContradictionDetection(
+async function runPairwiseContradictionDetection(
   pages: CrawledPage[],
 ): Promise<number | null> {
   const topPages = [...pages]
     .sort((a, b) => (b.wordCount ?? 0) - (a.wordCount ?? 0))
     .filter((p) => (p.bodyText ?? '').length > 200)
-    .slice(0, CONTRADICTION_PAGE_LIMIT);
+    .slice(0, CONTRADICTION_PAGE_LIMIT_FALLBACK);
 
   if (topPages.length < 2) return null;
 
@@ -40,16 +44,13 @@ async function runSemanticContradictionDetection(
   let totalPenalty = 0;
   let pairsChecked = 0;
 
-  // Compare anchor page against every other top page
   for (const other of topPages.slice(1)) {
     try {
       const prompt = contradictionDetectionPrompt(
         { url: anchor.url, excerpt: (anchor.bodyText ?? '').slice(0, 3000) },
         { url: other.url,  excerpt: (other.bodyText  ?? '').slice(0, 3000) },
       );
-
       const result = await callAI<ContradictionResponse>(prompt);
-
       for (const c of result.contradictions ?? []) {
         if (c.severity === 'critical') totalPenalty += 15;
         else if (c.severity === 'warning') totalPenalty += 5;
@@ -58,13 +59,36 @@ async function runSemanticContradictionDetection(
       pairsChecked++;
     } catch {
       // Per CLAUDE.md §29: never fail the agent on a sub-task error
-      // Log is omitted here — the logger is in apps/web, not agents
     }
   }
 
-  if (pairsChecked === 0) return null;
+  return pairsChecked === 0 ? null : Math.max(0, 100 - totalPenalty);
+}
 
-  return Math.max(0, 100 - totalPenalty);
+/**
+ * Runs semantic contradiction detection across all crawled pages.
+ *
+ * Strategy:
+ *   1. DeepSeek V4 Flash (1M context) — whole-site analysis, all pages, single call
+ *   2. Hermes 3 / Groq pairwise — top 20 pages pairwise (when DeepSeek unavailable)
+ *   3. null — returns null so engine uses programmatic score
+ */
+async function runSemanticContradictionDetection(
+  pages: CrawledPage[],
+): Promise<number | null> {
+  const meaningfulPages = pages.filter((p) => (p.bodyText ?? '').length > 200);
+  if (meaningfulPages.length < 2) return null;
+
+  // Path 1: DeepSeek whole-site analysis (preferred — all pages, 1M context)
+  if (isAnyOpenRouterAvailable()) {
+    const deepResult = await detectContradictionsWithDeepSeek(meaningfulPages);
+    if (deepResult.analysisSource === 'deepseek') {
+      return deepResult.score;
+    }
+  }
+
+  // Path 2: Pairwise fallback using Hermes 3 or Groq (top 20 pages)
+  return runPairwiseContradictionDetection(meaningfulPages);
 }
 
 export async function runMachineTrustAgent(

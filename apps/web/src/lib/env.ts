@@ -14,6 +14,17 @@ const envSchema = z.object({
   GROQ_API_KEY: z.string().default(''),
   OPENAI_API_KEY: z.string().optional(),
 
+  // OpenRouter — multi-model AI engine (free tier)
+  // Fallback key used when a model-specific key is not set
+  OPENROUTER_API_KEY: z.string().default(''),
+  // Per-model keys — override OPENROUTER_API_KEY for rate-limit isolation
+  OPENROUTER_HERMES_KEY: z.string().optional(),    // Hermes 3 405B — structured scoring
+  OPENROUTER_DEEPSEEK_KEY: z.string().optional(),  // DeepSeek V4 Flash — whole-site analysis
+  OPENROUTER_GEMMA_KEY: z.string().optional(),     // Gemma 4 31B — visual/multimodal
+  OPENROUTER_QWEN_KEY: z.string().optional(),      // Qwen3-Next 80B — RAG simulation
+  OPENROUTER_KIMI_KEY: z.string().optional(),      // Kimi K2.6 — code/schema generation
+  OPENROUTER_LLAMA_KEY: z.string().optional(),     // Llama 3.3 70B — multilingual
+
   REDIS_URL: z.string().default('redis://localhost:6379'),
 
   S3_BUCKET_NAME: z.string().default('sitenexis-reports'),
