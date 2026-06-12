@@ -182,6 +182,14 @@ interface PerceptionGraphData {
   edges: Array<{ source: string; target: string; relationshipType: string; strength: number; evidencedBy: string[] }>;
 }
 
+interface SchemaApiData {
+  schemaScore: number | null;
+  coverage: number | null;
+  snippets: Array<{ url: string; schemaType: string; snippet: string; isNew: boolean }>;
+  totalPages: number;
+  pagesWithSchema: number;
+}
+
 // ─── Score helpers ────────────────────────────────────────────────────────────
 
 function scoreColor(score: number | null | undefined): string {
@@ -411,11 +419,10 @@ function AiTab({ data }: { data: AuditData }) {
   );
 }
 
-function SchemaTab({ data }: { data: AuditData }) {
-  const [copied, setCopied] = useState<number | null>(null);
+function SchemaTab({ data, schemaApi, schemaApiLoading }: { data: AuditData; schemaApi?: SchemaApiData; schemaApiLoading?: boolean }) {
+  const [copied, setCopied] = useState<string | null>(null);
   const schemaIssues = (data.issues.filter((i) => i.module === 'schema') as SEOIssue[]);
 
-  // Gather detected schema types from pages
   const detectedTypes = Array.from(new Set(
     data.pages.flatMap((p) =>
       (p.schemaData as Array<Record<string, unknown>> | undefined ?? [])
@@ -424,8 +431,35 @@ function SchemaTab({ data }: { data: AuditData }) {
     )
   ));
 
+  // Real snippets from AI analysis, grouped by schema type
+  const snippetsByType = (schemaApi?.snippets ?? []).reduce<Record<string, typeof schemaApi.snippets>>((acc, s) => {
+    if (!acc[s.schemaType]) acc[s.schemaType] = [];
+    acc[s.schemaType]!.push(s);
+    return acc;
+  }, {});
+
   return (
     <div className="space-y-8">
+      {/* Coverage summary */}
+      {schemaApi && (
+        <div className="grid grid-cols-3 gap-4">
+          <div className="card-glass rounded-xl p-4 text-center">
+            <span className="text-2xl font-bold text-white">{schemaApi.pagesWithSchema}</span>
+            <p className="mt-1 text-xs text-[#4A6280]">Pages with schema</p>
+          </div>
+          <div className="card-glass rounded-xl p-4 text-center">
+            <span className="text-2xl font-bold text-white">{schemaApi.totalPages}</span>
+            <p className="mt-1 text-xs text-[#4A6280]">Total pages</p>
+          </div>
+          <div className="card-glass rounded-xl p-4 text-center">
+            <span className="text-2xl font-bold" style={{ color: scoreColor(schemaApi.schemaScore) }}>
+              {schemaApi.schemaScore ?? '—'}
+            </span>
+            <p className="mt-1 text-xs text-[#4A6280]">Schema score</p>
+          </div>
+        </div>
+      )}
+
       {detectedTypes.length > 0 && (
         <div className="card-glass rounded-xl p-5">
           <h3 className="mb-3 font-semibold text-white">Detected Schema Types</h3>
@@ -441,32 +475,76 @@ function SchemaTab({ data }: { data: AuditData }) {
 
       <IssuesTable issues={schemaIssues} auditId={data.id} />
 
-      {/* Snippet copy area */}
-      {detectedTypes.slice(0, 3).map((type, i) => {
-        const snippet = generateSnippetPreview(type);
-        return (
+      {/* Real AI-generated snippets */}
+      {schemaApiLoading ? (
+        <div className="card-glass rounded-xl p-8 text-center">
+          <div className="mx-auto h-5 w-5 animate-spin rounded-full border-2 border-cyan border-t-transparent" />
+          <p className="mt-3 text-sm text-[#4A6280]">Loading generated schema snippets…</p>
+        </div>
+      ) : Object.keys(snippetsByType).length > 0 ? (
+        Object.entries(snippetsByType).map(([type, typeSnippets]) => (
           <div key={type} className="card-glass rounded-xl overflow-hidden">
             <div className="flex items-center justify-between border-b border-white/10 px-5 py-3">
-              <span className="text-sm font-semibold text-white">{type} Schema Snippet</span>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold text-white">{type}</span>
+                {typeSnippets.some((s) => s.isNew) && (
+                  <span className="rounded-full bg-cyan/10 border border-cyan/20 px-2 py-0.5 text-[10px] font-semibold text-cyan">NEW</span>
+                )}
+              </div>
               <button
                 onClick={() => {
+                  const snippet = typeSnippets[0]?.snippet ?? '';
                   void navigator.clipboard.writeText(snippet);
-                  setCopied(i);
+                  setCopied(type);
                   setTimeout(() => setCopied(null), 1500);
                 }}
                 className={`rounded-lg px-3 py-1 text-xs font-medium transition-colors ${
-                  copied === i ? 'bg-green-500/20 text-green-400' : 'bg-white/5 text-[#4A6280] hover:text-white'
+                  copied === type ? 'bg-green-500/20 text-green-400' : 'bg-white/5 text-[#4A6280] hover:text-white'
                 }`}
               >
-                {copied === i ? 'Copied!' : 'Copy'}
+                {copied === type ? 'Copied!' : 'Copy'}
               </button>
             </div>
-            <pre className="overflow-x-auto p-5 text-xs text-[#4A6280] leading-relaxed font-mono">
-              {snippet}
-            </pre>
+            {typeSnippets.slice(0, 2).map((s, i) => (
+              <div key={i} className="border-b border-white/[0.03] last:border-0">
+                {typeSnippets.length > 1 && (
+                  <p className="px-5 pt-3 text-[11px] text-[#4A6280] truncate">{s.url}</p>
+                )}
+                <pre className="overflow-x-auto p-5 text-xs text-[#6B9BB0] leading-relaxed font-mono">
+                  {s.snippet}
+                </pre>
+              </div>
+            ))}
           </div>
-        );
-      })}
+        ))
+      ) : detectedTypes.length > 0 ? (
+        // Fallback: show template snippets for detected types when no AI snippets available
+        detectedTypes.slice(0, 3).map((type) => {
+          const snippet = generateSnippetPreview(type);
+          return (
+            <div key={type} className="card-glass rounded-xl overflow-hidden">
+              <div className="flex items-center justify-between border-b border-white/10 px-5 py-3">
+                <span className="text-sm font-semibold text-white">{type} — Template</span>
+                <button
+                  onClick={() => {
+                    void navigator.clipboard.writeText(snippet);
+                    setCopied(type);
+                    setTimeout(() => setCopied(null), 1500);
+                  }}
+                  className={`rounded-lg px-3 py-1 text-xs font-medium transition-colors ${
+                    copied === type ? 'bg-green-500/20 text-green-400' : 'bg-white/5 text-[#4A6280] hover:text-white'
+                  }`}
+                >
+                  {copied === type ? 'Copied!' : 'Copy'}
+                </button>
+              </div>
+              <pre className="overflow-x-auto p-5 text-xs text-[#4A6280] leading-relaxed font-mono">
+                {snippet}
+              </pre>
+            </div>
+          );
+        })
+      ) : null}
     </div>
   );
 }
@@ -1025,6 +1103,23 @@ function PerceptionGraphTab({ d }: { d: PerceptionGraphData | undefined; loading
   const nodes = d.nodes ?? [];
   const edges = d.edges ?? [];
   const sorted = [...nodes].sort((a, b) => b.confidence - a.confidence);
+
+  if (nodes.length === 0) {
+    return (
+      <div className="card-glass rounded-xl p-10 text-center">
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-white/[0.03]">
+          <span className="text-2xl">🔮</span>
+        </div>
+        <p className="text-sm font-medium text-white">No perception graph data</p>
+        <p className="mt-2 max-w-sm mx-auto text-xs leading-[1.7] text-[#4A6280]">
+          The AI Perception Graph requires entity extraction to complete successfully.
+          This typically means the entity intelligence pipeline found no named entities on this domain,
+          or the AI API was unavailable during the audit. Re-run the audit to generate graph data.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-3 gap-4">
@@ -1427,6 +1522,12 @@ function AuditPageInner() {
     enabled: activeTab === 'perception-graph' && !!auditId2,
     staleTime: 120_000,
   });
+  const { data: schemaApiData, isLoading: schemaApiLoading } = useQuery<SchemaApiData>({
+    queryKey: ['audit-schema', auditId2],
+    queryFn: () => fetch(`/api/audit/${auditId2}/schema`).then((r) => r.json() as Promise<SchemaApiData>),
+    enabled: activeTab === 'schema' && !!auditId2,
+    staleTime: 120_000,
+  });
 
   // If audit is still running, show progress UI
   if (auditId && (!data || data.status === 'running' || data.status === 'queued')) {
@@ -1580,7 +1681,7 @@ function AuditPageInner() {
           {activeTab === 'entity'             && <EntityTab data={data} />}
           {activeTab === 'citation'           && <CitationTab data={data} />}
           {activeTab === 'semantic-trust'     && <SemanticTrustTab data={data} />}
-          {activeTab === 'schema'             && <SchemaTab data={data} />}
+          {activeTab === 'schema'             && <SchemaTab data={data} schemaApi={schemaApiData} schemaApiLoading={schemaApiLoading} />}
           {activeTab === 'content'            && <ContentTab data={data} />}
           {activeTab === 'performance'        && <PerformanceTab data={data} />}
           {activeTab === 'retrieval'        && <RetrievalTab d={retrievalData} loading={retrievalLoading} />}

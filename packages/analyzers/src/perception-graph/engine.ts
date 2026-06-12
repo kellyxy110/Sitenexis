@@ -218,15 +218,18 @@ export function buildPerceptionGraph(
   pages: CrawledPage[],
   entityReport: EntityIntelligenceReport
 ): PerceptionGraphSnapshot {
-  if (pages.length === 0 || entityReport.entitiesDetected.length === 0) {
+  if (pages.length === 0) {
     return { auditId, nodes: [], edges: [] };
   }
 
   const topics = extractTopicClusters(pages);
-
   const entityNodes = buildEntityNodes(entityReport, pages);
-  const topicNodes = buildTopicNodes(topics, pages, entityReport.entityConfidenceScore);
-  const pageNodes = buildPageNodes(pages, entityReport.entityConfidenceScore);
+  // Use a confidence floor of 20 when no entities were validated (heuristic-only graph)
+  const baseConfidence = entityReport.entitiesDetected.length > 0
+    ? entityReport.entityConfidenceScore
+    : 20;
+  const topicNodes = buildTopicNodes(topics, pages, baseConfidence);
+  const pageNodes = buildPageNodes(pages, baseConfidence);
 
   const allNodes: PerceptionNode[] = [...entityNodes, ...topicNodes, ...pageNodes];
 
@@ -234,11 +237,36 @@ export function buildPerceptionGraph(
   const entityEntityEdges = buildEntityEntityEdges(entityNodes, pages);
   const pageEntityEdges = buildPageEntityEdges(pageNodes, entityNodes);
 
+  // When no entity nodes exist, link topic nodes to each other via shared pages
+  const topicTopicEdges: PerceptionEdge[] = [];
+  if (entityNodes.length === 0 && topicNodes.length >= 2) {
+    for (let i = 0; i < topicNodes.length; i++) {
+      for (let j = i + 1; j < topicNodes.length; j++) {
+        const a = topicNodes[i]!;
+        const b = topicNodes[j]!;
+        const shared = a.supportingPages.filter((u) => b.supportingPages.includes(u));
+        if (shared.length > 0) {
+          topicTopicEdges.push({
+            source: a.id,
+            target: b.id,
+            relationshipType: 'relatedTo',
+            strength: Math.min(1, shared.length / 3),
+            evidencedBy: shared.slice(0, 2),
+          });
+        }
+      }
+    }
+  }
+
   const allEdges: PerceptionEdge[] = [
     ...entityTopicEdges,
     ...entityEntityEdges,
     ...pageEntityEdges,
+    ...topicTopicEdges.slice(0, 20),
   ];
+
+  // Return empty only if truly nothing was built
+  if (allNodes.length === 0) return { auditId, nodes: [], edges: [] };
 
   return { auditId, nodes: allNodes, edges: allEdges };
 }

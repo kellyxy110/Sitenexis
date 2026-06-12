@@ -1,8 +1,9 @@
 import { type CrawledPage } from '@sitenexis/shared';
 import {
   updateAuditStatus, saveAuditScores, getAuditScores, getAIVisibilityScore, getPerceptionGraph,
-  getPreviousCompletedAuditIdForDomain, getPriorSchemaUrls, saveSIIScore,
+  getPreviousCompletedAuditIdForDomain, getPriorSchemaUrls, saveSIIScore, getUserById,
 } from '@sitenexis/db';
+import { sendAuditCompleteEmail } from './email';
 import { analyzeLinkGraph, analyzeMachineReadability, buildPerceptionGraph, computeHealthScore, generateRecommendations, computeSIIScore } from '@sitenexis/analyzers';
 import { emitAgentEvent } from './registry';
 import { runCrawlAgent } from './crawl-agent';
@@ -146,6 +147,16 @@ export async function runInfrastructureAgent(input: AuditJobInput): Promise<void
     await runReportingAgent(auditId);
 
     await updateAuditStatus(auditId, 'complete');
+
+    // Send audit-complete email (fire-and-forget — never block on email failure)
+    const { userId } = input;
+    getUserById(userId).then((user) => {
+      if (!user?.email) return;
+      const scores = { overallScore: overall ?? null, aiVisibilityScore: null as number | null };
+      return sendAuditCompleteEmail({ to: user.email, domain, auditId, ...scores });
+    }).catch((err: unknown) => {
+      console.error('[infrastructure-agent] email notification failed:', err instanceof Error ? err.message : String(err));
+    });
 
     // If this is a self-audit run, populate self-audit tables (fire-and-forget with logging)
     if (selfAuditRunId) {

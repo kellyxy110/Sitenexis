@@ -31,6 +31,9 @@ const envSchema = z.object({
   TRUST_DECAY_CONFIG: z.string().optional(),
   SYNTHETIC_DETECTION_CONFIG: z.string().optional(),
 
+  RESEND_API_KEY: z.string().default(''),
+  RESEND_FROM_EMAIL: z.string().default('SiteNexis <noreply@sitenexis.com>'),
+
   // Self-audit system
   SELF_AUDIT_SECRET: z.string().default('dev-self-audit-secret'),
   VERCEL_DEPLOY_WEBHOOK_SECRET: z.string().optional(),

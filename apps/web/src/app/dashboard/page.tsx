@@ -8,6 +8,7 @@ import { TopCommandBar } from '@/components/dashboard/TopCommandBar';
 import { IntelligenceHero, type IntelligenceScores } from '@/components/dashboard/IntelligenceHero';
 import { InsightGrid, type InsightGridData } from '@/components/dashboard/InsightGrid';
 import { AuditActivityFeed, type AuditFeedItem } from '@/components/dashboard/AuditActivityFeed';
+import { OnboardingHero } from '@/components/dashboard/OnboardingHero';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -228,25 +229,37 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {startError && (
+        {startError && (data?.data.length ?? 0) > 0 && (
           <div className="mb-6 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
             {startError}
           </div>
         )}
 
-        {/* Intelligence Hero */}
-        <div className="mb-6 animate-fade-in">
-          <IntelligenceHero
-            scores={intelligenceScores}
-            domain={completeAudits[0]?.domain ?? undefined}
-            loading={isLoading}
-          />
-        </div>
+        {/* Onboarding hero (first-time users) or Intelligence Hero (returning users) */}
+        {!isLoading && !isDemo && data?.data.length === 0 ? (
+          <div className="mb-6 animate-fade-in">
+            <OnboardingHero
+              onRunAudit={handleNewAudit}
+              isAuditing={isStarting}
+              error={startError}
+              userName={userName}
+            />
+          </div>
+        ) : (
+          <>
+            <div className="mb-6 animate-fade-in">
+              <IntelligenceHero
+                scores={intelligenceScores}
+                domain={completeAudits[0]?.domain ?? undefined}
+                loading={isLoading}
+              />
+            </div>
 
-        {/* Insight Grid */}
-        <div className="mb-6 animate-fade-in">
-          <InsightGrid data={insightData} loading={isLoading} />
-        </div>
+            <div className="mb-6 animate-fade-in">
+              <InsightGrid data={insightData} loading={isLoading} />
+            </div>
+          </>
+        )}
 
         {/* Audit Activity Feed */}
         <div className="animate-fade-in">

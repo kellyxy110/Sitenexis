@@ -18,12 +18,13 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@sitenexis/shared": "workspace:*",
-    "@sitenexis/db": "workspace:*",
     "@sitenexis/analyzers": "workspace:*",
     "@sitenexis/crawler": "workspace:*",
+    "@sitenexis/db": "workspace:*",
+    "@sitenexis/shared": "workspace:*",
     "bullmq": "^5.12.12",
-    "ioredis": "^5.4.1"
+    "ioredis": "^5.4.1",
+    "resend": "^6.12.4"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
