@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
-import Script from 'next/script';
 import './globals.css';
 import { Providers } from '@/components/Providers';
 
@@ -32,7 +31,10 @@ export const metadata: Metadata = {
     apple: '/apple-icon',
   },
   verification: {
-    google: 'CaEcRc5T29RfSmPq7HJekJ47dIYu9AEXJ20IuQ49_9s',
+    google: [
+      'CaEcRc5T29RfSmPq7HJekJ47dIYu9AEXJ20IuQ49_9s',
+      'Qdc1Bn0XLIrneFmRqcdpW0FulMACa4QB9KwrkyPOzx8',
+    ],
     other: { 'msvalidate.01': 'EC4F898A0819A3BD78F2BDE48593E47A' },
   },
   openGraph: {
@@ -243,24 +245,20 @@ const SITE_SCHEMA = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
+      <head>
+        {/* Google Analytics GA4 — must be in <head> for Search Console verification */}
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-YQJFVH9VJ7" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-YQJFVH9VJ7');`,
+          }}
+        />
+      </head>
       <body className="antialiased font-sans" suppressHydrationWarning>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(SITE_SCHEMA) }}
         />
-        {/* Google Analytics GA4 */}
-        <Script
-          src="https://www.googletagmanager.com/gtag/js?id=G-YQJFVH9VJ7"
-          strategy="afterInteractive"
-        />
-        <Script id="ga4-init" strategy="afterInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-YQJFVH9VJ7');
-          `}
-        </Script>
         <Providers>{children}</Providers>
       </body>
     </html>
