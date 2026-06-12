@@ -87,13 +87,12 @@ export default function VaultPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between flex-wrap gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-display font-bold text-text-primary">Swipe Vault</h1>
           <p className="text-text-secondary mt-1 text-sm">{ads.length} ads saved</p>
         </div>
-        <div className="flex items-center gap-2">
-          {/* Bulk analyze */}
+        <div className="flex items-center gap-2 flex-wrap">
           {ads.some((a) => a.analysisStatus !== 'complete') && (
             <button
               onClick={() => void handleBulkAnalyze()}
@@ -124,8 +123,9 @@ export default function VaultPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3">
-        <div className="relative flex-1 min-w-48">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+        {/* Search — full width on mobile, grows on larger screens */}
+        <div className="relative flex-1 min-w-0">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
           <input
             value={search}
@@ -135,19 +135,20 @@ export default function VaultPage() {
           />
         </div>
 
-        <div className="flex items-center gap-2">
-          <Filter size={14} className="text-text-muted" />
+        {/* Selects — scroll horizontally on very narrow screens */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-0.5 sm:pb-0">
+          <Filter size={14} className="text-text-muted shrink-0" />
           <select
             value={platform}
             onChange={(e) => setPlatform(e.target.value)}
-            className="bg-bg-card border border-border rounded-lg px-3 py-2 text-sm text-text-primary focus:border-purple focus:outline-none"
+            className="shrink-0 bg-bg-card border border-border rounded-lg px-3 py-2 text-sm text-text-primary focus:border-purple focus:outline-none"
           >
             {PLATFORMS.map((p) => <option key={p} value={p}>{p === 'ALL' ? 'All Platforms' : p}</option>)}
           </select>
           <select
             value={hookType}
             onChange={(e) => setHookType(e.target.value)}
-            className="bg-bg-card border border-border rounded-lg px-3 py-2 text-sm text-text-primary focus:border-purple focus:outline-none"
+            className="shrink-0 bg-bg-card border border-border rounded-lg px-3 py-2 text-sm text-text-primary focus:border-purple focus:outline-none"
           >
             {HOOK_TYPES.map((h) => <option key={h} value={h}>{h === 'ALL' ? 'All Hooks' : h}</option>)}
           </select>

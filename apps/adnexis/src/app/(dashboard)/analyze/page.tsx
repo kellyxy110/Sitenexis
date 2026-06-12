@@ -59,7 +59,7 @@ export default function AnalyzePage() {
       </div>
 
       <form onSubmit={handleAnalyze} className="bg-bg-card border border-border rounded-xl p-6 space-y-4">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm text-text-secondary mb-1.5">Platform</label>
             <select

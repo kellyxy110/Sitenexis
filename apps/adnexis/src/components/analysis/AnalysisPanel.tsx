@@ -29,7 +29,7 @@ export function AnalysisPanel({ analysis, transcript: _transcript }: AnalysisPan
       {/* Score rings */}
       <div className="bg-bg-card border border-border rounded-xl p-6">
         <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wide mb-5">Performance Scores</h3>
-        <div className="grid grid-cols-3 sm:grid-cols-6 gap-4">
+        <div className="grid grid-cols-3 gap-4 sm:grid-cols-6">
           {scores.map(({ label, score }) => (
             <ScoreRing key={label} score={score} label={label} size={72} strokeWidth={5} />
           ))}

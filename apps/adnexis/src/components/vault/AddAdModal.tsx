@@ -81,7 +81,7 @@ export function AddAdModal({ onClose, onAdded }: AddAdModalProps) {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 xs:grid-cols-2 sm:grid-cols-2">
             <div>
               <label className="block text-sm text-text-secondary mb-1.5">Niche</label>
               <input

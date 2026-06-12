@@ -123,7 +123,7 @@ export default function GeneratePage() {
         <p className="text-text-secondary mt-1 text-sm">Transform any ad into platform-specific high-converting variations.</p>
       </div>
 
-      <form onSubmit={handleGenerate} className="bg-bg-card border border-border rounded-xl p-6 space-y-5">
+      <form onSubmit={handleGenerate} className="bg-bg-card border border-border rounded-xl p-4 sm:p-6 space-y-5">
         <div>
           <label className="block text-sm text-text-secondary mb-1.5">Source Ad</label>
           <textarea
@@ -156,7 +156,7 @@ export default function GeneratePage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
             <label className="block text-sm text-text-secondary mb-2">Tone</label>
             <div className="space-y-2">
