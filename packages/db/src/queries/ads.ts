@@ -133,6 +133,39 @@ export async function createAdGeneration(
   });
 }
 
+export async function getScoreTrend(
+  userId: string,
+  days = 30,
+): Promise<Array<{ date: string; avgScore: number; count: number }>> {
+  const since = new Date();
+  since.setDate(since.getDate() - days);
+
+  const ads = await db.ad.findMany({
+    where: {
+      userId,
+      archivedAt: null,
+      analysisStatus: 'complete',
+      analyzedAt: { gte: since },
+    },
+    select: { analyzedAt: true, performanceScore: true },
+    orderBy: { analyzedAt: 'asc' },
+  });
+
+  const byDate = new Map<string, { sum: number; count: number }>();
+  for (const ad of ads) {
+    if (!ad.analyzedAt || ad.performanceScore == null) continue;
+    const date = ad.analyzedAt.toISOString().split('T')[0] as string;
+    const existing = byDate.get(date) ?? { sum: 0, count: 0 };
+    byDate.set(date, { sum: existing.sum + ad.performanceScore, count: existing.count + 1 });
+  }
+
+  return Array.from(byDate.entries()).map(([date, { sum, count }]) => ({
+    date,
+    avgScore: Math.round(sum / count),
+    count,
+  }));
+}
+
 export async function getAdStats(userId: string): Promise<{
   totalAds: number;
   analyzedAds: number;

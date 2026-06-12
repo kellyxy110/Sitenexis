@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, BookOpen, Zap, Wand2, LogOut, BookMarked } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Zap, Wand2, LogOut, BookMarked, Sparkles } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 
@@ -55,8 +55,16 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Guide + Sign out */}
+      {/* Bottom section */}
       <div className="p-4 border-t border-border space-y-1">
+        {/* Upgrade CTA */}
+        <Link
+          href="/pricing"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium bg-[#6C3EFF]/10 border border-[#6C3EFF]/20 text-[#9B6FFF] hover:bg-[#6C3EFF]/20 transition-all mb-2"
+        >
+          <Sparkles size={15} />
+          Upgrade Plan
+        </Link>
         <Link
           href="/guide"
           target="_blank"

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Search, Filter } from 'lucide-react';
+import { Plus, Search, Filter, Zap } from 'lucide-react';
 import { AdCard } from '@/components/vault/AdCard';
 import { AddAdModal } from '@/components/vault/AddAdModal';
 import { SkeletonGrid } from '@/components/ui/SkeletonCard';
@@ -31,6 +31,7 @@ export default function VaultPage() {
   const [platform, setPlatform] = useState('ALL');
   const [hookType, setHookType] = useState('ALL');
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
+  const [bulkProgress, setBulkProgress] = useState<{ current: number; total: number } | null>(null);
 
   const fetchAds = useCallback(async () => {
     setLoading(true);
@@ -57,6 +58,22 @@ export default function VaultPage() {
     setAnalyzingId(null);
   }
 
+  async function handleBulkAnalyze() {
+    const unanalyzed = ads.filter((a) => a.analysisStatus !== 'complete');
+    if (unanalyzed.length === 0) return;
+    setBulkProgress({ current: 0, total: unanalyzed.length });
+    for (let i = 0; i < unanalyzed.length; i++) {
+      const ad = unanalyzed[i]!;
+      setBulkProgress({ current: i + 1, total: unanalyzed.length });
+      const res = await fetch(`/api/ads/${ad.id}/analyze`, { method: 'POST' });
+      if (res.ok) {
+        const updated = (await res.json()) as Ad;
+        setAds((prev) => prev.map((a) => (a.id === ad.id ? { ...a, ...updated } : a)));
+      }
+    }
+    setBulkProgress(null);
+  }
+
   const filtered = ads.filter((ad) => {
     if (!search) return true;
     const q = search.toLowerCase();
@@ -70,18 +87,40 @@ export default function VaultPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-display font-bold text-text-primary">Swipe Vault</h1>
           <p className="text-text-secondary mt-1 text-sm">{ads.length} ads saved</p>
         </div>
-        <button
-          onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 bg-purple hover:bg-purple-light text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-        >
-          <Plus size={16} />
-          Add Ad
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Bulk analyze */}
+          {ads.some((a) => a.analysisStatus !== 'complete') && (
+            <button
+              onClick={() => void handleBulkAnalyze()}
+              disabled={!!bulkProgress}
+              className="flex items-center gap-2 border border-[#6C3EFF]/40 bg-[#6C3EFF]/10 hover:bg-[#6C3EFF]/20 text-[#9B6FFF] px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-60"
+            >
+              {bulkProgress ? (
+                <>
+                  <span className="h-3.5 w-3.5 rounded-full border-2 border-[#9B6FFF] border-t-transparent animate-spin" />
+                  Analyzing {bulkProgress.current} / {bulkProgress.total}
+                </>
+              ) : (
+                <>
+                  <Zap size={14} />
+                  Analyze All ({ads.filter((a) => a.analysisStatus !== 'complete').length})
+                </>
+              )}
+            </button>
+          )}
+          <button
+            onClick={() => setShowModal(true)}
+            className="flex items-center gap-2 bg-purple hover:bg-purple-light text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          >
+            <Plus size={16} />
+            Add Ad
+          </button>
+        </div>
       </div>
 
       {/* Filters */}

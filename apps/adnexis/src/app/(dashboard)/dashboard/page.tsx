@@ -1,20 +1,19 @@
 import { Suspense } from 'react';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
-import { getAdStats } from '@sitenexis/db';
+import { getAdStats, getScoreTrend } from '@sitenexis/db';
 import { LayoutDashboard, Zap, TrendingUp, BookOpen } from 'lucide-react';
 import Link from 'next/link';
+import { ScoreTrendChart } from '@/components/dashboard/ScoreTrendChart';
 
 async function Stats({ userId }: { userId: string }) {
   let stats = { totalAds: 0, analyzedAds: 0, topHookType: null as string | null, avgScore: 0 };
-  try {
-    stats = await getAdStats(userId);
-  } catch { /* DB not reachable */ }
+  try { stats = await getAdStats(userId); } catch { /* DB not reachable */ }
 
   const cards = [
-    { label: 'Total Ads', value: stats.totalAds, icon: BookOpen, color: 'text-purple-400' },
-    { label: 'Analyzed', value: stats.analyzedAds, icon: Zap, color: 'text-teal-400' },
-    { label: 'Avg Score', value: stats.avgScore ? String(stats.avgScore) : '—', icon: TrendingUp, color: 'text-orange-400' },
-    { label: 'Top Hook', value: stats.topHookType ?? '—', icon: LayoutDashboard, color: 'text-purple-300' },
+    { label: 'Total Ads',  value: stats.totalAds,                              icon: BookOpen,       color: 'text-purple-400' },
+    { label: 'Analyzed',   value: stats.analyzedAds,                           icon: Zap,            color: 'text-teal-400'   },
+    { label: 'Avg Score',  value: stats.avgScore ? String(stats.avgScore) : '—', icon: TrendingUp,   color: 'text-orange-400' },
+    { label: 'Top Hook',   value: stats.topHookType ?? '—',                    icon: LayoutDashboard, color: 'text-purple-300' },
   ];
 
   return (
@@ -32,6 +31,12 @@ async function Stats({ userId }: { userId: string }) {
   );
 }
 
+async function TrendSection({ userId }: { userId: string }) {
+  let trend: Array<{ date: string; avgScore: number; count: number }> = [];
+  try { trend = await getScoreTrend(userId, 30); } catch { /* DB not reachable */ }
+  return <ScoreTrendChart data={trend} />;
+}
+
 function StatsSkeleton() {
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -45,11 +50,16 @@ function StatsSkeleton() {
   );
 }
 
+function TrendSkeleton() {
+  return (
+    <div className="bg-[#16162A] border border-[#2A2A4A] rounded-xl p-5 animate-pulse h-56" />
+  );
+}
+
 export default async function DashboardPage() {
   let userId = 'demo';
   try {
     const supabase = await createSupabaseServerClient();
-    // getSession reads from cookie — no network call, fast
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.user) userId = session.user.id;
   } catch { /* dev */ }
@@ -63,6 +73,10 @@ export default async function DashboardPage() {
 
       <Suspense fallback={<StatsSkeleton />}>
         <Stats userId={userId} />
+      </Suspense>
+
+      <Suspense fallback={<TrendSkeleton />}>
+        <TrendSection userId={userId} />
       </Suspense>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
