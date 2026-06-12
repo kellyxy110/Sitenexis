@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { MarketingNav } from '@/components/marketing/MarketingNav';
@@ -418,6 +419,44 @@ export default function MethodologyPage() {
                 <p className="text-[13px] leading-[1.7] text-slate-400">{a}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Founder ── */}
+      <section className="border-t border-white/[0.05] bg-[#0A1628] py-20 px-6">
+        <div className="mx-auto max-w-4xl">
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan/70">Built by</p>
+          <h2 className="mb-8 text-[28px] font-bold text-white">The mind behind the methodology</h2>
+          <div className="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-8 md:flex md:items-start md:gap-8">
+            <div className="mb-6 shrink-0 md:mb-0">
+              <div className="relative h-20 w-20 overflow-hidden rounded-2xl border border-cyan-500/20 shadow-[0_0_30px_rgba(0,200,255,0.1)]">
+                <Image
+                  src="/founder.jpg"
+                  alt="Ekeleme David Kelechi — Founder & CEO, SiteNexis"
+                  fill
+                  className="object-cover"
+                  priority
+                />
+              </div>
+            </div>
+            <div className="flex-1">
+              <p className="text-[18px] font-bold text-white">Ekeleme David Kelechi</p>
+              <p className="mt-0.5 text-[13px] font-medium text-cyan-400">Founder &amp; CEO · Kellyxyhub</p>
+              <p className="mt-4 text-[14px] leading-[1.8] text-slate-400">
+                Every score formula, every simulation stage, and every detection rule in this methodology
+                was designed from first principles — starting with the question: how does an AI system
+                actually decide to trust and cite a piece of content? The answer is this four-layer stack.
+              </p>
+              <div className="mt-5">
+                <Link
+                  href="/founder"
+                  className="inline-flex items-center gap-2 rounded-lg border border-white/[0.1] bg-white/[0.04] px-4 py-2 text-[12px] font-medium text-slate-300 transition-colors hover:border-cyan-500/30 hover:text-cyan-400"
+                >
+                  Full founder profile →
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       </section>
