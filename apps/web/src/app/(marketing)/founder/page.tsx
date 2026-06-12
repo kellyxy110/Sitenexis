@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight, ExternalLink } from 'lucide-react';
 import { MarketingNav } from '@/components/marketing/MarketingNav';
@@ -137,10 +138,16 @@ export default function FounderPage() {
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_50%_0%,rgba(0,200,255,0.07),transparent)]" />
         <div className="relative mx-auto max-w-4xl">
           <div className="flex flex-col items-center text-center md:flex-row md:items-start md:text-left md:gap-12">
-            {/* Avatar */}
+            {/* Founder photo */}
             <div className="mb-8 shrink-0 md:mb-0">
-              <div className="relative flex h-28 w-28 items-center justify-center rounded-2xl border border-cyan-500/20 bg-gradient-to-br from-cyan-500/10 to-teal-500/10 shadow-[0_0_40px_rgba(0,200,255,0.12)]">
-                <PentagonMark size={48} />
+              <div className="relative h-28 w-28 overflow-hidden rounded-2xl border border-cyan-500/20 shadow-[0_0_40px_rgba(0,200,255,0.12)]">
+                <Image
+                  src="/founder.jpg"
+                  alt="Ekeleme David Kelechi — Founder of SiteNexis"
+                  fill
+                  className="object-cover"
+                  priority
+                />
               </div>
             </div>
             {/* Text */}
