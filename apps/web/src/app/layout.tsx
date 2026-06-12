@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
+import Script from 'next/script';
 import './globals.css';
 import { Providers } from '@/components/Providers';
 
@@ -32,6 +33,7 @@ export const metadata: Metadata = {
   },
   verification: {
     google: 'CaEcRc5T29RfSmPq7HJekJ47dIYu9AEXJ20IuQ49_9s',
+    other: { 'msvalidate.01': 'EC4F898A0819A3BD78F2BDE48593E47A' },
   },
   openGraph: {
     title: 'SiteNexis — AI Retrieval & Machine Trust Intelligence',
@@ -246,6 +248,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(SITE_SCHEMA) }}
         />
+        {/* Google Analytics GA4 */}
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-YQJFVH9VJ7"
+          strategy="afterInteractive"
+        />
+        <Script id="ga4-init" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-YQJFVH9VJ7');
+          `}
+        </Script>
         <Providers>{children}</Providers>
       </body>
     </html>
