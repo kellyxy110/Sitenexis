@@ -1,9 +1,24 @@
-# SiteNexis — AI Retrieval + Machine Trust Intelligence System
+# The Nexis Intelligence Suite
 
-> Not an SEO tool. Not an audit dashboard.
-> A live intelligence system that models how AI systems retrieve, interpret, trust, and recommend web content.
+> AI Retrieval + Machine Trust Intelligence · AI Creative Intelligence
 
-**Website:** [sitenexis.com](https://sitenexis.com) &nbsp;|&nbsp; **X:** [@Sitenexis](https://twitter.com/Sitenexis) &nbsp;|&nbsp; **Email:** [sitenexisintel@gmail.com](mailto:sitenexisintel@gmail.com)
+**SiteNexis:** [sitenexis.vercel.app](https://sitenexis.vercel.app) &nbsp;|&nbsp; **AdNexis:** [adnexis-ai.vercel.app](https://adnexis-ai.vercel.app) &nbsp;|&nbsp; **X:** [@Sitenexis](https://twitter.com/Sitenexis) &nbsp;|&nbsp; **Email:** [sitenexisintel@gmail.com](mailto:sitenexisintel@gmail.com)
+
+A two-product intelligence suite built for the machine-first web. SiteNexis tells AI systems how to find and trust your brand. AdNexis tells you what creative converts once they do. Together they close the full loop.
+
+---
+
+## Products
+
+### SiteNexis — Machine Trust Intelligence Platform
+
+Not an SEO tool. Not an audit dashboard. A live intelligence system that models how AI systems retrieve, interpret, trust, and recommend web content.
+
+### AdNexis — AI Creative Intelligence Platform
+
+Analyses ad creatives, scores them across conversion dimensions using AI, and generates high-performance variants. Built for teams that want to know not just who sees their content — but what makes them act.
+
+**Five modules:** Vault · Analyze · Generate · Dashboard · Hooks (automation)
 
 ---
 
@@ -98,6 +113,16 @@ New accounts receive **10 free starter credits**. Additional credits are purchas
 ```
 sitenexis/
 ├── apps/
+│   ├── web/                         # SiteNexis — Next.js 15 App Router
+│   └── adnexis/                     # AdNexis — Next.js 15 App Router
+│       └── src/
+│           ├── app/
+│           │   ├── (auth)/           # Login, signup
+│           │   ├── (dashboard)/      # Vault, Analyze, Generate, Dashboard
+│           │   └── api/              # Ads, generate, auth, health, hooks
+│           └── lib/
+│               └── supabase/         # SSR Supabase client + server helpers
+├── apps/
 │   └── web/                         # Next.js 15 App Router
 │       └── src/
 │           ├── app/
@@ -127,6 +152,8 @@ sitenexis/
 │   ├── surface-coverage-model.json
 │   ├── synthetic-detection-rules.json
 │   └── retrieval-simulation-model.json
+├── adnexis.vercel.json               # AdNexis Vercel deployment config
+├── sitenexis.vercel.json             # SiteNexis Vercel deployment config
 ├── railway.json                      # Railway worker deployment config
 ├── CLAUDE.md                         # Full architectural specification
 └── README.md                         # This file
@@ -355,13 +382,35 @@ Expected startup log on Railway:
 
 ## Deployment
 
-### Vercel (Web App)
+### Vercel — SiteNexis
 
-1. Connect your GitHub repo (`kellyxy110/Sitenexis`) to Vercel
-2. Set root directory to the monorepo root (not `apps/web`)
-3. Framework preset: **Next.js** (auto-detected)
-4. Add all environment variables from the table above
-5. Vercel auto-deploys on every push to `master`
+1. Connect GitHub repo (`kellyxy110/Sitenexis`) to Vercel — project `sitenexis`
+2. Root directory: monorepo root (not `apps/web`)
+3. Framework: **Next.js** (auto-detected)
+4. Add all environment variables
+5. Auto-deploys on every push to `master`
+
+Project build settings (set via API or dashboard):
+- **Build command:** `pnpm --filter @sitenexis/db exec prisma generate --schema=./schema.prisma && turbo run build --filter=web...`
+- **Output directory:** `apps/web/.next`
+- **Install command:** `pnpm install --no-frozen-lockfile`
+
+### Vercel — AdNexis
+
+Deploy manually from the monorepo root:
+
+```bash
+VERCEL_ORG_ID=team_NuC1Fkg65uNAiysfEHuvF4rc \
+VERCEL_PROJECT_ID=prj_twPstETvnNURV3Xa2zEeJ8H2GlM3 \
+vercel --prod --local-config adnexis.vercel.json
+```
+
+Project build settings (locked via API):
+- **Build command:** `pnpm --filter adnexis build` (full chain including shared packages)
+- **Output directory:** `apps/adnexis/.next`
+- **Root directory:** monorepo root
+
+**Important:** The root `vercel.json` was renamed to `sitenexis.vercel.json` to prevent AdNexis deployments from picking up SiteNexis build settings. Both projects use their own named config files.
 
 **Minimum required for a working Vercel deployment:**
 ```
