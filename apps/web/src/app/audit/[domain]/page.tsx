@@ -775,7 +775,7 @@ function RetrievalTab({ d }: { d: RetrievalData | undefined; loading: boolean })
               <th className="px-3 py-3 text-center text-xs font-semibold text-[#4A6280]">Citation Elig.</th>
             </tr></thead>
             <tbody>
-              {d.results.slice(0, 20).map((r, i) => (
+              {(d.results ?? []).slice(0, 20).map((r, i) => (
                 <tr key={i} className="border-b border-white/5 hover:bg-white/[0.02]">
                   <td className="max-w-[200px] truncate px-5 py-3 text-xs text-[#4A6280]">{r.pageUrl}</td>
                   <td className="px-3 py-3 text-center text-xs font-semibold tabular-nums" style={{ color: scoreColor(r.retrievalQualityScore) }}>{r.retrievalQualityScore ?? '—'}</td>
@@ -831,11 +831,11 @@ function MachineTrustTab({ d }: { d: MachineTrustData | undefined; loading: bool
           ))}
         </div>
       </div>
-      {d.trustIssues.length > 0 && (
+      {(d.trustIssues ?? []).length > 0 && (
         <div className="card-glass rounded-xl overflow-hidden">
-          <div className="border-b border-white/10 px-5 py-3"><h3 className="font-semibold text-white">Trust Issues ({d.trustIssues.length})</h3></div>
+          <div className="border-b border-white/10 px-5 py-3"><h3 className="font-semibold text-white">Trust Issues ({(d.trustIssues ?? []).length})</h3></div>
           <div className="divide-y divide-white/[0.04]">
-            {d.trustIssues.map((issue, i) => (
+            {(d.trustIssues ?? []).map((issue, i) => (
               <div key={i} className="px-5 py-4">
                 <div className="flex items-start gap-3">
                   <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${issue.severity === 'critical' ? 'bg-red-500/15 text-red-400' : issue.severity === 'warning' ? 'bg-amber-500/15 text-amber-400' : 'bg-blue-500/15 text-blue-400'}`}>{issue.severity}</span>
@@ -882,11 +882,11 @@ function TemporalTab({ d }: { d: TemporalData | undefined; loading: boolean }) {
           <p className="mt-1 text-xs text-[#4A6280]">Update Frequency</p>
         </div>
       </div>
-      {d.temporalIssues.length > 0 && (
+      {(d.temporalIssues ?? []).length > 0 && (
         <div className="card-glass rounded-xl overflow-hidden">
-          <div className="border-b border-white/10 px-5 py-3"><h3 className="font-semibold text-white">Temporal Issues ({d.temporalIssues.length})</h3></div>
+          <div className="border-b border-white/10 px-5 py-3"><h3 className="font-semibold text-white">Temporal Issues ({(d.temporalIssues ?? []).length})</h3></div>
           <div className="divide-y divide-white/[0.04]">
-            {d.temporalIssues.map((issue, i) => (
+            {(d.temporalIssues ?? []).map((issue, i) => (
               <div key={i} className="px-5 py-4">
                 <span className={`mb-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${issue.severity === 'critical' ? 'bg-red-500/15 text-red-400' : issue.severity === 'warning' ? 'bg-amber-500/15 text-amber-400' : 'bg-blue-500/15 text-blue-400'}`}>{issue.severity}</span>
                 <p className="text-sm text-white">{issue.description}</p>
@@ -896,10 +896,10 @@ function TemporalTab({ d }: { d: TemporalData | undefined; loading: boolean }) {
           </div>
         </div>
       )}
-      {d.stalePagesAtRisk.length > 0 && (
+      {(d.stalePagesAtRisk ?? []).length > 0 && (
         <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-5">
-          <h3 className="mb-3 font-semibold text-amber-400">Stale Pages at Risk ({d.stalePagesAtRisk.length})</h3>
-          <ul className="space-y-1">{d.stalePagesAtRisk.map((url, i) => <li key={i} className="text-xs text-[#4A6280]">{url}</li>)}</ul>
+          <h3 className="mb-3 font-semibold text-amber-400">Stale Pages at Risk ({(d.stalePagesAtRisk ?? []).length})</h3>
+          <ul className="space-y-1">{(d.stalePagesAtRisk ?? []).map((url, i) => <li key={i} className="text-xs text-[#4A6280]">{url}</li>)}</ul>
         </div>
       )}
     </div>
@@ -933,20 +933,20 @@ function SurfacesTab({ d }: { d: SurfacesData | undefined; loading: boolean }) {
                 <div className="text-right"><span className="text-2xl font-bold tabular-nums">{data.inclusionProbability}</span><p className="text-[10px] opacity-70">est. inclusion %</p></div>
               </div>
               <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${sc}`}>{data.status}</span>
-              {data.blockers.length > 0 && (
+              {(data.blockers ?? []).length > 0 && (
                 <div className="mt-3 space-y-1">
-                  {data.blockers.map((b, i) => <p key={i} className="text-xs text-[#4A6280]">⚠ {b.description}</p>)}
+                  {(data.blockers ?? []).map((b, i) => <p key={i} className="text-xs text-[#4A6280]">⚠ {b.description}</p>)}
                 </div>
               )}
             </div>
           );
         })}
       </div>
-      {d.coverageGaps.length > 0 && (
+      {(d.coverageGaps ?? []).length > 0 && (
         <div className="card-glass rounded-xl overflow-hidden">
           <div className="border-b border-white/10 px-5 py-3"><h3 className="font-semibold text-white">Coverage Gaps</h3></div>
           <div className="divide-y divide-white/[0.04]">
-            {d.coverageGaps.map((gap, i) => (
+            {(d.coverageGaps ?? []).map((gap, i) => (
               <div key={i} className="px-5 py-4">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-xs font-semibold text-white">{gap.surface}</span>
@@ -985,32 +985,32 @@ function AuthenticityTab({ d }: { d: AuthenticityData | undefined; loading: bool
           <p className="mt-0.5 text-[10px] text-[#3A5568]">Lower is safer</p>
         </div>
       </div>
-      {d.detectedPatterns.length === 0 && d.flaggedEntities.length === 0 ? (
+      {(d.detectedPatterns ?? []).length === 0 && (d.flaggedEntities ?? []).length === 0 ? (
         <div className="card-glass rounded-xl p-8 text-center">
           <p className="text-green-400 font-semibold">No synthetic patterns detected</p>
           <p className="mt-1 text-xs text-[#4A6280]">All entity signals appear organic and authentic.</p>
         </div>
       ) : (
         <div className="card-glass rounded-xl overflow-hidden">
-          <div className="border-b border-white/10 px-5 py-3"><h3 className="font-semibold text-white">Detected Patterns ({d.detectedPatterns.length})</h3></div>
+          <div className="border-b border-white/10 px-5 py-3"><h3 className="font-semibold text-white">Detected Patterns ({(d.detectedPatterns ?? []).length})</h3></div>
           <div className="divide-y divide-white/[0.04]">
-            {d.detectedPatterns.map((p, i) => (
+            {(d.detectedPatterns ?? []).map((p, i) => (
               <div key={i} className="px-5 py-4">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-xs font-semibold text-white capitalize">{p.patternType.replace(/_/g, ' ')}</span>
                   <span className="text-xs text-[#4A6280]">confidence: {Math.round(p.confidence * 100)}%</span>
                   <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${p.severity === 'critical' ? 'bg-red-500/15 text-red-400' : p.severity === 'warning' ? 'bg-amber-500/15 text-amber-400' : 'bg-blue-500/15 text-blue-400'}`}>{p.severity}</span>
                 </div>
-                <ul className="mt-1 space-y-0.5">{p.evidence.map((ev, j) => <li key={j} className="text-xs text-[#4A6280]">• {ev}</li>)}</ul>
+                <ul className="mt-1 space-y-0.5">{(p.evidence ?? []).map((ev, j) => <li key={j} className="text-xs text-[#4A6280]">• {ev}</li>)}</ul>
               </div>
             ))}
           </div>
         </div>
       )}
-      {d.recommendations.length > 0 && (
+      {(d.recommendations ?? []).length > 0 && (
         <div className="rounded-xl border border-cyan/20 bg-cyan/5 p-5">
           <h3 className="mb-3 font-semibold text-cyan">Recommendations</h3>
-          <ul className="space-y-2">{d.recommendations.map((r, i) => <li key={i} className="flex gap-2 text-xs text-[#4A6280]"><span className="shrink-0 text-cyan">→</span>{r}</li>)}</ul>
+          <ul className="space-y-2">{(d.recommendations ?? []).map((r, i) => <li key={i} className="flex gap-2 text-xs text-[#4A6280]"><span className="shrink-0 text-cyan">→</span>{r}</li>)}</ul>
         </div>
       )}
     </div>
@@ -1022,14 +1022,16 @@ function AuthenticityTab({ d }: { d: AuthenticityData | undefined; loading: bool
 function PerceptionGraphTab({ d }: { d: PerceptionGraphData | undefined; loading: boolean }) {
   if (!d) return <V3Loading label="Perception Graph" />;
   const nodeTypeColors: Record<string, string> = { entity: '#00C8FF', topic: '#0BCEBC', claim: '#F59E0B', page: '#7A9AB4' };
-  const sorted = [...d.nodes].sort((a, b) => b.confidence - a.confidence);
+  const nodes = d.nodes ?? [];
+  const edges = d.edges ?? [];
+  const sorted = [...nodes].sort((a, b) => b.confidence - a.confidence);
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-3 gap-4">
-        <div className="card-glass rounded-xl p-4 text-center"><span className="text-2xl font-bold text-white">{d.nodes.length}</span><p className="mt-1 text-xs text-[#4A6280]">Nodes</p></div>
-        <div className="card-glass rounded-xl p-4 text-center"><span className="text-2xl font-bold text-white">{d.edges.length}</span><p className="mt-1 text-xs text-[#4A6280]">Edges</p></div>
+        <div className="card-glass rounded-xl p-4 text-center"><span className="text-2xl font-bold text-white">{nodes.length}</span><p className="mt-1 text-xs text-[#4A6280]">Nodes</p></div>
+        <div className="card-glass rounded-xl p-4 text-center"><span className="text-2xl font-bold text-white">{edges.length}</span><p className="mt-1 text-xs text-[#4A6280]">Edges</p></div>
         <div className="card-glass rounded-xl p-4 text-center">
-          <span className="text-2xl font-bold text-white">{d.nodes.length > 0 ? Math.round(d.nodes.reduce((s, n) => s + n.confidence, 0) / d.nodes.length * 100) : '—'}%</span>
+          <span className="text-2xl font-bold text-white">{nodes.length > 0 ? Math.round(nodes.reduce((s, n) => s + n.confidence, 0) / nodes.length * 100) : '—'}%</span>
           <p className="mt-1 text-xs text-[#4A6280]">Avg. Confidence</p>
         </div>
       </div>
@@ -1060,13 +1062,13 @@ function PerceptionGraphTab({ d }: { d: PerceptionGraphData | undefined; loading
           </table>
         </div>
       </div>
-      {d.edges.length > 0 && (
+      {edges.length > 0 && (
         <div className="card-glass rounded-xl overflow-hidden">
           <div className="border-b border-white/10 px-5 py-3"><h3 className="font-semibold text-white">Top Relationships</h3></div>
           <div className="divide-y divide-white/[0.04]">
-            {[...d.edges].sort((a, b) => b.strength - a.strength).slice(0, 10).map((edge, i) => {
-              const src = d.nodes.find((n) => n.id === edge.source);
-              const tgt = d.nodes.find((n) => n.id === edge.target);
+            {[...edges].sort((a, b) => b.strength - a.strength).slice(0, 10).map((edge, i) => {
+              const src = nodes.find((n) => n.id === edge.source);
+              const tgt = nodes.find((n) => n.id === edge.target);
               return (
                 <div key={i} className="flex items-center gap-3 px-5 py-3 text-xs">
                   <span className="text-white">{src?.label ?? edge.source}</span>
