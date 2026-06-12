@@ -2,15 +2,15 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, BookOpen, Zap, Wand2, LogOut } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Zap, Wand2, LogOut, BookMarked } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 
 const NAV = [
-  { href: '/dashboard', label: 'Overview', icon: LayoutDashboard },
-  { href: '/vault', label: 'Swipe Vault', icon: BookOpen },
-  { href: '/analyze', label: 'Analyze Ad', icon: Zap },
-  { href: '/generate', label: 'Generate', icon: Wand2 },
+  { href: '/dashboard', label: 'Overview',    icon: LayoutDashboard },
+  { href: '/vault',     label: 'Swipe Vault', icon: BookOpen },
+  { href: '/analyze',   label: 'Analyze Ad',  icon: Zap },
+  { href: '/generate',  label: 'Generate',    icon: Wand2 },
 ];
 
 export function Sidebar() {
@@ -55,8 +55,16 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Sign out */}
-      <div className="p-4 border-t border-border">
+      {/* Guide + Sign out */}
+      <div className="p-4 border-t border-border space-y-1">
+        <Link
+          href="/guide"
+          target="_blank"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-all"
+        >
+          <BookMarked size={16} />
+          How to use AdNexis
+        </Link>
         <button
           onClick={handleSignOut}
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-all w-full"

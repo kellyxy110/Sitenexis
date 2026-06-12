@@ -3,7 +3,7 @@ import { createServerClient } from '@supabase/ssr';
 import type { ResponseCookie } from 'next/dist/compiled/@edge-runtime/cookies';
 
 const PROTECTED_PATHS = ['/dashboard', '/vault', '/analyze', '/generate', '/api/ads', '/api/generate', '/api/hooks'];
-const PUBLIC_PATHS = ['/', '/login', '/signup', '/auth', '/api/health'];
+const PUBLIC_PATHS = ['/', '/login', '/signup', '/auth', '/api/health', '/guide'];
 
 export async function middleware(req: NextRequest): Promise<NextResponse> {
   const { pathname } = req.nextUrl;
