@@ -1106,7 +1106,7 @@ function AuthenticityTab({ d }: { d: AuthenticityData | undefined; loading: bool
             {(d.detectedPatterns ?? []).map((p, i) => (
               <div key={i} className="px-5 py-4">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs font-semibold text-white capitalize">{p.patternType.replace(/_/g, ' ')}</span>
+                  <span className="text-xs font-semibold text-white capitalize">{(p.patternType ?? '').replace(/_/g, ' ')}</span>
                   <span className="text-xs text-[#4A6280]">confidence: {Math.round(p.confidence * 100)}%</span>
                   <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${p.severity === 'critical' ? 'bg-red-500/15 text-red-400' : p.severity === 'warning' ? 'bg-amber-500/15 text-amber-400' : 'bg-blue-500/15 text-blue-400'}`}>{p.severity}</span>
                 </div>
@@ -1289,7 +1289,7 @@ function ActionPlanIssueCard({ issue, auditId }: { issue: AuditIssue; auditId: s
               </span>
             )}
             <span className="font-mono text-[10px] text-[#4A6280]">
-              {issue.type.replace(/_/g, ' ')}
+              {(issue.type ?? '').replace(/_/g, ' ')}
             </span>
           </div>
           <p className="text-sm text-white leading-snug">{issue.message}</p>
@@ -1761,7 +1761,7 @@ function AuditPageInner() {
                   <span className="shrink-0 text-red-400 mt-0.5">→</span>
                   <div>
                     <span className="text-white">{issue.message}</span>
-                    <span className="ml-2 text-xs text-[#4A6280]">({issue.url.replace(/^https?:\/\//, '')})</span>
+                    {issue.url && <span className="ml-2 text-xs text-[#4A6280]">({issue.url.replace(/^https?:\/\//, '')})</span>}
                   </div>
                 </div>
               ))}

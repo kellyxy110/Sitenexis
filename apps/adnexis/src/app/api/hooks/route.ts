@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAuth, AuthError, unauthorizedResponse } from '@/lib/auth';
+import { rateLimit } from '@/lib/rate-limit';
 import { generateHooks } from '@sitenexis/analyzers/adnexis';
 
 const schema = z.object({
@@ -12,7 +13,10 @@ const schema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    await requireAuth(req);
+    const user = await requireAuth(req);
+    if (!rateLimit(`hooks:${user.id}`, 15, 60_000)) {
+      return NextResponse.json({ error: 'Too many requests. Please wait a moment.' }, { status: 429 });
+    }
     const body: unknown = await req.json();
     const parsed = schema.safeParse(body);
 
@@ -30,3 +34,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Hook generation failed' }, { status: 500 });
   }
 }
+
