@@ -62,10 +62,10 @@ function exportCsv(issues: SEOIssue[]) {
   const header = ['Severity', 'Page URL', 'Issue Type', 'Message', 'Recommendation'];
   const rows = issues.map((i) => [
     i.severity,
-    i.url,
-    i.type,
-    `"${i.message.replace(/"/g, '""')}"`,
-    `"${i.recommendation.replace(/"/g, '""')}"`,
+    i.url ?? '',
+    i.type ?? '',
+    `"${(i.message ?? '').replace(/"/g, '""')}"`,
+    `"${(i.recommendation ?? '').replace(/"/g, '""')}"`,
   ]);
   const csv = [header, ...rows].map((r) => r.join(',')).join('\n');
   const blob = new Blob([csv], { type: 'text/csv' });
@@ -109,7 +109,7 @@ export function IssuesTable({ issues, isLoading = false, auditId }: IssuesTableP
     if (sevFilter.size > 0) rows = rows.filter((i) => sevFilter.has(i.severity));
     if (urlSearch.trim()) {
       const q = urlSearch.trim().toLowerCase();
-      rows = rows.filter((i) => i.url.toLowerCase().includes(q));
+      rows = rows.filter((i) => (i.url ?? '').toLowerCase().includes(q));
     }
     return rows;
   }, [issues, sevFilter, urlSearch]);
@@ -124,7 +124,7 @@ export function IssuesTable({ issues, isLoading = false, auditId }: IssuesTableP
     col.accessor('url', {
       header: 'Page URL',
       cell: (info) => {
-        const url = info.getValue();
+        const url = info.getValue() ?? '';
         const copied = copiedUrl === url;
         return (
           <div className="flex items-center gap-2 min-w-0">
@@ -148,7 +148,7 @@ export function IssuesTable({ issues, isLoading = false, auditId }: IssuesTableP
       header: 'Issue Type',
       cell: (info) => (
         <span className="font-mono text-xs text-[#4A6280]">
-          {info.getValue().replace(/_/g, ' ')}
+          {(info.getValue() ?? '').replace(/_/g, ' ')}
         </span>
       ),
     }),
