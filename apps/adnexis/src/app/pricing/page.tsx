@@ -1,5 +1,48 @@
 import Link from 'next/link';
 import { Check } from 'lucide-react';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Pricing — AdNexis',
+  description: 'Start free with 10 ads and full AI analysis. Upgrade to Pro for unlimited ads, bulk analysis, and advanced generation. No credit card required.',
+  alternates: { canonical: 'https://adnexis-eight.vercel.app/pricing' },
+  openGraph: {
+    title: 'AdNexis Pricing — Free, Pro, and Agency plans',
+    description: 'Free tier includes 10 ads with full AI analysis. Pro at $29/month for unlimited. Agency at $79/month for teams.',
+    url: 'https://adnexis-eight.vercel.app/pricing',
+  },
+};
+
+const pricingJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: [
+    {
+      '@type': 'Question',
+      name: 'What is included in the AdNexis free plan?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'The free plan includes up to 10 ads in your vault, full AI analysis per ad, performance scoring across 6 dimensions, ad variation generator with 3 variations, and the Swipe Vault with search and filter. No credit card required.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'How much does AdNexis Pro cost?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'AdNexis Pro costs $29 per month. It includes unlimited ads in vault, bulk analyze, up to 10 variations per generate, all localization options, hook type analytics, performance trend chart, CSV export, and priority AI processing.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'Is there a team plan for AdNexis?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Yes. AdNexis Agency costs $79 per month and includes everything in Pro plus team shared vault, up to 5 team members, client workspace separation, API access, and white-label PDF reports.',
+      },
+    },
+  ],
+};
 
 const PLANS = [
   {
@@ -59,6 +102,8 @@ const PLANS = [
 
 export default function PricingPage() {
   return (
+    <>
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(pricingJsonLd) }} />
     <div className="min-h-screen bg-[#0D0D1A] px-6 py-16">
       <div className="mx-auto max-w-5xl">
 
@@ -129,5 +174,6 @@ export default function PricingPage() {
         </p>
       </div>
     </div>
+    </>
   );
 }

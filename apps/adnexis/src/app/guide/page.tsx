@@ -1,4 +1,16 @@
 import Link from 'next/link';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'How AdNexis Works — Guide',
+  description: 'Learn how AdNexis analyzes ad creatives using AI. From hook classification to emotional stack mapping, performance scoring, and variation generation.',
+  alternates: { canonical: 'https://adnexis-eight.vercel.app/guide' },
+  openGraph: {
+    title: 'How AdNexis Works — AI Ad Creative Intelligence Guide',
+    description: 'A complete guide to using AdNexis: analyze any ad, understand its hook and emotional architecture, and generate better-performing variations.',
+    url: 'https://adnexis-eight.vercel.app/guide',
+  },
+};
 
 /* ─── Design tokens ─────────────────────────────────────────────────────── */
 const bg   = { primary: '#0D0D1A', card: '#16162A', elevated: '#1C1C30', border: '#2A2A4A' };
