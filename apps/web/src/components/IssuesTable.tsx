@@ -77,6 +77,29 @@ function exportCsv(issues: SEOIssue[]) {
   URL.revokeObjectURL(url);
 }
 
+// ─── Cause lookup (deterministic per issue type) ─────────────────────────────
+
+const CAUSE_MAP: Record<string, string> = {
+  missing_title: "The <title> tag is the primary signal crawlers use to classify a page's topic. Without it, search engines and AI retrieval systems cannot confidently categorise or cite this page.",
+  title_too_long: "Search engines display approximately 60–70 characters of a title. Text beyond this is cut off, hiding key information and reducing click-through rates.",
+  title_too_short: "Short titles lack the semantic richness needed for accurate topic classification by search engines and AI systems.",
+  missing_meta_description: "Without a description, search engines generate snippet text from body content, which is rarely optimised for user intent and reduces click-through rates.",
+  meta_description_too_long: "Search engines truncate descriptions beyond approximately 155 characters, cutting off your message mid-sentence.",
+  duplicate_meta_description: "Duplicate descriptions signal a lack of page differentiation, reducing the click-through rate for each individual page in search results.",
+  missing_h1: "The H1 is the most important on-page content signal. Search engines and AI systems use it to confirm what a page is about and to form retrievable answers.",
+  multiple_h1: "Multiple H1 tags create ambiguity about the primary topic, weakening the page's ability to rank for any single query.",
+  missing_canonical: "URL variations (www vs. non-www, query strings, trailing slashes) can make the same content appear at multiple addresses, fragmenting ranking signals.",
+  broken_canonical: "A canonical tag pointing to a non-existent URL signals broken site architecture to crawlers and may cause the page to be de-prioritised.",
+  noindex_page: "A robots meta noindex directive instructs all crawlers to exclude this page from their index, blocking any search or AI visibility.",
+  missing_alt_text: "Screen readers and search engine image crawlers rely entirely on alt text to understand image content — without it, the image provides zero SEO or accessibility value.",
+  broken_internal_link: "Broken links waste crawl budget, create a poor user experience, and signal to search engines that the site is poorly maintained.",
+  redirect_chain: "Each redirect hop adds latency and loses a small percentage of link equity. Chains of three or more redirects can significantly dilute ranking signals.",
+  low_word_count: "AI retrieval systems split content into semantic chunks of 300–600 tokens. Pages below 300 words cannot form a stable chunk, making them unreliable sources for AI-generated answers.",
+  missing_robots_txt: "Without a robots.txt file, crawlers have no guidance on which parts of the site to crawl or avoid, risking wasted crawl budget on non-indexable pages.",
+  missing_sitemap: "Without a sitemap, search engines must rely entirely on link discovery to find pages, which means newer or orphaned pages may never be crawled.",
+  duplicate_title: "Duplicate title tags signal a lack of content differentiation. Search engines may choose which version to index, undermining your targeting strategy.",
+};
+
 // ─── Column helper ────────────────────────────────────────────────────────────
 
 const col = createColumnHelper<SEOIssue>();
@@ -548,10 +571,33 @@ function RowContent({
         </div>
       </div>
       {expanded && (
-        <div className="border-t border-white/5 bg-[#0A1F14] px-5 py-4">
-          <p className="mb-1 text-xs font-semibold text-cyan">Recommendation</p>
-          <p className="text-sm text-white leading-relaxed">{row.original.recommendation}</p>
-          <div className="mt-3 flex items-center gap-3">
+        <div className="border-t border-white/5 bg-[#0A1F14] px-5 py-4 space-y-4">
+          {/* Problem */}
+          <div>
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-red-400">Problem</p>
+            <p className="text-sm text-white leading-relaxed">
+              {(row.original.problem as string | undefined) ?? row.original.message}
+            </p>
+          </div>
+
+          {/* Cause */}
+          <div>
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-amber-400">Cause</p>
+            <p className="text-sm text-[#b0c4cc] leading-relaxed">
+              {(row.original.cause as string | undefined) ?? CAUSE_MAP[row.original.type as string] ?? 'This issue degrades crawlability, AI retrievability, or user experience — each of which contributes to overall visibility.'}
+            </p>
+          </div>
+
+          {/* Solution */}
+          <div>
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-teal-400">Solution</p>
+            <p className="text-sm text-white leading-relaxed">
+              {(row.original.solution as string | undefined) ?? row.original.recommendation}
+            </p>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-3 pt-1">
             <a
               href={row.original.url}
               target="_blank"
@@ -573,7 +619,7 @@ function RowContent({
                     : 'border-white/10 bg-white/[0.04] text-[#4A6280] hover:border-cyan/30 hover:text-cyan'
                 }`}
               >
-                {fixOpen ? 'Hide fix ↑' : 'View fix →'}
+                {fixOpen ? 'Hide code fix ↑' : 'View code fix →'}
               </button>
             )}
           </div>

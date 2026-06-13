@@ -88,6 +88,7 @@ export interface SEOIssue {
   message: string;
   recommendation: string;
   problem?: string;
+  cause?: string;
   solution?: string;
   fixCode?: string;
   fixLanguage?: FixLanguage;

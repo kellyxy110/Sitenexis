@@ -182,6 +182,9 @@ interface SEOIssueSimple {
   url: string;
   message: string;
   recommendation: string;
+  problem: string;
+  cause: string;
+  solution: string;
 }
 
 function analyseSEO(pages: ParsedPage[]): { score: number; issues: SEOIssueSimple[] } {
@@ -192,41 +195,104 @@ function analyseSEO(pages: ParsedPage[]): { score: number; issues: SEOIssueSimpl
     const u = page.url;
 
     if (!page.title) {
-      issues.push({ type: 'missing_title', severity: 'critical', url: u, message: 'No <title> tag found', recommendation: 'Add a descriptive title tag (50-60 characters).' });
+      issues.push({
+        type: 'missing_title', severity: 'critical', url: u,
+        message: 'No <title> tag found',
+        problem: 'This page has no title tag — it is invisible to search engines and AI systems.',
+        cause: 'The <title> tag is the primary signal crawlers use to classify a page\'s topic. Without it, search engines and AI retrieval systems cannot confidently categorise or cite this page.',
+        solution: 'Add a <title> tag of 50–60 characters to the page <head>. Include the primary keyword and entity name.',
+        recommendation: 'Add a descriptive title tag (50–60 characters) including the primary keyword.',
+      });
       deductions += 10;
     } else if (page.title.length > 70) {
-      issues.push({ type: 'title_too_long', severity: 'warning', url: u, message: `Title is ${page.title.length} chars (max 70)`, recommendation: 'Shorten the title to under 70 characters.' });
+      issues.push({
+        type: 'title_too_long', severity: 'warning', url: u,
+        message: `Title is ${page.title.length} chars (max 70)`,
+        problem: 'The title tag exceeds the display limit and will be truncated in search results.',
+        cause: 'Search engines display approximately 60–70 characters of a title. Text beyond this is cut off, hiding key information and reducing click-through rates.',
+        solution: 'Shorten the title to under 60 characters, keeping the primary keyword near the start.',
+        recommendation: 'Shorten the title to under 70 characters.',
+      });
       deductions += 3;
     } else if (page.title.length < 20) {
-      issues.push({ type: 'title_too_short', severity: 'warning', url: u, message: `Title is only ${page.title.length} chars`, recommendation: 'Expand the title to at least 20 characters.' });
+      issues.push({
+        type: 'title_too_short', severity: 'warning', url: u,
+        message: `Title is only ${page.title.length} chars`,
+        problem: 'The title tag is too brief to signal page intent clearly.',
+        cause: 'Short titles lack the semantic richness needed for accurate topic classification by search engines and AI systems.',
+        solution: 'Expand the title to 20–60 characters, clearly naming the entity and topic this page covers.',
+        recommendation: 'Expand the title to at least 20 characters.',
+      });
       deductions += 3;
     }
 
     if (!page.metaDescription) {
-      issues.push({ type: 'missing_meta_description', severity: 'warning', url: u, message: 'No meta description', recommendation: 'Add a meta description (120-155 characters).' });
+      issues.push({
+        type: 'missing_meta_description', severity: 'warning', url: u,
+        message: 'No meta description',
+        problem: 'This page has no meta description — search engines will auto-generate one.',
+        cause: 'Without a description, search engines generate snippet text from body content, which is rarely optimised for user intent and reduces click-through rates.',
+        solution: 'Write a meta description of 120–155 characters summarising the page\'s core value and including the primary keyword.',
+        recommendation: 'Add a meta description (120–155 characters).',
+      });
       deductions += 5;
     } else if (page.metaDescription.length > 165) {
-      issues.push({ type: 'meta_description_too_long', severity: 'info', url: u, message: `Meta description is ${page.metaDescription.length} chars`, recommendation: 'Trim meta description to under 155 characters.' });
+      issues.push({
+        type: 'meta_description_too_long', severity: 'info', url: u,
+        message: `Meta description is ${page.metaDescription.length} chars`,
+        problem: 'The meta description is too long and will be truncated in search results.',
+        cause: 'Search engines truncate descriptions beyond approximately 155 characters, cutting off your message mid-sentence.',
+        solution: 'Trim the meta description to under 155 characters. Lead with the most important information.',
+        recommendation: 'Trim meta description to under 155 characters.',
+      });
       deductions += 1;
     }
 
     if (!page.h1) {
-      issues.push({ type: 'missing_h1', severity: 'critical', url: u, message: 'No <h1> tag found', recommendation: 'Add a single H1 that describes the page topic.' });
+      issues.push({
+        type: 'missing_h1', severity: 'critical', url: u,
+        message: 'No <h1> tag found',
+        problem: 'This page has no H1 heading — the primary structural content signal is missing.',
+        cause: 'The H1 is the single most important on-page content signal. Search engines and AI systems use it to confirm what a page is about and to form retrievable answers.',
+        solution: 'Add a single H1 tag that clearly states the main topic. It should align with the title tag and contain the primary keyword.',
+        recommendation: 'Add a single H1 that describes the page topic.',
+      });
       deductions += 8;
     }
 
     if (!page.canonical) {
-      issues.push({ type: 'missing_canonical', severity: 'warning', url: u, message: 'No canonical link', recommendation: 'Add <link rel="canonical"> to prevent duplicate content issues.' });
+      issues.push({
+        type: 'missing_canonical', severity: 'warning', url: u,
+        message: 'No canonical link',
+        problem: 'No canonical URL is declared — duplicate content risk is unmanaged.',
+        cause: 'URL variations (www vs. non-www, query strings, trailing slashes) can make the same content appear at multiple addresses, fragmenting ranking signals and confusing crawlers.',
+        solution: 'Add <link rel="canonical" href="[absolute URL]"> to the <head> of every page, pointing to its preferred URL.',
+        recommendation: 'Add <link rel="canonical"> to prevent duplicate content issues.',
+      });
       deductions += 4;
     }
 
     if (page.wordCount < 300 && pages.indexOf(page) > 0) {
-      issues.push({ type: 'low_word_count', severity: 'info', url: u, message: `Only ${page.wordCount} words`, recommendation: 'Add more substantive content (aim for 500+ words on key pages).' });
+      issues.push({
+        type: 'low_word_count', severity: 'info', url: u,
+        message: `Only ${page.wordCount} words`,
+        problem: 'This page has too little content to rank or be retrieved by AI systems.',
+        cause: 'AI retrieval systems split content into semantic chunks of 300–600 tokens. Pages below 300 words cannot form a stable chunk, making them unreliable sources for AI-generated answers.',
+        solution: 'Expand this page to at least 500 words with substantive, topic-specific content. Prioritise depth over volume.',
+        recommendation: 'Add more substantive content (aim for 500+ words on key pages).',
+      });
       deductions += 2;
     }
 
     if (page.robotsMeta?.toLowerCase().includes('noindex')) {
-      issues.push({ type: 'noindex_page', severity: 'warning', url: u, message: 'Page has noindex directive', recommendation: 'Remove noindex if this page should be indexed.' });
+      issues.push({
+        type: 'noindex_page', severity: 'warning', url: u,
+        message: 'Page has noindex directive',
+        problem: 'This page is explicitly blocked from search engines and AI crawlers.',
+        cause: 'A robots meta noindex directive instructs all crawlers to exclude this page from their index. Any traffic or AI visibility this page could generate is blocked.',
+        solution: 'Remove the noindex directive if this page should be discoverable. If it must remain hidden, confirm it is intentional and the page serves no SEO purpose.',
+        recommendation: 'Remove noindex if this page should be indexed.',
+      });
       deductions += 5;
     }
   }
@@ -953,6 +1019,8 @@ export async function runServerlessAudit(
           severity: i.severity as 'critical' | 'warning' | 'info',
           message: i.message,
           recommendation: i.recommendation,
+          problem: i.problem,
+          solution: i.solution,
         })),
       );
     }
