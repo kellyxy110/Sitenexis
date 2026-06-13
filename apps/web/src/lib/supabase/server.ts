@@ -4,9 +4,11 @@ import type { ResponseCookie } from 'next/dist/compiled/@edge-runtime/cookies';
 
 export async function createSupabaseServerClient() {
   const cookieStore = await cookies();
+  const supabaseUrl = process.env['SUPABASE_URL'] ?? process.env['NEXT_PUBLIC_SUPABASE_URL'] ?? '';
+  const supabaseKey = process.env['SUPABASE_ANON_KEY'] ?? process.env['NEXT_PUBLIC_SUPABASE_ANON_KEY'] ?? '';
   return createServerClient(
-    process.env['SUPABASE_URL']!,
-    process.env['SUPABASE_ANON_KEY']!,
+    supabaseUrl,
+    supabaseKey,
     {
       cookies: {
         getAll: () => cookieStore.getAll(),

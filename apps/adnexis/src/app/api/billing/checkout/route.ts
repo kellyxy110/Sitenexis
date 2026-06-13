@@ -4,8 +4,8 @@ import { AuthError } from '@/lib/auth';
 import { env } from '@/lib/env';
 
 const PRICE_IDS: Record<string, string> = {
-  pro:    process.env.STRIPE_PRICE_PRO    ?? '',
-  agency: process.env.STRIPE_PRICE_AGENCY ?? '',
+  pro:    process.env['STRIPE_PRICE_PRO']    ?? '',
+  agency: process.env['STRIPE_PRICE_AGENCY'] ?? '',
 };
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
@@ -43,7 +43,6 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     return NextResponse.redirect(session.url ?? `${env.NEXT_PUBLIC_APP_URL}/pricing`);
   } catch (err) {
     if (err instanceof AuthError) return unauthorizedResponse();
-    console.error('[billing/checkout]', err);
     return NextResponse.json({ error: 'Checkout failed' }, { status: 500 });
   }
 }

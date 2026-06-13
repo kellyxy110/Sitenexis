@@ -2,7 +2,7 @@
 
 > AI Retrieval + Machine Trust Intelligence · AI Creative Intelligence
 
-**SiteNexis:** [sitenexis.vercel.app](https://sitenexis.vercel.app) &nbsp;|&nbsp; **AdNexis:** [adnexis-ai.vercel.app](https://adnexis-ai.vercel.app) &nbsp;|&nbsp; **X:** [@Sitenexis](https://twitter.com/Sitenexis) &nbsp;|&nbsp; **Email:** [sitenexisintel@gmail.com](mailto:sitenexisintel@gmail.com)
+**SiteNexis:** [sitenexis.vercel.app](https://sitenexis.vercel.app) &nbsp;|&nbsp; **AdNexis:** [adnexis-eight.vercel.app](https://adnexis-eight.vercel.app) &nbsp;|&nbsp; **X:** [@Sitenexis](https://twitter.com/Sitenexis) &nbsp;|&nbsp; **Email:** [sitenexisintel@gmail.com](mailto:sitenexisintel@gmail.com)
 
 A two-product intelligence suite built for the machine-first web. SiteNexis tells AI systems how to find and trust your brand. AdNexis tells you what creative converts once they do. Together they close the full loop.
 
@@ -397,12 +397,23 @@ Project build settings (set via API or dashboard):
 
 ### Vercel — AdNexis
 
-Deploy manually from the monorepo root:
+Deploy manually from the monorepo root (CLI must be authenticated as kellyxy110):
 
 ```bash
+# Create vercel.adnexis.json at repo root (see below), then:
 VERCEL_ORG_ID=team_NuC1Fkg65uNAiysfEHuvF4rc \
 VERCEL_PROJECT_ID=prj_twPstETvnNURV3Xa2zEeJ8H2GlM3 \
-vercel --prod --local-config adnexis.vercel.json
+vercel --prod --yes --local-config vercel.adnexis.json
+```
+
+`vercel.adnexis.json` contents (create at monorepo root, do NOT commit):
+```json
+{
+  "buildCommand": "pnpm --filter @sitenexis/shared build && pnpm --filter @sitenexis/db build && pnpm --filter @sitenexis/analyzers build && pnpm --filter adnexis build",
+  "outputDirectory": "apps/adnexis/.next",
+  "installCommand": "pnpm install --no-frozen-lockfile",
+  "framework": "nextjs"
+}
 ```
 
 Project build settings (locked via API):
@@ -588,6 +599,65 @@ Interactive 7-factor Citation Probability checklist. Scores content against the 
 
 ### AI Instructions (`/ai-instructions`)
 Structured entity definition page for AI systems. Provides canonical citation guidance for SiteNexis as an entity.
+
+---
+
+## Google OAuth Setup
+
+Google OAuth requires three configuration steps — none are in code. Complete these once after deploying.
+
+### Step 1 — Enable Google Provider in Supabase
+
+1. Go to **Supabase Dashboard → Authentication → Providers → Google**
+2. Toggle **Enable Sign in with Google** → ON
+3. Enter your **Google Client ID** and **Google Client Secret** (obtained in Step 2)
+4. Save
+
+### Step 2 — Create OAuth Credentials in Google Cloud Console
+
+1. Go to [console.cloud.google.com/apis/credentials](https://console.cloud.google.com/apis/credentials)
+2. Create a new project (or use an existing one)
+3. **APIs & Services → Credentials → Create Credentials → OAuth 2.0 Client IDs**
+4. Application type: **Web application**
+5. Under **Authorized redirect URIs**, add:
+   ```
+   https://<your-supabase-ref>.supabase.co/auth/v1/callback
+   ```
+   (Find this exact URL in Supabase → Authentication → Providers → Google → "Redirect URL")
+6. Copy the **Client ID** and **Client Secret** → paste into Supabase (Step 1)
+
+### Step 3 — Whitelist redirect URLs in Supabase
+
+1. Go to **Supabase Dashboard → Authentication → URL Configuration**
+2. Set **Site URL** to your production URL:
+   ```
+   https://sitenexis.vercel.app
+   ```
+3. Under **Redirect URLs**, add all allowed callback destinations:
+   ```
+   https://sitenexis.vercel.app/auth/callback
+   https://adnexis-eight.vercel.app/api/auth/callback
+   http://localhost:3000/auth/callback
+   http://localhost:3001/api/auth/callback
+   ```
+4. Save
+
+> If OAuth redirects to a blank page or shows "Error: redirect_uri_mismatch", the URL you added in Step 3 does not exactly match the URL Supabase is sending. Check that you added the `/auth/callback` path (not just the domain).
+
+---
+
+## Security
+
+Both apps include production-hardened security headers on every response:
+
+- `X-Frame-Options: SAMEORIGIN` — prevents clickjacking
+- `X-Content-Type-Options: nosniff` — prevents MIME sniffing
+- `Strict-Transport-Security` — enforces HTTPS (2-year max-age)
+- `Content-Security-Policy` — restricts script/style/connect origins
+- `Referrer-Policy: strict-origin-when-cross-origin`
+- `Permissions-Policy` — disables camera, microphone, geolocation
+
+AI analysis routes (analyze, generate) enforce per-user rate limits: **20 req/min** for analysis, **10 req/min** for generation.
 
 ---
 

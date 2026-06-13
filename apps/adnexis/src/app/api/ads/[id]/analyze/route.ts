@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { requireAuth, AuthError, unauthorizedResponse } from '@/lib/auth';
+import { rateLimit } from '@/lib/rate-limit';
 import { getAdById, saveAdAnalysis } from '@sitenexis/db';
 
 import { analyzeAdFull } from '@sitenexis/analyzers/adnexis';
@@ -7,6 +8,9 @@ import { analyzeAdFull } from '@sitenexis/analyzers/adnexis';
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await requireAuth(req);
+    if (!rateLimit(`analyze:${user.id}`, 20, 60_000)) {
+      return NextResponse.json({ error: 'Too many requests. Please wait a moment.' }, { status: 429 });
+    }
     const { id } = await params;
     const ad = await getAdById(id);
 
@@ -46,7 +50,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json(updated);
   } catch (e) {
     if (e instanceof AuthError) return unauthorizedResponse();
-    console.error('Analysis error:', e);
     return NextResponse.json({ error: 'Analysis failed' }, { status: 500 });
   }
 }
