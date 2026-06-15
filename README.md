@@ -20,6 +20,27 @@ Analyses ad creatives, scores them across conversion dimensions using AI, and ge
 
 **Five modules:** Vault · Analyze · Generate · Dashboard · Hooks (automation)
 
+### SiteNexis Dashboard Pages
+
+| Page | Path | Description |
+|---|---|---|
+| Overview | `/dashboard` | Score summary + audit stream |
+| SEO | `/audit/[domain]/seo` | Title, meta, canonical, sitemap |
+| AI Visibility | `/audit/[domain]/ai-visibility` | AI Visibility composite score |
+| Entity Intelligence | `/audit/[domain]/entity` | Entity extraction + confidence |
+| Citation | `/audit/[domain]/citation` | Citation probability breakdown |
+| Schema | `/audit/[domain]/schema` | Schema completeness + generated snippets |
+| Links | `/audit/[domain]/links` | Internal link graph + PageRank |
+| Content | `/audit/[domain]/content` | Content quality signals |
+| Performance | `/audit/[domain]/performance` | Core Web Vitals |
+| Retrieval | `/audit/[domain]/retrieval` | Retrieval simulation (Layer 4, Pro+) |
+| Machine Trust | `/audit/[domain]/machine-trust` | Trust score breakdown (Layer 4, Pro+) |
+| Temporal | `/audit/[domain]/temporal` | Authority velocity + drift (Layer 4, Pro+) |
+| Surfaces | `/audit/[domain]/surfaces` | Recommendation surface map (Layer 4, Pro+) |
+| Authenticity | `/audit/[domain]/authenticity` | Synthetic entity detection (Layer 4, Pro+) |
+| Portfolio | `/dashboard/portfolio` | All audited domains — score grid with trend badges |
+| Query Simulation | `/dashboard/query-test` | Algorithmic TF-IDF retrieval test against any completed audit |
+
 ---
 
 ## What SiteNexis Is
@@ -586,6 +607,23 @@ vercel curl https://sitenexis-kellyxys-projects.vercel.app/api/health
 
 ---
 
+## Public API (v1)
+
+Agency and Enterprise plan users can access SiteNexis programmatically via the Public API.
+
+**Authentication:** `Authorization: Bearer <api_key>` header. API keys are created in the dashboard → Settings → API Keys and stored as SHA-256 hashes in the `api_keys` table.
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/v1/audits` | List your audits (paginated, `?page=1&limit=20`) |
+| `POST` | `/api/v1/audits` | Start a new audit (`{ "domain": "example.com" }`) |
+| `GET` | `/api/v1/audits/:id` | Fetch a completed audit result |
+| `GET` | `/api/v1/audits/:id/scores` | Fetch score breakdown only |
+
+Rate limit: 30 requests/min. All endpoints return JSON. HTTP status codes follow REST conventions (200, 201, 400, 401, 402, 403, 404, 429, 500).
+
+---
+
 ## Content & Tools
 
 ### Blog (`/blog`)
@@ -648,6 +686,8 @@ Google OAuth requires three configuration steps — none are in code. Complete t
 
 ## Security
 
+### HTTP Security Headers
+
 Both apps include production-hardened security headers on every response:
 
 - `X-Frame-Options: SAMEORIGIN` — prevents clickjacking
@@ -657,7 +697,49 @@ Both apps include production-hardened security headers on every response:
 - `Referrer-Policy: strict-origin-when-cross-origin`
 - `Permissions-Policy` — disables camera, microphone, geolocation
 
-AI analysis routes (analyze, generate) enforce per-user rate limits: **20 req/min** for analysis, **10 req/min** for generation.
+### Rate Limiting
+
+All sensitive routes are protected by a Redis-backed sliding-window rate limiter (`apps/web/src/lib/rate-limit.ts`) with an in-process `Map` fallback when Redis is unavailable.
+
+| Route | Limit |
+|---|---|
+| `POST /api/audit/start` | 10 req/min per user |
+| `POST /api/v1/audits` (Public API) | 30 req/min per user |
+| AdNexis analyze | 20 req/min per user |
+| AdNexis generate | 10 req/min per user |
+| AdNexis hooks | 15 req/min per user |
+| AdNexis billing/checkout | 5 req/min per user |
+
+### IDOR Protection
+
+Every API route that accepts an audit ID verifies `audit.userId === authenticatedUser.id` before returning data. A mismatched ownership check returns 403, not 404, to avoid leaking record existence.
+
+### SSRF Protection
+
+The `/api/orchestrate` and `/api/audit/start` routes block all private IP ranges before passing URLs to the crawler:
+
+```
+localhost, 127.x, 10.x, 192.168.x, 172.16–31.x, 169.254.x, 0.0.0.0, ::1, fc00:, fe80:, file:
+```
+
+### XSS Prevention
+
+All user-controlled data embedded in server-generated HTML (e.g., PDF report templates) is passed through `escHtml()` before insertion. No raw string interpolation with external data.
+
+### Timing-Safe Secret Comparison
+
+Webhook secret verification (Stripe, Vercel deploy hooks) uses `crypto.timingSafeEqual` on SHA-256 digests of both sides — never direct string comparison.
+
+### Auth Bypass Production Guard
+
+`PLAYWRIGHT_TEST` and `DEMO_MODE` middleware bypass flags are disabled in production (`VERCEL_ENV === 'production' || NODE_ENV === 'production'`). They only take effect in non-production environments.
+
+### Input Length Limits
+
+All Zod schemas on AI-bound routes enforce `.max()` on text fields to prevent cost abuse:
+- Ad transcripts: 50,000 chars
+- Source ads for generation: 10,000 chars
+- Hook fields (offer, audience, pain point): 500 chars each
 
 ---
 
