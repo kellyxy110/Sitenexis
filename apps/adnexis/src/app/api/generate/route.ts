@@ -2,21 +2,22 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAuth, AuthError, unauthorizedResponse } from '@/lib/auth';
 import { rateLimit } from '@/lib/rate-limit';
+import { env } from '@/lib/env';
 import { createAdGeneration } from '@sitenexis/db';
 import { regenerateAd } from '@sitenexis/analyzers/adnexis';
 
 const schema = z.object({
-  sourceAd: z.string().min(10),
-  platforms: z.array(z.string()).min(1),
-  tone: z.enum(['aggressive', 'balanced', 'premium']),
+  sourceAd:     z.string().min(10).max(10_000),
+  platforms:    z.array(z.string().max(100)).min(1).max(10),
+  tone:         z.enum(['aggressive', 'balanced', 'premium']),
   localization: z.enum(['nigerian_english', 'african_market', 'global_premium', 'none']).optional(),
-  count: z.number().min(1).max(10).default(3),
+  count:        z.number().int().min(1).max(10).default(3),
 });
 
 export async function POST(req: NextRequest) {
   try {
     const user = await requireAuth(req);
-    if (!rateLimit(`generate:${user.id}`, 10, 60_000)) {
+    if (!await rateLimit(`generate:${user.id}`, 10, 60_000)) {
       return NextResponse.json({ error: 'Too many requests. Please wait a moment.' }, { status: 429 });
     }
     const body: unknown = await req.json();
@@ -27,7 +28,7 @@ export async function POST(req: NextRequest) {
     }
 
     const result = await regenerateAd(parsed.data, {
-      groqApiKey: process.env['GROQ_API_KEY'] ?? '',
+      groqApiKey: env.GROQ_API_KEY,
     });
 
     await createAdGeneration(user.id, {

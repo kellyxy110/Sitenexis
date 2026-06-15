@@ -1,16 +1,23 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { requireAuth, unauthorizedResponse } from '@/lib/auth';
 import { AuthError } from '@/lib/auth';
+import { rateLimit } from '@/lib/rate-limit';
 import { env } from '@/lib/env';
 
 const PRICE_IDS: Record<string, string> = {
-  pro:    process.env['STRIPE_PRICE_PRO']    ?? '',
-  agency: process.env['STRIPE_PRICE_AGENCY'] ?? '',
+  pro:    env.STRIPE_PRICE_PRO,
+  agency: env.STRIPE_PRICE_AGENCY,
 };
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
     const user = await requireAuth(req);
+
+    // Rate limit: 5 checkout session creations per user per minute
+    if (!await rateLimit(`checkout:${user.id}`, 5, 60_000)) {
+      return NextResponse.json({ error: 'Too many requests. Please wait a moment.' }, { status: 429 });
+    }
+
     const plan = req.nextUrl.searchParams.get('plan') ?? '';
 
     if (!PRICE_IDS[plan]) {

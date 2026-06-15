@@ -157,6 +157,7 @@ export default function PricingPage() {
 
               <Link
                 href={plan.href}
+                prefetch={false}
                 className={`w-full text-center rounded-lg py-2.5 text-sm font-semibold transition-colors ${
                   plan.highlight
                     ? 'bg-[#6C3EFF] hover:bg-[#7B4FFF] text-white'

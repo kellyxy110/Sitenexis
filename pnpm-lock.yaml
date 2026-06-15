@@ -80,6 +80,9 @@ importers:
       framer-motion:
         specifier: ^11.5.4
         version: 11.18.2(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+      ioredis:
+        specifier: ^5.4.1
+        version: 5.10.1
       lucide-react:
         specifier: ^0.441.0
         version: 0.441.0(react@19.2.6)

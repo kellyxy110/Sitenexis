@@ -4,12 +4,14 @@ import { requireAuth, AuthError, unauthorizedResponse } from '@/lib/auth';
 import { createAd, listAdsByUser } from '@sitenexis/db';
 
 const createAdSchema = z.object({
-  platform: z.string(),
-  mediaType: z.string().optional(),
-  sourceUrl: z.string().url().optional(),
-  transcript: z.string().min(1),
-  niche: z.string().optional(),
-  tags: z.array(z.string()).optional(),
+  platform:   z.string().min(1).max(100),
+  mediaType:  z.string().max(100).optional(),
+  sourceUrl:  z.string().url().max(2048)
+    .refine((u) => /^https?:\/\//i.test(u), { message: 'Only http/https URLs allowed' })
+    .optional(),
+  transcript: z.string().min(1).max(50_000),
+  niche:      z.string().max(200).optional(),
+  tags:       z.array(z.string().max(50)).max(20).optional(),
 });
 
 export async function GET(req: NextRequest) {

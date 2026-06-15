@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { requireAuth, AuthError, unauthorizedResponse } from '@/lib/auth';
 import { rateLimit } from '@/lib/rate-limit';
+import { env } from '@/lib/env';
 import { getAdById, saveAdAnalysis } from '@sitenexis/db';
 
 import { analyzeAdFull } from '@sitenexis/analyzers/adnexis';
@@ -8,7 +9,7 @@ import { analyzeAdFull } from '@sitenexis/analyzers/adnexis';
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await requireAuth(req);
-    if (!rateLimit(`analyze:${user.id}`, 20, 60_000)) {
+    if (!await rateLimit(`analyze:${user.id}`, 20, 60_000)) {
       return NextResponse.json({ error: 'Too many requests. Please wait a moment.' }, { status: 429 });
     }
     const { id } = await params;
@@ -24,7 +25,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         niche: ad.niche ?? undefined,
       },
       {
-        groqApiKey: process.env['GROQ_API_KEY'] ?? '',
+        groqApiKey: env.GROQ_API_KEY,
       }
     );
 

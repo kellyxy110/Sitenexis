@@ -20,6 +20,9 @@ const envSchema = z.object({
   STRIPE_WEBHOOK_SECRET: z.string().default('whsec_placeholder'),
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().default('pk_test_placeholder'),
 
+  STRIPE_PRICE_PRO:    z.string().default(''),
+  STRIPE_PRICE_AGENCY: z.string().default(''),
+
   NEXT_PUBLIC_APP_URL: z.string().default('http://localhost:3001'),
 });
 
