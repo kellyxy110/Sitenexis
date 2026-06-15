@@ -945,13 +945,22 @@ function MachineTrustTab({ d }: { d: MachineTrustData | undefined; loading: bool
           <div className="border-b border-white/10 px-5 py-3"><h3 className="font-semibold text-white">Trust Issues ({(d.trustIssues ?? []).length})</h3></div>
           <div className="divide-y divide-white/[0.04]">
             {(d.trustIssues ?? []).map((issue, i) => (
-              <div key={i} className="px-5 py-4">
-                <div className="flex items-start gap-3">
+              <div key={i} className="px-5 py-4 space-y-3">
+                <div className="flex items-center gap-2">
                   <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${issue.severity === 'critical' ? 'bg-red-500/15 text-red-400' : issue.severity === 'warning' ? 'bg-amber-500/15 text-amber-400' : 'bg-blue-500/15 text-blue-400'}`}>{issue.severity}</span>
-                  <div>
-                    <p className="text-sm text-white">{issue.description}</p>
-                    <p className="mt-1 text-xs text-[#4A6280]">→ {issue.recommendation}</p>
-                  </div>
+                  <span className="text-[10px] font-mono text-[#4A6280]">{(issue.type ?? '').replace(/_/g, ' ')}</span>
+                </div>
+                <div>
+                  <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-red-400">Problem</p>
+                  <p className="text-sm text-white leading-relaxed">{issue.description}</p>
+                </div>
+                <div>
+                  <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-amber-400">Cause</p>
+                  <p className="text-sm text-[#b0c4cc] leading-relaxed">{TRUST_CAUSE_MAP[issue.type] ?? 'This trust signal deficiency reduces AI confidence in this content as a reliable source across multiple retrieval interactions.'}</p>
+                </div>
+                <div>
+                  <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-teal-400">Solution</p>
+                  <p className="text-sm text-white leading-relaxed">{issue.recommendation}</p>
                 </div>
               </div>
             ))}
@@ -996,10 +1005,23 @@ function TemporalTab({ d }: { d: TemporalData | undefined; loading: boolean }) {
           <div className="border-b border-white/10 px-5 py-3"><h3 className="font-semibold text-white">Temporal Issues ({(d.temporalIssues ?? []).length})</h3></div>
           <div className="divide-y divide-white/[0.04]">
             {(d.temporalIssues ?? []).map((issue, i) => (
-              <div key={i} className="px-5 py-4">
-                <span className={`mb-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${issue.severity === 'critical' ? 'bg-red-500/15 text-red-400' : issue.severity === 'warning' ? 'bg-amber-500/15 text-amber-400' : 'bg-blue-500/15 text-blue-400'}`}>{issue.severity}</span>
-                <p className="text-sm text-white">{issue.description}</p>
-                <p className="mt-1 text-xs text-[#4A6280]">→ {issue.recommendation}</p>
+              <div key={i} className="px-5 py-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className={`shrink-0 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${issue.severity === 'critical' ? 'bg-red-500/15 text-red-400' : issue.severity === 'warning' ? 'bg-amber-500/15 text-amber-400' : 'bg-blue-500/15 text-blue-400'}`}>{issue.severity}</span>
+                  <span className="text-[10px] font-mono text-[#4A6280]">{(issue.type ?? '').replace(/_/g, ' ')}</span>
+                </div>
+                <div>
+                  <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-red-400">Problem</p>
+                  <p className="text-sm text-white leading-relaxed">{issue.description}</p>
+                </div>
+                <div>
+                  <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-amber-400">Cause</p>
+                  <p className="text-sm text-[#b0c4cc] leading-relaxed">{TEMPORAL_CAUSE_MAP[issue.type] ?? 'Temporal signals influence how AI systems weight content freshness and authority over time. Without them, content ages without a decay baseline.'}</p>
+                </div>
+                <div>
+                  <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-teal-400">Solution</p>
+                  <p className="text-sm text-white leading-relaxed">{issue.recommendation}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -1223,6 +1245,42 @@ const SEV_STYLES_AP: Record<string, { ring: string; label: string; dot: string }
   info:     { ring: 'border-blue-500/30 bg-blue-500/5',   label: 'bg-blue-500/15 text-blue-400 border border-blue-500/30',   dot: 'bg-blue-400' },
 };
 
+const SEO_CAUSE_MAP: Record<string, string> = {
+  missing_title: "The <title> tag is the primary signal crawlers use to classify a page's topic. Without it, search engines and AI retrieval systems cannot confidently categorise or cite this page.",
+  title_too_long: "Search engines display approximately 60–70 characters of a title. Text beyond this is cut off, hiding key information and reducing click-through rates.",
+  title_too_short: "Short titles lack the semantic richness needed for accurate topic classification by search engines and AI systems.",
+  missing_meta_description: "Without a description, search engines generate snippet text from body content, which is rarely optimised for user intent and reduces click-through rates.",
+  meta_description_too_long: "Search engines truncate descriptions beyond approximately 155 characters, cutting off your message mid-sentence.",
+  duplicate_meta_description: "Duplicate descriptions signal a lack of page differentiation, reducing click-through rates across all affected pages.",
+  missing_h1: "The H1 is the most important on-page content signal. Search engines and AI systems use it to confirm what a page is about and to form retrievable answers.",
+  multiple_h1: "Multiple H1 tags create ambiguity about the primary topic, weakening the page's ability to rank for any single query.",
+  missing_canonical: "URL variations (www vs. non-www, query strings, trailing slashes) can make the same content appear at multiple addresses, fragmenting ranking signals.",
+  broken_canonical: "A canonical tag pointing to a non-existent URL signals broken site architecture to crawlers and may cause the page to be de-prioritised.",
+  noindex_page: "A robots meta noindex directive instructs all crawlers to exclude this page from their index, blocking any search or AI visibility.",
+  missing_alt_text: "Screen readers and search engine image crawlers rely entirely on alt text to understand image content — without it, the image provides zero SEO or accessibility value.",
+  broken_internal_link: "Broken links waste crawl budget, create a poor user experience, and signal to search engines that the site is poorly maintained.",
+  redirect_chain: "Each redirect hop adds latency and loses a small percentage of link equity. Chains of three or more redirects can significantly dilute ranking signals.",
+  low_word_count: "AI retrieval systems split content into semantic chunks of 300–600 tokens. Pages below 300 words cannot form a stable chunk, making them unreliable sources for AI-generated answers.",
+  missing_robots_txt: "Without a robots.txt file, crawlers have no guidance on which parts of the site to crawl or avoid, risking wasted crawl budget on non-indexable pages.",
+  missing_sitemap: "Without a sitemap, search engines must rely entirely on link discovery to find pages, which means newer or orphaned pages may never be crawled.",
+  duplicate_title: "Duplicate title tags signal a lack of content differentiation. Search engines may choose which version to index, undermining your targeting strategy.",
+};
+
+const TRUST_CAUSE_MAP: Record<string, string> = {
+  missing_entity_schema: "AI systems anchor all entity trust signals to a schema-defined Organisation record. Without it, the primary entity cannot be distinguished from any other text mention on the web and cannot be cross-validated.",
+  missing_same_as: "sameAs links are the primary cross-source identity validation mechanism. Without them, an entity's identity cannot be confirmed against knowledge bases like Wikipedia or Wikidata, which AI systems check during trust resolution.",
+  no_external_validation: "Self-referential trust signals carry lower weight. AI systems assign higher confidence to content whose claims are confirmed by independent external sources, not just by the site itself.",
+  schema_trust_mismatch: "When schema claims cannot be verified from body text, AI systems detect a trust signal inconsistency and reduce confidence in all claims on the page.",
+  contradiction_detected: "Conflicting entity attributes across pages signal unreliable content. When the same entity is described differently in different places, AI systems flag the domain for reduced trust.",
+};
+
+const TEMPORAL_CAUSE_MAP: Record<string, string> = {
+  missing_date_schema: "AI systems use datePublished and dateModified as primary freshness signals. Without them, content age is unknown and the system defaults to treating it as potentially stale, applying trust decay earlier.",
+  stale_thin_pages: "Thin pages with no schema provide no freshness signal and minimal content value. As they age without updates, AI retrieval models apply increasing trust decay to their contribution.",
+  semantic_drift: "When a page's topic shifts between audits without a redirect or update signal, AI systems flag this as authority inconsistency, reducing retrieval confidence for affected content.",
+  abandoned_content: "Content that has not been updated for 6+ months is classified as abandoned by temporal models, triggering an accelerated trust decay curve that reduces its retrieval probability.",
+};
+
 interface FixState {
   status: 'idle' | 'loading' | 'done' | 'error';
   problem?: string;
@@ -1302,34 +1360,44 @@ function ActionPlanIssueCard({ issue, auditId }: { issue: AuditIssue; auditId: s
 
       {open && (
         <div className="border-t border-white/[0.06] bg-[#050B16] px-4 pb-4 pt-3 space-y-3">
+          {/* Problem — shown immediately from DB data */}
           <div>
-            <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-cyan">Recommendation</p>
-            <p className="text-xs text-slate-300 leading-relaxed">{issue.recommendation}</p>
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-red-400">Problem</p>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              {(issue as AuditIssue & { problem?: string }).problem ?? issue.message}
+            </p>
           </div>
 
-          {!issueId ? (
-            <p className="text-xs text-[#4A6280]">Fix not available for this issue.</p>
-          ) : fix.status === 'idle' ? null : fix.status === 'loading' ? (
-            <div className="flex items-center gap-2 text-xs text-[#4A6280]">
-              <div className="h-3 w-3 animate-spin rounded-full border border-cyan border-t-transparent" />
-              Generating fix…
-            </div>
-          ) : fix.status === 'error' ? (
-            <p className="text-xs text-red-400">Fix generation failed.</p>
-          ) : (
-            <div className="space-y-3">
-              <div>
-                <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-red-400">Problem</p>
-                <p className="text-xs text-slate-300 leading-relaxed">{fix.problem}</p>
+          {/* Cause — derived from issue type */}
+          <div>
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-amber-400">Cause</p>
+            <p className="text-xs text-[#b0c4cc] leading-relaxed">
+              {SEO_CAUSE_MAP[issue.type ?? ''] ?? TRUST_CAUSE_MAP[issue.type ?? ''] ?? TEMPORAL_CAUSE_MAP[issue.type ?? ''] ?? 'This issue degrades crawlability, AI retrievability, or machine trust — each of which contributes to overall visibility.'}
+            </p>
+          </div>
+
+          {/* Solution — shown immediately from DB data */}
+          <div>
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-teal-400">Solution</p>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              {(issue as AuditIssue & { solution?: string }).solution ?? issue.recommendation}
+            </p>
+          </div>
+
+          {/* Fix code — loads async via AI API */}
+          {issueId && (
+            fix.status === 'idle' ? null : fix.status === 'loading' ? (
+              <div className="flex items-center gap-2 pt-1 text-xs text-[#4A6280]">
+                <div className="h-3 w-3 animate-spin rounded-full border border-cyan border-t-transparent" />
+                Generating code fix…
               </div>
-              <div>
-                <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-amber-400">Solution</p>
-                <p className="text-xs text-slate-300 leading-relaxed">{fix.solution}</p>
-              </div>
-              <div>
+            ) : fix.status === 'error' ? (
+              <p className="text-xs text-red-400 pt-1">Code fix generation failed.</p>
+            ) : (
+              <div className="pt-1">
                 <div className="mb-1.5 flex items-center justify-between">
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-teal-400">
-                    Fix · {fix.fixLanguage ? (langLabel[fix.fixLanguage] ?? fix.fixLanguage) : ''}
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-cyan">
+                    Code Fix · {fix.fixLanguage ? (langLabel[fix.fixLanguage] ?? fix.fixLanguage) : ''}
                   </p>
                   <div className="flex items-center gap-2">
                     {fix.expectedImpact && (
@@ -1353,7 +1421,7 @@ function ActionPlanIssueCard({ issue, auditId }: { issue: AuditIssue; auditId: s
                   {fix.fixCode}
                 </pre>
               </div>
-            </div>
+            )
           )}
         </div>
       )}
@@ -1561,11 +1629,18 @@ function AuditPageInner() {
   });
 
   // SSE scores — fetch as soon as the audit is complete (not tab-gated)
-  const { data: sseData } = useQuery<SseData>({
+  // Returns null when scores don't exist yet (404) so the panel stays hidden
+  const { data: sseData } = useQuery<SseData | null>({
     queryKey: ['audit-sse', auditId2],
-    queryFn: () => fetch(`/api/audit/${auditId2}/sse`).then((r) => r.json() as Promise<SseData>),
+    queryFn: async () => {
+      const r = await fetch(`/api/audit/${auditId2}/sse`);
+      if (r.status === 404) return null;
+      if (!r.ok) throw new Error('Failed to load SSE scores');
+      return r.json() as Promise<SseData>;
+    },
     enabled: !!auditId2 && data?.status === 'complete',
     staleTime: 300_000,
+    retry: false,
   });
 
   // If audit is still running, show progress UI
@@ -1695,46 +1770,46 @@ function AuditPageInner() {
               {/* GEO Score */}
               <div className="rounded-xl border border-white/10 bg-white/3 p-4">
                 <div className="text-xs font-semibold uppercase tracking-widest text-[#4A6280] mb-2">GEO Score</div>
-                <div className="text-2xl font-bold tabular-nums" style={{ color: scoreColor(sseData.geoScore) }}>{sseData.geoScore}</div>
+                <div className="text-2xl font-bold tabular-nums" style={{ color: scoreColor(sseData.geoScore ?? 0) }}>{sseData.geoScore ?? 0}</div>
                 <div className="mt-2 space-y-1">
-                  <BarMini label="Citation Prob" value={sseData.taBreakdown.depth} />
-                  <BarMini label="Retrieval" value={sseData.taBreakdown.breadth} />
-                  <BarMini label="Semantic Trust" value={sseData.taBreakdown.interlinking} />
+                  <BarMini label="Citation Prob" value={sseData.taBreakdown?.depth ?? 0} />
+                  <BarMini label="Retrieval" value={sseData.taBreakdown?.breadth ?? 0} />
+                  <BarMini label="Semantic Trust" value={sseData.taBreakdown?.interlinking ?? 0} />
                 </div>
               </div>
 
               {/* Topical Authority */}
               <div className="rounded-xl border border-white/10 bg-white/3 p-4">
                 <div className="text-xs font-semibold uppercase tracking-widest text-[#4A6280] mb-2">Topical Authority</div>
-                <div className="text-2xl font-bold tabular-nums" style={{ color: scoreColor(sseData.topicalAuthorityScore) }}>{sseData.topicalAuthorityScore}</div>
+                <div className="text-2xl font-bold tabular-nums" style={{ color: scoreColor(sseData.topicalAuthorityScore ?? 0) }}>{sseData.topicalAuthorityScore ?? 0}</div>
                 <div className="mt-2 space-y-1">
-                  <BarMini label="Depth" value={sseData.taBreakdown.depth} />
-                  <BarMini label="Breadth" value={sseData.taBreakdown.breadth} />
-                  <BarMini label="Interlinking" value={sseData.taBreakdown.interlinking} />
-                  <BarMini label="Freshness" value={sseData.taBreakdown.freshness} />
+                  <BarMini label="Depth" value={sseData.taBreakdown?.depth ?? 0} />
+                  <BarMini label="Breadth" value={sseData.taBreakdown?.breadth ?? 0} />
+                  <BarMini label="Interlinking" value={sseData.taBreakdown?.interlinking ?? 0} />
+                  <BarMini label="Freshness" value={sseData.taBreakdown?.freshness ?? 0} />
                 </div>
               </div>
 
               {/* Semantic Density */}
               <div className="rounded-xl border border-white/10 bg-white/3 p-4">
                 <div className="text-xs font-semibold uppercase tracking-widest text-[#4A6280] mb-2">Semantic Density</div>
-                <div className="text-2xl font-bold tabular-nums" style={{ color: scoreColor(sseData.semanticDensityScore) }}>{sseData.semanticDensityScore}</div>
+                <div className="text-2xl font-bold tabular-nums" style={{ color: scoreColor(sseData.semanticDensityScore ?? 0) }}>{sseData.semanticDensityScore ?? 0}</div>
                 <div className="mt-3 space-y-1.5 text-xs text-[#4A6280]">
-                  <div className="flex justify-between"><span>Entities</span><span className="font-medium text-white">{sseData.sdsBreakdown.entityCount}</span></div>
-                  <div className="flex justify-between"><span>Facts</span><span className="font-medium text-white">{sseData.sdsBreakdown.factCount}</span></div>
-                  <div className="flex justify-between"><span>Raw density</span><span className="font-medium text-white">{sseData.sdsRawDensity}/1k</span></div>
+                  <div className="flex justify-between"><span>Entities</span><span className="font-medium text-white">{sseData.sdsBreakdown?.entityCount ?? 0}</span></div>
+                  <div className="flex justify-between"><span>Facts</span><span className="font-medium text-white">{sseData.sdsBreakdown?.factCount ?? 0}</span></div>
+                  <div className="flex justify-between"><span>Raw density</span><span className="font-medium text-white">{sseData.sdsRawDensity ?? 0}/1k</span></div>
                 </div>
               </div>
 
               {/* AI Crawlability */}
               <div className="rounded-xl border border-white/10 bg-white/3 p-4">
                 <div className="text-xs font-semibold uppercase tracking-widest text-[#4A6280] mb-2">AI Crawlability</div>
-                <div className="text-2xl font-bold tabular-nums" style={{ color: scoreColor(sseData.aiCrawlabilityScore) }}>{sseData.aiCrawlabilityScore}</div>
+                <div className="text-2xl font-bold tabular-nums" style={{ color: scoreColor(sseData.aiCrawlabilityScore ?? 0) }}>{sseData.aiCrawlabilityScore ?? 0}</div>
                 <div className="mt-2 space-y-1">
-                  <BarMini label="Robots" value={sseData.aciBreakdown.robots} />
-                  <BarMini label="Sitemap" value={sseData.aciBreakdown.sitemap} />
-                  <BarMini label="Renderability" value={sseData.aciBreakdown.renderability} />
-                  <BarMini label="Indexability" value={sseData.aciBreakdown.indexability} />
+                  <BarMini label="Robots" value={sseData.aciBreakdown?.robots ?? 0} />
+                  <BarMini label="Sitemap" value={sseData.aciBreakdown?.sitemap ?? 0} />
+                  <BarMini label="Renderability" value={sseData.aciBreakdown?.renderability ?? 0} />
+                  <BarMini label="Indexability" value={sseData.aciBreakdown?.indexability ?? 0} />
                 </div>
               </div>
             </div>

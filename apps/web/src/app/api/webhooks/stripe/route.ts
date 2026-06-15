@@ -3,8 +3,9 @@ import { type NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { type Plan } from '@sitenexis/shared';
 import { logger } from '@/lib/logger';
+import { env } from '@/lib/env';
 
-const stripe = new Stripe(process.env['STRIPE_SECRET_KEY']!);
+const stripe = new Stripe(env.STRIPE_SECRET_KEY ?? '');
 
 const PRICE_TO_PLAN: Record<string, Plan> = {
   // Populate with actual Stripe price IDs from dashboard
@@ -19,7 +20,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   let event: Stripe.Event;
   try {
-    event = stripe.webhooks.constructEvent(body, sig, process.env['STRIPE_WEBHOOK_SECRET']!);
+    event = stripe.webhooks.constructEvent(body, sig, env.STRIPE_WEBHOOK_SECRET ?? '');
   } catch (err) {
     logger.error({ err }, 'Stripe webhook signature verification failed');
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });

@@ -15,12 +15,14 @@ interface Stage {
 }
 
 interface SSEPayload {
+  type?: string;
   status?: string;
   stage?: string;
   pagesCount?: number;
   issuesCount?: number;
   message?: string;
   error?: string;
+  timestamp?: string;
 }
 
 // ─── Stage definitions ────────────────────────────────────────────────────────
@@ -153,6 +155,21 @@ export function AuditProgress({ domain, auditId }: AuditProgressProps) {
         try {
           payload = JSON.parse(event.data) as SSEPayload;
         } catch {
+          return;
+        }
+
+        // Silently ignore keepalive pings and partial connecting events
+        if (payload.type === 'ping' || payload.status === 'partial') return;
+
+        // Degraded = temporary issue, keep stream alive — show a soft warning not a hard failure
+        if (payload.status === 'degraded') {
+          if (payload.error?.includes('timed out')) {
+            // Only treat timeout as hard failure
+            setFailed(true);
+            setFailReason(payload.error);
+            es.close();
+          }
+          // Other degraded events are transient — stay connected, keep UI running
           return;
         }
 

@@ -11,13 +11,15 @@ import { env } from '@/lib/env';
 import { logger } from '@/lib/logger';
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  // Validate Vercel webhook signature if secret is configured
-  if (env.VERCEL_DEPLOY_WEBHOOK_SECRET) {
-    const signature = req.headers.get('x-vercel-signature') ?? '';
-    if (signature !== env.VERCEL_DEPLOY_WEBHOOK_SECRET) {
-      logger.warn({ signature }, 'Vercel deploy webhook: invalid signature');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+  // Signature verification is always required — reject if secret is unconfigured.
+  if (!env.VERCEL_DEPLOY_WEBHOOK_SECRET) {
+    logger.warn('Vercel deploy webhook: VERCEL_DEPLOY_WEBHOOK_SECRET not configured — rejecting all requests');
+    return NextResponse.json({ error: 'Webhook not configured' }, { status: 503 });
+  }
+  const signature = req.headers.get('x-vercel-signature') ?? '';
+  if (signature !== env.VERCEL_DEPLOY_WEBHOOK_SECRET) {
+    logger.warn({ signature }, 'Vercel deploy webhook: invalid signature');
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   let body: Record<string, unknown> = {};

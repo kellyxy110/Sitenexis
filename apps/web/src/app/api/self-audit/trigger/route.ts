@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic';
 import { type NextRequest, NextResponse } from 'next/server';
+import { timingSafeEqual, createHash } from 'crypto';
 import { z } from 'zod';
 import { env } from '@/lib/env';
 import { logger } from '@/lib/logger';
@@ -27,7 +28,14 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  if (parsed.data.secret !== env.SELF_AUDIT_SECRET) {
+  const expected = env.SELF_AUDIT_SECRET ?? '';
+  if (!expected) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  // Timing-safe comparison to prevent timing-based secret enumeration
+  const a = createHash('sha256').update(parsed.data.secret).digest();
+  const b = createHash('sha256').update(expected).digest();
+  if (a.length !== b.length || !timingSafeEqual(a, b)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

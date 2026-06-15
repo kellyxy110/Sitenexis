@@ -5,11 +5,20 @@ import { type NextRequest } from 'next/server';
 import { isFullyConfigured } from '@/lib/mode';
 import { logger } from '@/lib/logger';
 
+const ADMIN_EMAILS = new Set([
+  'luchijudith@gmail.com',
+  'system@sitenexis.com',
+]);
+
 export async function GET(req: NextRequest): Promise<NextResponse> {
+  let user: Awaited<ReturnType<typeof requireAuth>>;
   try {
-    await requireAuth(req);
+    user = await requireAuth(req);
   } catch {
     return unauthorizedResponse();
+  }
+  if (!ADMIN_EMAILS.has(user.email)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   if (!isFullyConfigured()) {

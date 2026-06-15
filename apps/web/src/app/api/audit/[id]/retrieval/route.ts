@@ -19,7 +19,8 @@ function demoRetrievalData(auditId: string) {
 }
 
 export async function GET(req: NextRequest, { params }: Params): Promise<NextResponse> {
-  try { await requireAuth(req); } catch { return unauthorizedResponse(); }
+  let user: Awaited<ReturnType<typeof requireAuth>>;
+  try { user = await requireAuth(req); } catch { return unauthorizedResponse(); }
   const { id } = await params;
 
   if (!isFullyConfigured()) return NextResponse.json(demoRetrievalData(id));
@@ -29,6 +30,7 @@ export async function GET(req: NextRequest, { params }: Params): Promise<NextRes
     const { getRetrievalSimulations } = await import('@sitenexis/db');
     const audit = await getAuditWithResults(id) as { userId: string } | null;
     if (!audit) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    if (audit.userId !== user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const results = await getRetrievalSimulations(id);
     const scored = results.filter((r) => r.retrievalQualityScore !== null);

@@ -16,23 +16,16 @@ export function isFullyConfigured(): boolean {
 
   const supabaseUrl   = process.env['SUPABASE_URL'] ?? process.env['NEXT_PUBLIC_SUPABASE_URL'] ?? '';
   const dbUrl         = process.env['DATABASE_URL'] ?? '';
-  const redisUrl      = process.env['REDIS_URL'] ?? '';
   const supabaseAnon  = process.env['SUPABASE_ANON_KEY'] ?? process.env['NEXT_PUBLIC_SUPABASE_ANON_KEY'] ?? '';
 
   const supabaseOk = Boolean(supabaseUrl) && !supabaseUrl.includes('placeholder');
   const dbOk       = Boolean(dbUrl)       && !dbUrl.includes('placeholder');
+  const anonOk     = Boolean(supabaseAnon) && !supabaseAnon.includes('placeholder');
 
-  // Redis is required for BullMQ job queuing.
-  // localhost/127.0.0.1 never works on Vercel serverless — treat as unconfigured.
-  const redisOk =
-    Boolean(redisUrl) &&
-    !redisUrl.includes('placeholder') &&
-    !redisUrl.includes('localhost') &&
-    !redisUrl.includes('127.0.0.1');
-
-  const anonOk = Boolean(supabaseAnon) && !supabaseAnon.includes('placeholder');
-
-  return supabaseOk && dbOk && redisOk && anonOk;
+  // Redis is NOT required here — the serverless audit path works without it.
+  // Redis absence means background BullMQ jobs are unavailable, but audits still
+  // run via the serverless path. Demo mode is only triggered when auth/DB is missing.
+  return supabaseOk && dbOk && anonOk;
 }
 
 /**
@@ -73,11 +66,11 @@ export function getConfigurationStatus(): {
     },
   };
 
+  // Redis is optional — serverless audit works without it.
   const fullyConfigured =
     process.env['DEMO_MODE'] !== 'true' &&
     services.supabase.ok &&
     services.database.ok &&
-    services.redis.ok &&
     services.supabaseAnon.ok;
 
   return { fullyConfigured, services };

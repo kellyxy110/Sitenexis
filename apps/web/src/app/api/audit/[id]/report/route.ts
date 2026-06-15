@@ -8,6 +8,10 @@ interface Params {
   params: Promise<{ id: string }>;
 }
 
+function escHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 function scoreLabel(n: number | null): string {
   if (n === null) return 'N/A';
   if (n >= 90) return 'Excellent';
@@ -110,7 +114,7 @@ function generateReportHTML(
   <div style="border-bottom:2px solid #1e3a5f;padding-bottom:20px;margin-bottom:28px;display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px">
     <div>
       <div style="color:#00c8ff;font-size:20px;font-weight:700;font-family:Georgia,serif">SiteNexis</div>
-      <div style="color:#f1f5f9;font-size:26px;font-weight:700;margin-top:4px">${domain}</div>
+      <div style="color:#f1f5f9;font-size:26px;font-weight:700;margin-top:4px">${escHtml(domain)}</div>
       <div style="color:#64748b;font-size:13px;margin-top:2px">Machine Trust Intelligence Report · ${date}</div>
     </div>
     <div style="text-align:right">

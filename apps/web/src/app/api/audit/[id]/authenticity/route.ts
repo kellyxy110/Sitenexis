@@ -30,7 +30,8 @@ function demoData(auditId: string) {
 }
 
 export async function GET(req: NextRequest, { params }: Params): Promise<NextResponse> {
-  try { await requireAuth(req); } catch { return unauthorizedResponse(); }
+  let user: Awaited<ReturnType<typeof requireAuth>>;
+  try { user = await requireAuth(req); } catch { return unauthorizedResponse(); }
   const { id } = await params;
 
   if (!isFullyConfigured()) return NextResponse.json(demoData(id));
@@ -39,6 +40,7 @@ export async function GET(req: NextRequest, { params }: Params): Promise<NextRes
     const { getAuditWithResults, getLatestSyntheticEntityAnalysis } = await import('@sitenexis/db');
     const audit = await getAuditWithResults(id) as { userId: string } | null;
     if (!audit) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    if (audit.userId !== user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const analysis = await getLatestSyntheticEntityAnalysis(id);
     if (!analysis) return NextResponse.json({ error: 'Authenticity analysis not yet available' }, { status: 404 });

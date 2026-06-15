@@ -11,8 +11,19 @@ import {
   buildDemoResults,
 } from '@/lib/demo-store';
 
+// Private IP ranges that must never be fetched (SSRF protection)
+const PRIVATE_IP_RE =
+  /^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.|169\.254\.|::1|fc00:|fe80:)/i;
+const DOMAIN_RE = /^[a-z0-9]([a-z0-9\-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9\-]*[a-z0-9])?)*\.[a-z]{2,}$/i;
+
 const StartAuditSchema = z.object({
-  domain: z.string().min(1).max(253),
+  domain: z
+    .string()
+    .min(1)
+    .max(253)
+    .transform((d) => d.trim().toLowerCase().replace(/^https?:\/\//i, '').replace(/\/.*$/, ''))
+    .refine((d) => DOMAIN_RE.test(d), { message: 'Invalid domain format' })
+    .refine((d) => !PRIVATE_IP_RE.test(d), { message: 'Private or reserved domains are not allowed' }),
 });
 
 // ── Diagnostic stage tracker ──────────────────────────────────────────────────

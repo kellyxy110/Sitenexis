@@ -85,7 +85,8 @@ export async function GET(req: NextRequest, { params }: Params): Promise<NextRes
       cached: false,
     });
   } catch (err) {
-    console.error('[fix-route]', err);
+    const { logger } = await import('@/lib/logger');
+    logger.error({ err, auditId, issueId }, 'Fix generation failed');
     return NextResponse.json({ error: 'Fix generation failed' }, { status: 500 });
   }
 }
