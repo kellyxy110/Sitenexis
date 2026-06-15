@@ -20,6 +20,8 @@ import {
   Users,
   Puzzle,
   Activity,
+  Search,
+  FolderKanban,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -93,6 +95,8 @@ export const NAV_GROUPS: NavGroup[] = [
       { id: 'audits',       label: 'Audits',         href: '/dashboard/audits',          icon: Zap },
       { id: 'live-audit',   label: 'Live Audit',     href: '/dashboard/audits/live',     icon: Globe },
       { id: 'audit-history',label: 'Audit History',  href: '/dashboard/audits/history',  icon: History },
+      { id: 'portfolio',    label: 'Portfolio',       href: '/dashboard/portfolio',       icon: FolderKanban },
+      { id: 'query-test',   label: 'Query Simulation', href: '/dashboard/query-test',    icon: Search },
       {
         id: 'bulk-audits',
         label: 'Bulk Audits',
