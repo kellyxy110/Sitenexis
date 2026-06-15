@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 import { type NextRequest, NextResponse } from 'next/server';
 import { createHash } from 'crypto';
 import { isFullyConfigured } from '@/lib/mode';
+import { rateLimit } from '@/lib/rate-limit';
 import { z } from 'zod';
 
 const StartSchema = z.object({
@@ -94,6 +95,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const caller = await resolveApiKey(req);
   if (!caller) {
     return NextResponse.json({ error: 'Invalid or missing API key' }, { status: 401 });
+  }
+
+  // Rate limit: 30 API audit creations per minute per API key user
+  const rl = await rateLimit('v1:audit:create', caller.userId, { limit: 30, windowSec: 60 });
+  if (!rl.ok) {
+    return NextResponse.json({ error: 'Rate limit exceeded', type: 'rate_limit_error' }, { status: 429, headers: rl.headers });
   }
 
   const body: unknown = await req.json().catch(() => null);

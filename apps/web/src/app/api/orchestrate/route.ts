@@ -4,6 +4,20 @@ import { z } from 'zod';
 import { requireAuth, unauthorizedResponse } from '@/lib/auth';
 import { logger } from '@/lib/logger';
 
+// Private IP ranges — must never be orchestrated (SSRF protection)
+const PRIVATE_IP_RE =
+  /^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.|169\.254\.|0\.0\.0\.0|::1|fc00:|fe80:|file:)/i;
+
+function isSsrfTarget(rawUrl: string): boolean {
+  try {
+    const parsed = new URL(rawUrl);
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return true;
+    return PRIVATE_IP_RE.test(parsed.hostname);
+  } catch {
+    return true;
+  }
+}
+
 // ── Zod schema ────────────────────────────────────────────────────────────────
 
 const StoredResultSchema = z.object({
@@ -58,6 +72,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       { error: 'Validation failed', details: parsed.error.flatten() },
       { status: 400 },
     );
+  }
+
+  if (isSsrfTarget(parsed.data.url)) {
+    return NextResponse.json({ error: 'Invalid URL — private or reserved addresses are not allowed' }, { status: 400 });
   }
 
   try {

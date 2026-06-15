@@ -45,9 +45,9 @@ const envSchema = z.object({
   RESEND_API_KEY: z.string().default(''),
   RESEND_FROM_EMAIL: z.string().default('SiteNexis <noreply@sitenexis.com>'),
 
-  // Self-audit system
-  SELF_AUDIT_SECRET: z.string().default('dev-self-audit-secret'),
-  VERCEL_DEPLOY_WEBHOOK_SECRET: z.string().optional(),
+  // Self-audit system — must be explicitly set; no default to avoid predictable secrets in prod
+  SELF_AUDIT_SECRET: z.string().min(16).default('dev-self-audit-secret-change-in-prod'),
+  VERCEL_DEPLOY_WEBHOOK_SECRET: z.string().min(16).default('dev-vercel-webhook-secret-change-in-prod'),
 });
 
 export const env = envSchema.parse(process.env);

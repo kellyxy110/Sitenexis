@@ -7,6 +7,7 @@ export const dynamic = 'force-dynamic';
  * Set header: x-vercel-signature matching VERCEL_DEPLOY_WEBHOOK_SECRET
  */
 import { type NextRequest, NextResponse } from 'next/server';
+import { timingSafeEqual, createHash } from 'crypto';
 import { env } from '@/lib/env';
 import { logger } from '@/lib/logger';
 
@@ -17,8 +18,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Webhook not configured' }, { status: 503 });
   }
   const signature = req.headers.get('x-vercel-signature') ?? '';
-  if (signature !== env.VERCEL_DEPLOY_WEBHOOK_SECRET) {
-    logger.warn({ signature }, 'Vercel deploy webhook: invalid signature');
+  // Timing-safe comparison to prevent secret enumeration via timing side-channel
+  const a = createHash('sha256').update(signature).digest();
+  const b = createHash('sha256').update(env.VERCEL_DEPLOY_WEBHOOK_SECRET).digest();
+  if (!timingSafeEqual(a, b)) {
+    logger.warn('Vercel deploy webhook: invalid signature');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

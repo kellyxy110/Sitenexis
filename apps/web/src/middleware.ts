@@ -12,9 +12,14 @@ const PUBLIC_PATHS = [
 ];
 
 export async function middleware(req: NextRequest): Promise<NextResponse> {
-  // E2E test mode or explicit demo mode — bypass all auth
-  if (process.env['PLAYWRIGHT_TEST'] === 'true') return NextResponse.next();
-  if (process.env['DEMO_MODE'] === 'true') return NextResponse.next();
+  // Auth-bypass flags are only honoured in non-production environments.
+  // In production, PLAYWRIGHT_TEST and DEMO_MODE are ignored even if set,
+  // preventing accidental open-access deployments.
+  const isProduction = process.env['VERCEL_ENV'] === 'production' || process.env['NODE_ENV'] === 'production';
+  if (!isProduction) {
+    if (process.env['PLAYWRIGHT_TEST'] === 'true') return NextResponse.next();
+    if (process.env['DEMO_MODE'] === 'true') return NextResponse.next();
+  }
 
   const { pathname } = req.nextUrl;
 

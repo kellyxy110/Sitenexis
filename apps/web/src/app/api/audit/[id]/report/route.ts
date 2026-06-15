@@ -45,9 +45,9 @@ function card(label: string, value: number | null): string {
 function issueRow(i: { severity: string; message: string; recommendation: string }): string {
   const badge = i.severity === 'critical' ? '#ef4444' : i.severity === 'warning' ? '#f59e0b' : '#3b82f6';
   return `<tr style="border-bottom:1px solid #1e3a5f">
-    <td style="padding:10px 12px;vertical-align:top"><span style="background:${badge};color:#fff;font-size:10px;padding:2px 7px;border-radius:4px;text-transform:uppercase;white-space:nowrap">${i.severity}</span></td>
-    <td style="padding:10px 12px;color:#cbd5e1;font-size:13px;vertical-align:top">${i.message}</td>
-    <td style="padding:10px 12px;color:#94a3b8;font-size:12px;vertical-align:top">${i.recommendation}</td>
+    <td style="padding:10px 12px;vertical-align:top"><span style="background:${badge};color:#fff;font-size:10px;padding:2px 7px;border-radius:4px;text-transform:uppercase;white-space:nowrap">${escHtml(i.severity)}</span></td>
+    <td style="padding:10px 12px;color:#cbd5e1;font-size:13px;vertical-align:top">${escHtml(i.message)}</td>
+    <td style="padding:10px 12px;color:#94a3b8;font-size:12px;vertical-align:top">${escHtml(i.recommendation)}</td>
   </tr>`;
 }
 
@@ -145,8 +145,9 @@ function generateReportHTML(
 }
 
 export async function POST(req: NextRequest, { params }: Params): Promise<NextResponse> {
+  let user: Awaited<ReturnType<typeof requireAuth>>;
   try {
-    await requireAuth(req);
+    user = await requireAuth(req);
   } catch {
     return unauthorizedResponse();
   }
@@ -156,6 +157,7 @@ export async function POST(req: NextRequest, { params }: Params): Promise<NextRe
   if (!isFullyConfigured()) {
     const audit = getDemoAudit(id);
     if (!audit) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    if (audit.userId !== user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     return NextResponse.json({
       reportUrl: null,
       message: 'PDF generation requires a connected Supabase project. Connect your backend to enable this feature.',
@@ -173,6 +175,7 @@ export async function POST(req: NextRequest, { params }: Params): Promise<NextRe
     ]);
 
     if (!audit) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    if ((audit as { userId: string }).userId !== user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     if (!scores) return NextResponse.json({ error: 'Audit not complete — run an audit first' }, { status: 404 });
 
     const auditTyped = audit as { domain: string; createdAt: Date };

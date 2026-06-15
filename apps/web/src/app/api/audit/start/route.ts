@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { requireAuth, unauthorizedResponse } from '@/lib/auth';
 import { logger } from '@/lib/logger';
 import { isFullyConfigured } from '@/lib/mode';
+import { rateLimit } from '@/lib/rate-limit';
 import {
   createDemoAudit,
   updateDemoAudit,
@@ -48,6 +49,15 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     user = await requireAuth(req);
   } catch {
     return unauthorizedResponse();
+  }
+
+  // Rate limit: 10 audit starts per user per minute
+  const rl = await rateLimit('audit:start', user.id, { limit: 10, windowSec: 60 });
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: 'Too many audit requests. Please wait before starting another audit.' },
+      { status: 429, headers: rl.headers },
+    );
   }
 
   let body: unknown;
