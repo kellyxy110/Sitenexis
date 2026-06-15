@@ -301,12 +301,6 @@ export function AuditProgress({ domain, auditId }: AuditProgressProps) {
 
     function connect() {
       if (unmounted) return;
-
-      // Auto-healing: max reconnect budget is SRS-mode-aware
-      const currentSrs = computeSRS(metricsRef.current, {}).srs;
-      const currentMode = streamMode(currentSrs);
-      const maxReconnects = MODE_MAX_RECONNECTS[currentMode];
-
       const es = new EventSource(`/api/audit/${auditId}/stream`);
       esRef.current = es;
 
