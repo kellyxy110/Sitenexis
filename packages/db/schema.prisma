@@ -308,11 +308,12 @@ model AIVisibilityScore {
 }
 
 model PerceptionGraphSnapshot {
-  id        String   @id @default(cuid())
-  auditId   String   @unique @map("audit_id")
-  nodesJson Json     @map("nodes_json")
-  edgesJson Json     @map("edges_json")
-  createdAt DateTime @default(now()) @map("created_at")
+  id                       String   @id @default(cuid())
+  auditId                  String   @unique @map("audit_id")
+  nodesJson                Json     @map("nodes_json")
+  edgesJson                Json     @map("edges_json")
+  perceptionConfidenceScore Float   @default(0) @map("perception_confidence_score")
+  createdAt                DateTime @default(now()) @map("created_at")
 
   audit  Audit @relation(fields: [auditId], references: [id])
 

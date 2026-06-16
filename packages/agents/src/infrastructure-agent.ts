@@ -360,7 +360,7 @@ async function populateSelfAuditRunAsync(selfAuditRunId: string, auditId: string
       cls: perfBd['cls'] ?? null, ttfb: perfBd['ttfb'] ?? null,
       pageResults: [], issues: [],
     };
-    const graphInput = graph ?? { auditId, nodes: [], edges: [] };
+    const graphInput = graph ?? { auditId, nodes: [], edges: [], perceptionConfidenceScore: 0 };
 
     const health = computeHealthScore({
       seo: seoInput, aiReadability: aiInput, machineReadability: mrInput,

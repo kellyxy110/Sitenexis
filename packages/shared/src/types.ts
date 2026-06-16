@@ -554,6 +554,13 @@ export interface PerceptionGraphSnapshot {
   auditId: string;
   nodes: PerceptionNode[];
   edges: PerceptionEdge[];
+  /**
+   * Perception Confidence Score (0–1). Derived from DOM richness signals only.
+   * Controls UI rendering opacity and inferred-node confidence thresholds.
+   * Never affects Fact Graph, PageRank, or entity extraction.
+   * Ceiling: ≥0.75 → full | 0.40–0.74 → partial | <0.40 → suppressed
+   */
+  perceptionConfidenceScore: number;
 }
 
 // ─── v3 — Retrieval Simulation ───────────────────────────────────────────────

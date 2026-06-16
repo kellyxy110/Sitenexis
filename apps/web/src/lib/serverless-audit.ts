@@ -1045,6 +1045,18 @@ export async function runServerlessAudit(
       const syntheticData = computeSyntheticEntityAnalysis(pages);
 
       // Save all Layer 4 results in parallel — partial failures are acceptable
+      // Compute PCE from crawled page signals (schema density, link density, heading structure, content depth)
+      const pceScore = (() => {
+        if (pages.length === 0) return 0;
+        const schemaDensity = pages.filter((p) => p.schemas.length > 0).length / pages.length;
+        const avgLinks = pages.reduce((s, p) => s + p.internalLinks.length, 0) / pages.length;
+        const linkDensity = Math.min(1, avgLinks / 20);
+        const headingStructure = pages.filter((p) => p.h1 != null && p.headings.some((h) => h.level === 2)).length / pages.length;
+        const avgWords = pages.reduce((s, p) => s + p.wordCount, 0) / pages.length;
+        const contentDepth = Math.min(1, avgWords / 800);
+        return Math.round((schemaDensity * 0.35 + linkDensity * 0.25 + headingStructure * 0.25 + contentDepth * 0.15) * 100) / 100;
+      })();
+
       await Promise.allSettled([
         saveRetrievalSimulations(auditId, retrievalSims),
         saveMachineTrustScore(auditId, machineTrustData),
@@ -1055,8 +1067,8 @@ export async function runServerlessAudit(
         perceptionGraph && perceptionGraph.nodes.length > 0
           ? (db as unknown as { perceptionGraphSnapshot: { upsert: (o: unknown) => Promise<unknown> } }).perceptionGraphSnapshot.upsert({
               where: { auditId },
-              create: { auditId, nodesJson: perceptionGraph.nodes, edgesJson: perceptionGraph.edges.map((e) => ({ ...e, evidencedBy: [] })) },
-              update: { nodesJson: perceptionGraph.nodes, edgesJson: perceptionGraph.edges.map((e) => ({ ...e, evidencedBy: [] })) },
+              create: { auditId, nodesJson: perceptionGraph.nodes, edgesJson: perceptionGraph.edges.map((e) => ({ ...e, evidencedBy: [] })), perceptionConfidenceScore: pceScore },
+              update: { nodesJson: perceptionGraph.nodes, edgesJson: perceptionGraph.edges.map((e) => ({ ...e, evidencedBy: [] })), perceptionConfidenceScore: pceScore },
             })
           : Promise.resolve(),
       ]);

@@ -211,6 +211,45 @@ function buildPageEntityEdges(
   return edges.slice(0, 50); // Cap total page-entity edges
 }
 
+// ─── Perception Confidence Score ──────────────────────────────────────────────
+
+function computePerceptionConfidenceScore(
+  pages: CrawledPage[],
+  entityConfidenceScore: number
+): number {
+  if (pages.length === 0) return 0;
+
+  // Schema density: ratio of pages with at least one schema type declared
+  const schemaDensity = pages.filter((p) => p.schemaMarkup.length > 0).length / pages.length;
+
+  // Link density: avg internal links per page, capped at 20 (score of 1.0 = 20+ links)
+  const avgInternalLinks = pages.reduce((sum, p) => sum + p.internalLinks.length, 0) / pages.length;
+  const linkDensity = Math.min(1, avgInternalLinks / 20);
+
+  // Entity extractability: normalised from existing 0–100 score
+  const entityExtractability = entityConfidenceScore / 100;
+
+  // Heading structure: ratio of pages with both H1 and at least one H2
+  const headingStructure = pages.filter((p) => {
+    const hasH1 = p.h1 != null && p.h1.trim().length > 0;
+    const hasH2 = p.headings.some((h) => h.level === 2);
+    return hasH1 && hasH2;
+  }).length / pages.length;
+
+  // Content depth: avg word count per page, capped at 800 words (score of 1.0 = 800+ words)
+  const avgWordCount = pages.reduce((sum, p) => sum + p.wordCount, 0) / pages.length;
+  const contentDepth = Math.min(1, avgWordCount / 800);
+
+  const score =
+    schemaDensity       * 0.30 +
+    linkDensity         * 0.20 +
+    entityExtractability * 0.25 +
+    headingStructure    * 0.15 +
+    contentDepth        * 0.10;
+
+  return Math.round(score * 100) / 100; // 2 decimal places, 0–1
+}
+
 // ─── Main export ──────────────────────────────────────────────────────────────
 
 export function buildPerceptionGraph(
@@ -219,7 +258,7 @@ export function buildPerceptionGraph(
   entityReport: EntityIntelligenceReport
 ): PerceptionGraphSnapshot {
   if (pages.length === 0) {
-    return { auditId, nodes: [], edges: [] };
+    return { auditId, nodes: [], edges: [], perceptionConfidenceScore: 0 };
   }
 
   const topics = extractTopicClusters(pages);
@@ -230,6 +269,7 @@ export function buildPerceptionGraph(
     : 20;
   const topicNodes = buildTopicNodes(topics, pages, baseConfidence);
   const pageNodes = buildPageNodes(pages, baseConfidence);
+  const perceptionConfidenceScore = computePerceptionConfidenceScore(pages, baseConfidence);
 
   const allNodes: PerceptionNode[] = [...entityNodes, ...topicNodes, ...pageNodes];
 
@@ -266,7 +306,7 @@ export function buildPerceptionGraph(
   ];
 
   // Return empty only if truly nothing was built
-  if (allNodes.length === 0) return { auditId, nodes: [], edges: [] };
+  if (allNodes.length === 0) return { auditId, nodes: [], edges: [], perceptionConfidenceScore };
 
-  return { auditId, nodes: allNodes, edges: allEdges };
+  return { auditId, nodes: allNodes, edges: allEdges, perceptionConfidenceScore };
 }

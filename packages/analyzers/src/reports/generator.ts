@@ -916,6 +916,7 @@ export async function generateAuditReport(auditId: string): Promise<{ pdfUrl: st
       auditId,
       nodes: [],
       edges: [],
+      perceptionConfidenceScore: 0,
     },
   };
 

@@ -147,6 +147,7 @@ export async function getPerceptionGraph(auditId: string): Promise<PGSnapshot | 
     auditId,
     nodes: record.nodesJson as unknown as PGSnapshot['nodes'],
     edges: record.edgesJson as unknown as PGSnapshot['edges'],
+    perceptionConfidenceScore: record.perceptionConfidenceScore,
   };
 }
 
