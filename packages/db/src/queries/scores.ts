@@ -63,6 +63,37 @@ export async function saveAuditScores(scores: AuditScores): Promise<AuditScore> 
       schemaScore: scores.schema.score,
       linkGraphScore: scores.linkGraph.score,
       performanceScore: scores.performance.score,
+      breakdown: {
+        seo: scores.seo.breakdown,
+        ai: scores.aiReadability.breakdown,
+        machineReadability: scores.machineReadability?.breakdown ?? null,
+        entityIntelligence: scores.entityIntelligence ? {
+          entityConfidenceScore: scores.entityIntelligence.entityConfidenceScore,
+          entityConsistencyScore: scores.entityIntelligence.entityConsistencyScore,
+          entityCoverageScore: scores.entityIntelligence.entityCoverageScore,
+          disambiguationScore: scores.entityIntelligence.disambiguationScore,
+        } : null,
+        citationAnalysis: scores.citationAnalysis ? {
+          citationProbabilityScore: scores.citationAnalysis.citationProbabilityScore,
+        } : null,
+        semanticTrust: scores.semanticTrust ? {
+          score: scores.semanticTrust.score,
+          breakdown: scores.semanticTrust.breakdown,
+        } : null,
+        schema: {
+          coverage: scores.schema.coverage,
+          schemaUrls: scores.schema.pageAnalyses
+            .filter((p) => p.detectedTypes.length > 0)
+            .map((p) => p.url),
+        },
+        linkGraph: scores.linkGraph as unknown as Prisma.InputJsonObject,
+        performance: {
+          lcp: scores.performance.lcp,
+          fid: scores.performance.fid,
+          cls: scores.performance.cls,
+          ttfb: scores.performance.ttfb,
+        },
+      },
     },
   });
 
