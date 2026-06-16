@@ -336,7 +336,7 @@ export function HeroCinematic({ onSubmit, loading }: HeroCinematicProps) {
               variants={fadeUp}
               className="text-[clamp(3rem,7vw,5.25rem)] font-bold leading-[1.04] tracking-[-0.04em] text-balance"
             >
-              <span className="text-white">Your Website,</span>
+              <span className="text-white">The machine view</span>
               <br />
               <span
                 className="bg-clip-text text-transparent"
@@ -344,7 +344,7 @@ export function HeroCinematic({ onSubmit, loading }: HeroCinematicProps) {
                   backgroundImage: 'linear-gradient(135deg, #0BCEBC 0%, #00C8FF 60%, #7C5CFF 100%)',
                 }}
               >
-                Fully Decoded.
+                of your website.
               </span>
             </motion.h1>
 
@@ -357,8 +357,8 @@ export function HeroCinematic({ onSubmit, loading }: HeroCinematicProps) {
               className="mt-7 max-w-[520px] text-[17px] leading-[1.72] tracking-[-0.01em] text-white"
             >
               SiteNexis models how AI systems retrieve, interpret, trust, and
-              recommend your website — across every layer from semantic
-              structure to machine trust formation.
+              cite your content — exposing exactly where machine understanding
+              forms and where it breaks down.
             </motion.p>
 
             {/* Input */}

@@ -22,7 +22,7 @@ const METHOD_SCHEMA = {
   publisher: { '@id': 'https://sitenexis.com/#organization' },
   url: `${appUrl}/methodology`,
   datePublished: '2025-01-01',
-  dateModified: '2026-06-10',
+  dateModified: '2026-06-16',
   speakable: {
     '@type': 'SpeakableSpecification',
     cssSelector: ['h1', 'h2', '.speakable'],
@@ -259,8 +259,9 @@ export default function MethodologyPage() {
           </h1>
           <p className="mx-auto mt-5 max-w-xl text-[16px] leading-[1.75] text-slate-300">
             Every score, every formula, every measurement decision — documented transparently.
-            We build like a research institution: everything is explainable,
-            everything is reproducible, nothing is a black box.
+            Including the Graph Truth Discipline that separates DOM fact from AI inference,
+            and the Graceful Truth Layer that expresses data state with precision.
+            Everything is explainable. Everything is reproducible. Nothing is a black box.
           </p>
         </div>
       </section>
@@ -290,6 +291,67 @@ export default function MethodologyPage() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Graph Truth Discipline ── */}
+      <section className="border-t border-white/[0.05] bg-[#07111F] py-20 px-6">
+        <div className="mx-auto max-w-4xl">
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan/70">Graph Truth Discipline</p>
+          <h2 className="mb-4 text-[28px] font-bold text-white">Fact Graph vs. Perception Graph</h2>
+          <p className="mb-10 max-w-2xl text-[15px] leading-[1.75] text-slate-400">
+            SiteNexis maintains a strict separation between what was observed in the DOM and what was inferred by AI.
+            These two representations of a domain&apos;s graph structure are stored separately, traced separately,
+            and never merged. Conflating extracted fact with AI inference is a category error that produces unreliable scoring.
+          </p>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-6">
+              <div className="mb-4 flex items-center gap-3">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-cyan/20 bg-cyan/[0.08] text-[10px] font-bold text-cyan">F</div>
+                <h3 className="text-[15px] font-semibold text-white">Fact Graph</h3>
+              </div>
+              <p className="mb-4 text-[13px] leading-[1.7] text-slate-400">
+                DOM-extracted only. Every node and edge in the Fact Graph is verified from crawled HTML — page URLs,
+                schema entities, internal links with anchor text and position, external domains.
+                Confidence is 1.0 for all fact records. Nothing is inferred.
+              </p>
+              <ul className="space-y-2 text-[12px] text-slate-500">
+                {['Source: crawled HTML + schema markup', 'Confidence: 1.0 (verified extraction)', 'Tables: fact_nodes, fact_edges', 'Append-only — never overwritten'].map((item) => (
+                  <li key={item} className="flex items-start gap-2">
+                    <span className="mt-1 h-1 w-1 shrink-0 rounded-full bg-cyan/40" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-6">
+              <div className="mb-4 flex items-center gap-3">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-teal-500/20 bg-teal-500/[0.08] text-[10px] font-bold text-teal-400">P</div>
+                <h3 className="text-[15px] font-semibold text-white">Perception Graph</h3>
+              </div>
+              <p className="mb-4 text-[13px] leading-[1.7] text-slate-400">
+                AI-inferred only. The Perception Graph models how an AI system represents the domain
+                internally — entities, relationships, citation readiness, disambiguation strength.
+                Confidence is a probability estimate (0–1), never a verified fact.
+              </p>
+              <ul className="space-y-2 text-[12px] text-slate-500">
+                {['Source: AI inference from crawled content', 'Confidence: 0–1 (probabilistic estimate)', 'Tables: perception_nodes, perception_edges', 'derivedFrom field traces each node\'s origin'].map((item) => (
+                  <li key={item} className="flex items-start gap-2">
+                    <span className="mt-1 h-1 w-1 shrink-0 rounded-full bg-teal-400/40" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+          <div className="mt-6 rounded-xl border border-amber-500/[0.12] bg-amber-500/[0.04] p-5">
+            <p className="text-[12px] leading-[1.7] text-slate-400">
+              <span className="font-semibold text-amber-400/80">Invariant: </span>
+              The Fact Graph never reads from the Perception Graph. The Perception Graph may be derived from
+              Fact Graph data, but the relationship is one-directional. Cross-writing is architecturally prohibited.
+              This ensures that AI inference cannot contaminate the verified DOM record.
+            </p>
           </div>
         </div>
       </section>
@@ -420,6 +482,59 @@ export default function MethodologyPage() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ── Graceful Truth Layer ── */}
+      <section className="border-t border-white/[0.05] bg-[#07111F] py-20 px-6">
+        <div className="mx-auto max-w-4xl">
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan/70">System Architecture</p>
+          <h2 className="mb-4 text-[28px] font-bold text-white">Graceful Truth Layer (GTL)</h2>
+          <p className="mb-8 max-w-2xl text-[15px] leading-[1.75] text-slate-400">
+            Every API response from SiteNexis is wrapped in a GTL envelope — a structured container that
+            distinguishes between complete data, partial data, and the honest absence of data.
+            This design prevents the system from presenting empty states as zeros, partial results as complete,
+            or loading states as failures.
+          </p>
+          <div className="mb-6 rounded-xl border border-white/[0.06] bg-black/30 p-5">
+            <code className="block text-[12px] leading-[1.9] text-cyan-300 font-mono whitespace-pre">{`type GTLEnvelope<T> = {
+  state:     'complete' | 'partial' | 'empty'
+  timestamp: Date
+  data:      T | null
+}`}</code>
+          </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            {[
+              {
+                state: 'complete',
+                color: 'text-green-400',
+                bg: 'bg-green-500/5 border-green-500/15',
+                desc: 'All agents completed. All scores are present and verified. The dashboard renders full data.',
+              },
+              {
+                state: 'partial',
+                color: 'text-amber-400',
+                bg: 'bg-amber-500/5 border-amber-500/15',
+                desc: 'Some agents completed. Scores present are real — not placeholders. Missing scores are shown as absent, not zero.',
+              },
+              {
+                state: 'empty',
+                color: 'text-slate-400',
+                bg: 'bg-white/[0.02] border-white/[0.06]',
+                desc: 'No data yet — first audit not run, or audit failed before any agent completed. The UI shows the honest empty state, not fabricated scores.',
+              },
+            ].map(({ state, color, bg, desc }) => (
+              <div key={state} className={`rounded-xl border ${bg} p-5`}>
+                <p className={`mb-2 text-[13px] font-bold font-mono ${color}`}>&apos;{state}&apos;</p>
+                <p className="text-[12px] leading-[1.7] text-slate-400">{desc}</p>
+              </div>
+            ))}
+          </div>
+          <p className="mt-6 text-[12px] text-slate-600">
+            GTL is not a loading spinner pattern — it is a data integrity guarantee.
+            A score that hasn&apos;t been computed yet is not a zero. A partial audit is not a failed audit.
+            The system expresses what it knows with precision, and nothing more.
+          </p>
         </div>
       </section>
 

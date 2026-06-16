@@ -418,16 +418,16 @@ export default function HomePage() {
               <div>
                 <p className="mb-5 text-[11px] font-semibold tracking-[0.18em] text-cyan/70 uppercase">The Problem</p>
                 <h2 className="text-[clamp(2rem,4vw,3rem)] font-bold leading-[1.1] tracking-[-0.03em] text-white text-balance">
-                  {"You're using 6 tools."}
+                  {"SEO tools miss AI retrieval."}
                   <br />
-                  <span className="text-gradient-cyan">We built one brain.</span>
+                  <span className="text-gradient-cyan">SiteNexis models all four layers.</span>
                 </h2>
                 <p className="mt-6 text-[16px] leading-[1.8] text-[#94A3B8]">
-                  SEO tools miss AI readiness. AI tools miss technical structure. Schema validators miss entity consistency.
-                  None of them model how AI systems actually retrieve and trust your content.
+                  SEO tools miss AI retrieval. AI tools miss technical structure. Schema validators miss entity consistency.
+                  None of them model how AI systems actually form and decay trust in your content.
                 </p>
                 <p className="mt-4 text-[16px] leading-[1.8] text-[#94A3B8]">
-                  SiteNexis runs all 16 intelligence agents in a single scan, across all 4 layers simultaneously.
+                  SiteNexis runs 16 intelligence agents in a single scan — four dependency layers, each building on the last.
                 </p>
                 <div className="mt-10 flex items-center gap-4">
                   <a href="/signup" className="btn-primary px-6 py-3 text-sm font-semibold inline-flex items-center gap-2">
@@ -492,7 +492,7 @@ export default function HomePage() {
           <Reveal className="mb-16 text-center">
             <p className="mb-5 text-[11px] font-semibold tracking-[0.18em] text-cyan/70 uppercase">Intelligence Modules</p>
             <h2 className="text-[clamp(2rem,4vw,3rem)] font-bold leading-[1.1] tracking-[-0.03em] text-white">
-              Six intelligence layers.
+              Four intelligence layers.
               <br />
               <span className="text-[#64748B] font-normal">All in one scan.</span>
             </h2>
@@ -591,7 +591,7 @@ export default function HomePage() {
                     <span className="rounded-pill border border-white/[0.06] bg-white/[0.03] px-2.5 py-1 text-[10px] text-[#475569] uppercase">Pro+</span>
                   </div>
                   <h3 className="text-[17px] font-bold text-white">Retrieval Simulation · Machine Trust · Temporal Authority</h3>
-                  <p className="mt-1.5 text-[14px] text-[#64748B]">The only platform that models how AI retrieval systems actually trust and recommend your content over time.</p>
+                  <p className="mt-1.5 text-[14px] text-[#64748B]">Models how AI retrieval systems form, maintain, and decay trust in your content — from chunk extraction to recommendation surface presence.</p>
                 </div>
                 <a href="/signup?plan=pro" className="btn-primary shrink-0 px-6 py-3 text-sm font-semibold inline-flex items-center gap-2 whitespace-nowrap">
                   Unlock Layer 4 <ArrowRight size={14} />
@@ -610,12 +610,12 @@ export default function HomePage() {
             <Reveal>
               <p className="mb-5 text-[11px] font-semibold tracking-[0.18em] text-cyan/70 uppercase">AI Readiness</p>
               <h2 className="text-[clamp(2rem,4vw,3rem)] font-bold leading-[1.1] tracking-[-0.03em] text-white text-balance">
-                How visible are you
+                How AI systems retrieve
                 <br />
-                <span className="text-gradient-cyan">to every AI system?</span>
+                <span className="text-gradient-cyan">your domain.</span>
               </h2>
               <p className="mt-6 text-[16px] leading-[1.8] text-[#94A3B8]">
-                SiteNexis models your content against five major AI retrieval surfaces — showing exactly where you appear, where you're missing, and why.
+                SiteNexis models retrieval behavior across five major AI systems — estimating where your content surfaces, where it doesn&apos;t, and which structural signals are blocking inclusion.
               </p>
               <div className="mt-8 space-y-3">
                 {[
@@ -1024,9 +1024,9 @@ export default function HomePage() {
               <span className="text-[#64748B] font-normal">One intelligence suite.</span>
             </h2>
             <p className="mx-auto mt-5 max-w-xl text-[16px] leading-[1.8] text-[#64748B]">
-              SiteNexis tells AI systems how to find and trust your brand.
-              AdNexis tells you what creative converts once they do.
-              Together, they close the full loop.
+              SiteNexis models how AI systems retrieve and trust your content.
+              AdNexis models what creative drives conversion when they do.
+              Together, they cover the full signal-to-conversion pipeline.
             </p>
           </Reveal>
 
