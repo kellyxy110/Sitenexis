@@ -107,6 +107,11 @@ model Audit {
   syntheticEntityFlags     SyntheticEntityFlag[]
   siiScore                 SIIScore?
   sseScore                 SseScore?
+  // Graph Core v1 (append-only, derived from DOM extraction)
+  factNodes                FactNode[]
+  factEdges                FactEdge[]
+  perceptionNodes          PerceptionNode[]
+  perceptionEdges          PerceptionEdge[]
 
   @@index([userId])
   @@index([domain])
@@ -669,6 +674,102 @@ model ScheduledReport {
   @@index([userId])
   @@index([nextSendAt])
   @@map("scheduled_reports")
+}
+
+// ─── Graph Core v1 — Fact Graph (append-only, DOM-extracted truth) ───────────
+//
+// Implementation rules:
+//   - Every row traces back to a crawl event via audit_id + created_at
+//   - confidence = 1.0 for DOM-extracted facts; lower only for inferred schema entities
+//   - Never delete rows — soft-delete via audit archival only
+//   - Perception tables NEVER write back into fact tables (one-way derivation)
+
+model FactNode {
+  id         String   @id @default(cuid())
+  auditId    String   @map("audit_id")
+  /// page | schema_entity | external_domain
+  nodeType   String   @map("node_type")
+  /// URL for page/external_domain nodes; entity name for schema_entity
+  label      String
+  url        String?
+  /// dom | schema | sitemap
+  source     String   @default("dom")
+  confidence Float    @default(1.0)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  audit  Audit @relation(fields: [auditId], references: [id])
+
+  @@index([auditId])
+  @@index([nodeType])
+  @@index([url])
+  @@map("fact_nodes")
+}
+
+model FactEdge {
+  id           String   @id @default(cuid())
+  auditId      String   @map("audit_id")
+  fromUrl      String   @map("from_url")
+  toUrl        String   @map("to_url")
+  /// INTERNAL_LINK | EXTERNAL_LINK | SCHEMA_REL
+  relationship String
+  anchorText   String?  @map("anchor_text")
+  /// nav | body | footer | sidebar | other
+  position     String?
+  isNoFollow   Boolean  @default(false) @map("is_no_follow")
+  confidence   Float    @default(1.0)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  audit  Audit @relation(fields: [auditId], references: [id])
+
+  @@index([auditId])
+  @@index([fromUrl])
+  @@index([toUrl])
+  @@map("fact_edges")
+}
+
+// ─── Graph Core v1 — Perception Graph (append-only, AI-inferred only) ─────────
+//
+// Rows here MUST be derived from the Fact Graph — never fabricated independently.
+// confidence < 0.5 rows are stored but suppressed in UI rendering (PCE gate).
+
+model PerceptionNode {
+  id                     String   @id @default(cuid())
+  auditId                String   @map("audit_id")
+  /// Hash ID from the in-memory PerceptionGraphSnapshot — used to join perception edges
+  nodeRef                String   @map("node_ref")
+  /// entity | topic | claim | page
+  nodeType               String   @map("node_type")
+  label                  String
+  confidence             Float    @default(0)
+  citationReadiness      Float    @default(0) @map("citation_readiness")
+  disambiguationStrength Float    @default(0) @map("disambiguation_strength")
+  derivedFrom            String   @default("fact_graph") @map("derived_from")
+  createdAt              DateTime @default(now()) @map("created_at")
+
+  audit  Audit @relation(fields: [auditId], references: [id])
+
+  @@index([auditId])
+  @@index([nodeType])
+  @@map("perception_nodes")
+}
+
+model PerceptionEdge {
+  id               String   @id @default(cuid())
+  auditId          String   @map("audit_id")
+  /// Hash ID of the source PerceptionNode (matches nodeRef)
+  sourceRef        String   @map("source_ref")
+  /// Hash ID of the target PerceptionNode (matches nodeRef)
+  targetRef        String   @map("target_ref")
+  relationshipType String   @map("relationship_type")
+  strength         Float    @default(0)
+  derivedFrom      String   @default("ai_inference") @map("derived_from")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  audit  Audit @relation(fields: [auditId], references: [id])
+
+  @@index([auditId])
+  @@index([sourceRef])
+  @@map("perception_edges")
 }
 
 // ─── AdNexis models ──────────────────────────────────────────────────────────

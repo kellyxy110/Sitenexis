@@ -2,7 +2,7 @@ import { type CrawledPage } from '@sitenexis/shared';
 import {
   updateAuditStatus, saveAuditScores, getAuditScores, getAIVisibilityScore, getPerceptionGraph,
   getPreviousCompletedAuditIdForDomain, getPriorSchemaUrls, saveSIIScore, getUserById,
-  saveSseScore,
+  saveSseScore, writeFactGraph, writePerceptionGraph,
 } from '@sitenexis/db';
 import { sendAuditCompleteEmail } from './email';
 import {
@@ -72,6 +72,12 @@ export async function runInfrastructureAgent(input: AuditJobInput): Promise<void
     const linkGraph = analyzeLinkGraph(pages);
     const machineReadability = analyzeMachineReadability(pages);
     const perceptionGraph = buildPerceptionGraph(auditId, pages, entityIntelligence);
+
+    // Dual-write normalized graph tables (fire-and-forget — failures never block the audit)
+    Promise.allSettled([
+      writeFactGraph(auditId, pages),
+      writePerceptionGraph(auditId, perceptionGraph),
+    ]).catch(() => { /* already settled — never throws */ });
 
     // Phase 5 — Layer 4 agents (parallel, gated by plan)
     if (layer4Enabled) {
