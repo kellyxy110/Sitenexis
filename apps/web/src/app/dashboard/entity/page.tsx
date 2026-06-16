@@ -148,9 +148,9 @@ export default function EntityPage() {
             )}
 
             {/* Entity table */}
-            {data.entities.length > 0 && (
+            {(data.entities ?? []).length > 0 && (
               <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-6">
-                <h2 className="mb-4 text-sm font-semibold text-[#C8DFE8]">Detected Entities ({data.entities.length})</h2>
+                <h2 className="mb-4 text-sm font-semibold text-[#C8DFE8]">Detected Entities ({(data.entities ?? []).length})</h2>
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead>
@@ -164,7 +164,7 @@ export default function EntityPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/[0.03]">
-                      {data.entities.map((e) => (
+                      {(data.entities ?? []).map((e) => (
                         <tr key={e.id} className="hover:bg-white/[0.02] transition-colors">
                           <td className="py-2.5 pr-4">
                             <div className="font-medium text-white">{e.name}</div>
@@ -179,8 +179,8 @@ export default function EntityPage() {
                           <td className="py-2.5 pr-4 text-right" style={{ color: scoreColor(pct(e.consistencyScore)) }}>{pct(e.consistencyScore)}%</td>
                           <td className="py-2.5 pr-4 text-right" style={{ color: scoreColor(pct(e.disambiguationScore)) }}>{pct(e.disambiguationScore)}%</td>
                           <td className="py-2.5 text-right">
-                            {e.sameAsUrls.length > 0
-                              ? <span className="flex items-center justify-end gap-1 text-teal"><Link2 className="h-3 w-3" />{e.sameAsUrls.length}</span>
+                            {(e.sameAsUrls ?? []).length > 0
+                              ? <span className="flex items-center justify-end gap-1 text-teal"><Link2 className="h-3 w-3" />{(e.sameAsUrls ?? []).length}</span>
                               : <span className="text-[#4A6280]">—</span>
                             }
                           </td>

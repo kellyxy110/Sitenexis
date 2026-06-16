@@ -159,7 +159,7 @@ export default function SIIPage() {
                 </p>
                 <div className="mt-4 flex items-center gap-2 text-xs text-[#4A6280]">
                   <CheckCircle2 className="h-3.5 w-3.5 text-teal" />
-                  Confidence: {Math.round(data.confidence * 100)}% — based on {Object.values(data.breakdown).filter(v => v !== null).length}/6 dimensions with complete data
+                  Confidence: {Math.round(data.confidence * 100)}% — based on {Object.values(data.breakdown ?? {}).filter(v => v !== null).length}/6 dimensions with complete data
                 </div>
               </div>
             </div>
@@ -204,13 +204,13 @@ export default function SIIPage() {
 
             <div className="grid gap-5 lg:grid-cols-2">
               {/* Insights */}
-              {data.insights.length > 0 && (
+              {(data.insights ?? []).length > 0 && (
                 <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
                   <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-[#C8DFE8]">
                     <TrendingUp className="h-4 w-4 text-cyan" /> Insights
                   </h2>
                   <ul className="space-y-2">
-                    {data.insights.map((insight, i) => (
+                    {(data.insights ?? []).map((insight, i) => (
                       <li key={i} className="text-xs text-[#4A6280] font-mono leading-relaxed">{insight}</li>
                     ))}
                   </ul>
@@ -218,13 +218,13 @@ export default function SIIPage() {
               )}
 
               {/* Critical gaps */}
-              {data.critical_gaps.length > 0 && (
+              {(data.critical_gaps ?? []).length > 0 && (
                 <div className="rounded-xl border border-red-500/20 bg-red-500/[0.03] p-5">
                   <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-red-400">
                     <AlertTriangle className="h-4 w-4" /> Critical Gaps
                   </h2>
                   <ul className="space-y-2">
-                    {data.critical_gaps.map((gap, i) => (
+                    {(data.critical_gaps ?? []).map((gap, i) => (
                       <li key={i} className="text-xs text-[#4A6280] font-mono leading-relaxed">{gap}</li>
                     ))}
                   </ul>
@@ -233,11 +233,11 @@ export default function SIIPage() {
             </div>
 
             {/* Recommendation priority */}
-            {data.recommendation_priority.length > 0 && (
+            {(data.recommendation_priority ?? []).length > 0 && (
               <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-6">
                 <h2 className="mb-4 text-sm font-semibold text-[#C8DFE8]">Recommendation Priority</h2>
                 <div className="space-y-3">
-                  {data.recommendation_priority.map((rec, i) => (
+                  {(data.recommendation_priority ?? []).map((rec, i) => (
                     <div key={i} className="flex items-start gap-3 rounded-lg border border-white/[0.05] bg-white/[0.02] p-4">
                       <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-cyan/20 bg-cyan/10 text-[11px] font-bold text-cyan">
                         {i + 1}

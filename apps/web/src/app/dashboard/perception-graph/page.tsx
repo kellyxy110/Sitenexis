@@ -63,7 +63,9 @@ export default function PerceptionGraphPage() {
 
   const loading = auditLoading || isLoading;
 
-  const nodeById = new Map(data?.nodes.map((n) => [n.id, n]) ?? []);
+  const nodes = data?.nodes ?? [];
+  const edges = data?.edges ?? [];
+  const nodeById = new Map(nodes.map((n) => [n.id, n]));
 
   return (
     <DashboardLayout>
@@ -88,7 +90,7 @@ export default function PerceptionGraphPage() {
           </div>
           {data && (
             <div className="text-right">
-              <div className="text-4xl font-bold tabular-nums text-white">{data.nodes.length}</div>
+              <div className="text-4xl font-bold tabular-nums text-white">{nodes.length}</div>
               <div className="text-xs text-[#4A6280]">Nodes</div>
             </div>
           )}
@@ -112,7 +114,7 @@ export default function PerceptionGraphPage() {
             {/* Summary stats */}
             <div className="grid gap-3 sm:grid-cols-4">
               {(['entity','topic','claim','page'] as const).map((type) => {
-                const count = data.nodes.filter((n) => n.type === type).length;
+                const count = nodes.filter((n) => n.type === type).length;
                 return (
                   <div key={type} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 text-center">
                     <div className="text-2xl font-bold tabular-nums" style={{ color: NODE_TYPE_COLORS[type] }}>{count}</div>
@@ -140,9 +142,9 @@ export default function PerceptionGraphPage() {
             )}
 
             {/* Nodes table */}
-            {data.nodes.length > 0 && (
+            {nodes.length > 0 && (
               <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-6">
-                <h2 className="mb-4 text-sm font-semibold text-[#C8DFE8]">Graph Nodes ({data.nodes.length})</h2>
+                <h2 className="mb-4 text-sm font-semibold text-[#C8DFE8]">Graph Nodes ({nodes.length})</h2>
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead>
@@ -155,7 +157,7 @@ export default function PerceptionGraphPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/[0.03]">
-                      {[...data.nodes].sort((a, b) => b.confidence - a.confidence).map((node) => (
+                      {[...nodes].sort((a, b) => b.confidence - a.confidence).map((node) => (
                         <tr key={node.id} className="hover:bg-white/[0.02]">
                           <td className="py-2.5 pr-4 font-medium text-white">{node.label}</td>
                           <td className="py-2.5 pr-4">
@@ -171,7 +173,7 @@ export default function PerceptionGraphPage() {
                             {Math.round(node.citationReadiness * 100)}%
                           </td>
                           <td className="py-2.5 text-right hidden md:table-cell text-[#4A6280]">
-                            {node.supportingPages.length}
+                            {(node.supportingPages ?? []).length}
                           </td>
                         </tr>
                       ))}
@@ -182,11 +184,11 @@ export default function PerceptionGraphPage() {
             )}
 
             {/* Edges */}
-            {data.edges.length > 0 && (
+            {edges.length > 0 && (
               <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-6">
-                <h2 className="mb-4 text-sm font-semibold text-[#C8DFE8]">Semantic Relationships ({data.edges.length})</h2>
+                <h2 className="mb-4 text-sm font-semibold text-[#C8DFE8]">Semantic Relationships ({edges.length})</h2>
                 <div className="space-y-2">
-                  {[...data.edges].sort((a, b) => b.strength - a.strength).map((edge, i) => {
+                  {[...edges].sort((a, b) => b.strength - a.strength).map((edge, i) => {
                     const src = nodeById.get(edge.source);
                     const tgt = nodeById.get(edge.target);
                     return (

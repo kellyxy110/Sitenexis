@@ -136,11 +136,11 @@ export default function CitationPage() {
             </div>
 
             {/* Page breakdown */}
-            {data.pageBreakdown.length > 0 && (
+            {(data.pageBreakdown ?? []).length > 0 && (
               <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-6">
                 <h2 className="mb-4 text-sm font-semibold text-[#C8DFE8]">Per-Page Citation Scores</h2>
                 <div className="space-y-2">
-                  {data.pageBreakdown.map((p, i) => (
+                  {(data.pageBreakdown ?? []).map((p, i) => (
                     <div key={i} className="flex items-center gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="truncate text-xs text-[#7A9AB4]">{p.url}</div>
@@ -162,13 +162,13 @@ export default function CitationPage() {
 
             <div className="grid gap-5 lg:grid-cols-2">
               {/* Citation blockers */}
-              {data.citationBlockers.length > 0 && (
+              {(data.citationBlockers ?? []).length > 0 && (
                 <div className="rounded-xl border border-red-500/20 bg-red-500/[0.04] p-5">
                   <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-red-400">
                     <XCircle className="h-4 w-4" /> Citation Blockers
                   </h2>
                   <ul className="space-y-2">
-                    {data.citationBlockers.map((b, i) => (
+                    {(data.citationBlockers ?? []).map((b, i) => (
                       <li key={i} className="text-xs text-[#4A6280]">{b}</li>
                     ))}
                   </ul>
@@ -176,11 +176,11 @@ export default function CitationPage() {
               )}
 
               {/* Recommendations */}
-              {data.recommendations.length > 0 && (
+              {(data.recommendations ?? []).length > 0 && (
                 <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
                   <h2 className="mb-3 text-sm font-semibold text-[#C8DFE8]">Recommendations</h2>
                   <ul className="space-y-2">
-                    {data.recommendations.map((r, i) => (
+                    {(data.recommendations ?? []).map((r, i) => (
                       <li key={i} className="flex items-start gap-2 text-xs text-[#4A6280]">
                         <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-teal" />{r}
                       </li>
@@ -191,11 +191,11 @@ export default function CitationPage() {
             </div>
 
             {/* Top citation candidates */}
-            {data.topCitationCandidates.length > 0 && (
+            {(data.topCitationCandidates ?? []).length > 0 && (
               <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
                 <h2 className="mb-3 text-sm font-semibold text-[#C8DFE8]">Top Citation Candidates</h2>
                 <ul className="space-y-1.5">
-                  {data.topCitationCandidates.map((url, i) => (
+                  {(data.topCitationCandidates ?? []).map((url, i) => (
                     <li key={i} className="flex items-center gap-2 text-xs">
                       <span className="text-[#4A6280]">#{i + 1}</span>
                       <a href={url} target="_blank" rel="noopener noreferrer" className="truncate text-cyan hover:underline">{url}</a>

@@ -50,7 +50,7 @@ function sevColor(sev: string) {
 function PageRow({ result }: { result: SimulationResult }) {
   const [expanded, setExpanded] = useState(false);
   const score = result.retrievalQualityScore;
-  const hasIssues = result.retrievalFailureReasons.length > 0 || result.truncationZoneWarnings.length > 0;
+  const hasIssues = (result.retrievalFailureReasons ?? []).length > 0 || (result.truncationZoneWarnings ?? []).length > 0;
 
   return (
     <div className="border-b border-white/[0.04] last:border-0">
@@ -89,7 +89,7 @@ function PageRow({ result }: { result: SimulationResult }) {
 
       {expanded && hasIssues && (
         <div className="mb-3 ml-2 space-y-2">
-          {result.retrievalFailureReasons.map((f, i) => (
+          {(result.retrievalFailureReasons ?? []).map((f, i) => (
             <div key={i} className="rounded-lg border border-white/[0.05] bg-white/[0.02] p-3">
               <div className="mb-1 flex items-center gap-2">
                 <span className="rounded px-1.5 py-0.5 text-[10px] font-semibold" style={{ color: sevColor(f.severity), backgroundColor: `${sevColor(f.severity)}20` }}>{f.severity}</span>
@@ -99,7 +99,7 @@ function PageRow({ result }: { result: SimulationResult }) {
               <p className="mt-1 text-xs text-cyan">{f.recommendation}</p>
             </div>
           ))}
-          {result.truncationZoneWarnings.map((w, i) => (
+          {(result.truncationZoneWarnings ?? []).map((w, i) => (
             <div key={`tw-${i}`} className="flex items-start gap-2 rounded-lg border border-amber/20 bg-amber/[0.04] p-3 text-xs text-amber">
               <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
               {w}
@@ -178,18 +178,18 @@ export default function RetrievalPage() {
               </div>
               <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 text-center">
                 <div className="text-2xl font-bold tabular-nums text-white">
-                  {data.results.reduce((s, r) => s + r.fragileClaimsCount, 0)}
+                  {(data.results ?? []).reduce((s, r) => s + (r.fragileClaimsCount ?? 0), 0)}
                 </div>
                 <div className="mt-0.5 text-xs text-[#4A6280]">Total Fragile Claims</div>
               </div>
             </div>
 
             {/* Per-page results */}
-            {data.results.length > 0 ? (
+            {(data.results ?? []).length > 0 ? (
               <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-6">
                 <h2 className="mb-4 text-sm font-semibold text-[#C8DFE8]">Per-Page Simulation Results</h2>
                 <div>
-                  {data.results.map((r) => (
+                  {(data.results ?? []).map((r) => (
                     <PageRow key={r.pageUrl} result={r} />
                   ))}
                 </div>
