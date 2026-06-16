@@ -27,18 +27,18 @@ export function AnalysisPanel({ analysis, transcript: _transcript }: AnalysisPan
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Score rings */}
-      <div className="bg-bg-card border border-border rounded-xl p-6">
-        <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wide mb-5">Performance Scores</h3>
-        <div className="grid grid-cols-3 gap-4 sm:grid-cols-6">
+      <div className="bg-bg-card border border-border rounded-xl p-4 sm:p-6">
+        <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wide mb-4 sm:mb-5">Performance Scores</h3>
+        <div className="grid grid-cols-3 gap-3 sm:grid-cols-3 md:grid-cols-6 sm:gap-4">
           {scores.map(({ label, score }) => (
-            <ScoreRing key={label} score={score} label={label} size={72} strokeWidth={5} />
+            <ScoreRing key={label} score={score} label={label} size={64} strokeWidth={5} />
           ))}
         </div>
       </div>
 
       {/* Hook breakdown */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="bg-bg-card border border-border rounded-xl p-5">
+        <div className="bg-bg-card border border-border rounded-xl p-4 sm:p-5">
           <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wide mb-3">Hook</h3>
           <p className="text-text-primary font-medium mb-2">{analysis.hook.text}</p>
           <div className="flex gap-2">
@@ -46,7 +46,7 @@ export function AnalysisPanel({ analysis, transcript: _transcript }: AnalysisPan
           </div>
         </div>
 
-        <div className="bg-bg-card border border-border rounded-xl p-5">
+        <div className="bg-bg-card border border-border rounded-xl p-4 sm:p-5">
           <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wide mb-3">Funnel & CTA</h3>
           <p className="text-text-secondary text-xs mb-1">{FUNNEL_LABELS[analysis.funnel.stage] ?? analysis.funnel.stage}</p>
           <p className="text-text-primary font-medium mb-2">{analysis.cta.text}</p>
@@ -55,7 +55,7 @@ export function AnalysisPanel({ analysis, transcript: _transcript }: AnalysisPan
       </div>
 
       {/* Emotions */}
-      <div className="bg-bg-card border border-border rounded-xl p-5">
+      <div className="bg-bg-card border border-border rounded-xl p-4 sm:p-5">
         <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wide mb-3">Emotional Architecture</h3>
         <p className="text-text-secondary text-xs mb-2">Primary: <span className="text-text-primary font-medium">{analysis.emotions.primary}</span></p>
         <div className="flex flex-wrap gap-2">
@@ -66,7 +66,7 @@ export function AnalysisPanel({ analysis, transcript: _transcript }: AnalysisPan
       </div>
 
       {/* Audience */}
-      <div className="bg-bg-card border border-border rounded-xl p-5">
+      <div className="bg-bg-card border border-border rounded-xl p-4 sm:p-5">
         <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wide mb-3">Audience Intelligence</h3>
         <p className="text-text-primary text-sm mb-2">{analysis.audience.description}</p>
         <p className="text-text-secondary text-xs">Sophistication: <span className="text-text-primary capitalize">{analysis.audience.sophistication}</span></p>
@@ -74,25 +74,25 @@ export function AnalysisPanel({ analysis, transcript: _transcript }: AnalysisPan
       </div>
 
       {/* Stats row */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="bg-bg-card border border-border rounded-xl p-4 text-center">
-          <p className="text-2xl font-bold text-teal">{analysis.conversionLikelihood}</p>
-          <p className="text-text-secondary text-xs mt-1">Conversion Likelihood</p>
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
+        <div className="bg-bg-card border border-border rounded-xl p-3 sm:p-4 text-center">
+          <p className="text-xl sm:text-2xl font-bold text-teal">{analysis.conversionLikelihood}</p>
+          <p className="text-text-secondary text-[10px] sm:text-xs mt-1 leading-snug">Conv. Likelihood</p>
         </div>
-        <div className="bg-bg-card border border-border rounded-xl p-4 text-center">
-          <p className={`text-2xl font-bold capitalize ${analysis.fatigueRisk === 'low' ? 'text-teal' : analysis.fatigueRisk === 'medium' ? 'text-amber-400' : 'text-red-400'}`}>
+        <div className="bg-bg-card border border-border rounded-xl p-3 sm:p-4 text-center">
+          <p className={`text-xl sm:text-2xl font-bold capitalize ${analysis.fatigueRisk === 'low' ? 'text-teal' : analysis.fatigueRisk === 'medium' ? 'text-amber-400' : 'text-red-400'}`}>
             {analysis.fatigueRisk}
           </p>
-          <p className="text-text-secondary text-xs mt-1">Fatigue Risk</p>
+          <p className="text-text-secondary text-[10px] sm:text-xs mt-1 leading-snug">Fatigue Risk</p>
         </div>
-        <div className="bg-bg-card border border-border rounded-xl p-4 text-center">
-          <p className="text-2xl font-bold text-purple">{analysis.estimatedRunwayDays}d</p>
-          <p className="text-text-secondary text-xs mt-1">Est. Runway</p>
+        <div className="bg-bg-card border border-border rounded-xl p-3 sm:p-4 text-center">
+          <p className="text-xl sm:text-2xl font-bold text-purple">{analysis.estimatedRunwayDays}d</p>
+          <p className="text-text-secondary text-[10px] sm:text-xs mt-1 leading-snug">Est. Runway</p>
         </div>
       </div>
 
       {/* Recommendations */}
-      <div className="bg-bg-card border border-border rounded-xl p-5">
+      <div className="bg-bg-card border border-border rounded-xl p-4 sm:p-5">
         <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wide mb-3">Recommendations</h3>
         <ul className="space-y-2">
           {analysis.recommendations.map((r, i) => (

@@ -1,13 +1,8 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
-import { isFullyConfigured } from '@/lib/mode';
 import { logger } from '@/lib/logger';
-import { buildDemoHealthData } from '@/lib/demo-health-data';
 
 export async function GET(): Promise<NextResponse> {
-  if (!isFullyConfigured()) {
-    return NextResponse.json(buildDemoHealthData());
-  }
 
   try {
     const { getLatestSelfAuditRun } = await import('@sitenexis/db');

@@ -1,9 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { type NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { isFullyConfigured } from '@/lib/mode';
 import { logger } from '@/lib/logger';
-import { buildDemoHistoryData } from '@/lib/demo-health-data';
 
 const QuerySchema = z.object({
   window: z.enum(['7', '30', '90']).default('30'),
@@ -13,10 +11,6 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   const params = Object.fromEntries(req.nextUrl.searchParams.entries());
   const parsed = QuerySchema.safeParse(params);
   const window = parsed.success ? (parseInt(parsed.data.window, 10) as 7 | 30 | 90) : 30;
-
-  if (!isFullyConfigured()) {
-    return NextResponse.json(buildDemoHistoryData(window));
-  }
 
   try {
     const { getSelfAuditHistory } = await import('@sitenexis/db');

@@ -1,4 +1,5 @@
 export const dynamic = 'force-dynamic';
+export const maxDuration = 300;
 import { after } from 'next/server';
 import { type NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
@@ -6,11 +7,6 @@ import { requireAuth, unauthorizedResponse } from '@/lib/auth';
 import { logger } from '@/lib/logger';
 import { isFullyConfigured } from '@/lib/mode';
 import { rateLimit } from '@/lib/rate-limit';
-import {
-  createDemoAudit,
-  updateDemoAudit,
-  buildDemoResults,
-} from '@/lib/demo-store';
 
 // Private IP ranges that must never be fetched (SSRF protection)
 const PRIVATE_IP_RE =
@@ -51,7 +47,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return unauthorizedResponse();
   }
 
-  // Rate limit: 10 audit starts per user per minute
   const rl = await rateLimit('audit:start', user.id, { limit: 10, windowSec: 60 });
   if (!rl.ok) {
     return NextResponse.json(
@@ -74,12 +69,16 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   const { domain } = parsed.data;
 
-  // ── Demo mode ────────────────────────────────────────────────────────────────
   if (!isFullyConfigured()) {
-    return startDemoAudit(domain);
+    return NextResponse.json(
+      {
+        error: 'No data available — configure your database and run an audit.',
+        detail: 'Connect a Supabase project and run pnpm db:push to enable audit functionality.',
+      },
+      { status: 503 },
+    );
   }
 
-  // ── Real mode ─────────────────────────────────────────────────────────────────
   const stages: StageResult[] = [];
 
   // Stage 1: User upsert — proves DB is reachable and schema exists
@@ -99,8 +98,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   }
 
   // Stage 2: Credit check + deduction
-  // Determine action type: Layer 4 costs 5 credits, standard costs 2 credits.
-  // We do a preliminary layer4 check here just to pick the cost; the gating check happens in Stage 3.
   let prelimLayer4 = false;
   try {
     const { checkLayer4Access } = await import('@/lib/plans');
@@ -125,7 +122,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: creditResult.reason }, { status: 402 });
   }
 
-  // Stage 3: Layer 4 access check (plan-based OR unlimited flag)
+  // Stage 3: Layer 4 access check
   let layer4Enabled = false;
   try {
     const { checkLayer4Access } = await import('@/lib/plans');
@@ -156,24 +153,51 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return dbUnavailable(stages);
   }
 
-  // Stage 5: Try BullMQ / Redis — fall back to serverless execution if unavailable
+  // Stage 5: Check worker heartbeat
   let executionMode: 'bullmq' | 'serverless' = 'serverless';
+  let workerAlive = false;
 
   try {
-    const { enqueueCrawlJob } = await import('@sitenexis/crawler');
-    await enqueueCrawlJob({ auditId: audit.id, domain, userId: user.id, layer4Enabled });
-    executionMode = 'bullmq';
-    stages.push({ stage: 'enqueue_crawl_job', status: 'ok' });
-  } catch {
-    // Redis unavailable — use serverless audit instead of returning 503
-    stages.push({
-      stage: 'enqueue_crawl_job',
-      status: 'skipped',
-      error: 'Redis unavailable. Falling back to serverless audit execution.',
-      recommended_fix: 'Set REDIS_URL on Vercel to an Upstash Redis URL for full pipeline support.',
-    });
+    const { getRedisUrl, createRedisClient, HEARTBEAT_KEY, HEARTBEAT_STALE_MS } = await import('@sitenexis/crawler');
+    if (getRedisUrl()) {
+      const probe = createRedisClient(false);
+      try {
+        const heartbeatRaw = await probe.get(HEARTBEAT_KEY);
+        workerAlive = heartbeatRaw
+          ? Date.now() - parseInt(heartbeatRaw, 10) < HEARTBEAT_STALE_MS
+          : false;
+      } finally {
+        probe.disconnect();
+      }
+    }
+  } catch { /* Redis unreachable — no worker possible */ }
 
-    // Schedule serverless audit to run after this response is sent
+  if (workerAlive) {
+    try {
+      const { enqueueCrawlJob } = await import('@sitenexis/crawler');
+      await enqueueCrawlJob({ auditId: audit.id, domain, userId: user.id, layer4Enabled });
+      executionMode = 'bullmq';
+      stages.push({ stage: 'enqueue_crawl_job', status: 'ok' });
+      stages.push({ stage: 'worker_heartbeat', status: 'ok' });
+    } catch (enqErr) {
+      stages.push({
+        stage: 'enqueue_crawl_job',
+        status: 'error',
+        error: enqErr instanceof Error ? enqErr.message : String(enqErr),
+        recommended_fix: 'Redis connection failed during enqueue despite heartbeat check. Running serverless fallback.',
+      });
+    }
+  } else {
+    stages.push({
+      stage: 'worker_heartbeat',
+      status: 'error',
+      error: 'No active worker heartbeat — using serverless execution.',
+      recommended_fix: 'Deploy the BullMQ worker on Railway/Render/Fly.io for full Puppeteer-based crawls. See docs/worker-hosting.md.',
+    });
+  }
+
+  // Stage 6: Run audit
+  if (executionMode === 'serverless') {
     after(async () => {
       try {
         const { runServerlessAudit } = await import('@/lib/serverless-audit');
@@ -188,47 +212,16 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         } catch { /* best effort */ }
       }
     });
+    stages.push({ stage: 'serverless_audit_scheduled', status: 'ok' });
   }
 
-  // Stage 6: Worker heartbeat check (informational only — non-fatal)
-  if (executionMode === 'bullmq') {
-    try {
-      const { getRedisConnection, HEARTBEAT_KEY, HEARTBEAT_STALE_MS } = await import('@sitenexis/crawler');
-      const heartbeatRaw = await getRedisConnection().get(HEARTBEAT_KEY);
-      const workerAlive = heartbeatRaw ? Date.now() - parseInt(heartbeatRaw, 10) < HEARTBEAT_STALE_MS : false;
-      stages.push({
-        stage: 'worker_heartbeat',
-        status: workerAlive ? 'ok' : 'error',
-        ...(!workerAlive && {
-          error: 'No worker heartbeat detected.',
-          recommended_fix: 'The audit is queued but no worker is running to process it. Start the BullMQ worker: pnpm --filter @sitenexis/crawler dev:worker. On Vercel, ensure REDIS_URL is set and the worker runs separately (Railway, Fly.io, or a VPS).',
-        }),
-      });
-    } catch {
-      stages.push({ stage: 'worker_heartbeat', status: 'skipped' });
-    }
-  }
+  logger.info({ auditId: audit.id, domain, userId: user.id, layer4Enabled, executionMode, workerAlive }, 'Audit started');
 
-  const workerAlive = stages.find((s) => s.stage === 'worker_heartbeat')?.status === 'ok';
-
-  logger.info({
-    auditId: audit.id,
-    domain,
-    userId: user.id,
-    layer4Enabled,
-    executionMode,
-    workerAlive,
-  }, 'Audit started');
-
-  return NextResponse.json(
-    { auditId: audit.id, executionMode, workerAlive },
-    { status: 202 },
-  );
+  return NextResponse.json({ auditId: audit.id, executionMode, workerAlive }, { status: 202 });
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-/** Only DB failures return 503 — Redis failures use serverless fallback instead */
 function dbUnavailable(stages: StageResult[]): NextResponse {
   const failed = stages.find((s) => s.status === 'error');
   return NextResponse.json(
@@ -240,29 +233,4 @@ function dbUnavailable(stages: StageResult[]): NextResponse {
     },
     { status: 503 },
   );
-}
-
-function startDemoAudit(domain: string): NextResponse {
-  const audit = createDemoAudit(domain);
-  void runDemoSimulation(audit.id, domain);
-  logger.info({ auditId: audit.id, domain, mode: 'demo' }, 'Demo audit started');
-  return NextResponse.json({ auditId: audit.id, executionMode: 'demo' }, { status: 202 });
-}
-
-// ── Demo simulation ───────────────────────────────────────────────────────────
-
-async function runDemoSimulation(auditId: string, domain: string): Promise<void> {
-  const delay = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
-
-  updateDemoAudit(auditId, { status: 'running' });
-  await delay(1200);
-
-  for (let i = 1; i <= 8; i++) {
-    updateDemoAudit(auditId, { pageCount: i });
-    await delay(400);
-  }
-
-  await delay(800);
-  const results = buildDemoResults(domain);
-  updateDemoAudit(auditId, { ...results, status: 'complete' });
 }

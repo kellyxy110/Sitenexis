@@ -42,12 +42,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const { triggeredBy } = parsed.data;
 
   if (!isFullyConfigured()) {
-    return NextResponse.json({
-      selfAuditRunId: 'demo-run-id',
-      auditId: 'demo-audit-id',
-      status: 'queued',
-      message: 'Demo mode — no real audit triggered',
-    }, { status: 202 });
+    return NextResponse.json({ error: 'Service not configured — connect a database to enable self-audit.' }, { status: 503 });
   }
 
   try {

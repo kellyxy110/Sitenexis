@@ -1,7 +1,6 @@
 export const dynamic = 'force-dynamic';
 import { type NextRequest, NextResponse } from 'next/server';
 import { requireAuth, unauthorizedResponse } from '@/lib/auth';
-import { getDemoAudit } from '@/lib/demo-store';
 import { isFullyConfigured } from '@/lib/mode';
 
 interface Params { params: Promise<{ id: string }> }
@@ -12,15 +11,7 @@ export async function GET(req: NextRequest, { params }: Params): Promise<NextRes
 
   const { id } = await params;
 
-  // Demo mode
-  const demoAudit = getDemoAudit(id);
-  if (demoAudit) {
-    if (demoAudit.userId !== user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    const schemaData = extractSchemaData(demoAudit as unknown as Record<string, unknown>);
-    return NextResponse.json(schemaData);
-  }
-
-  if (!isFullyConfigured()) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  if (!isFullyConfigured()) return NextResponse.json({ error: 'No data available — run an audit to generate real analysis.' }, { status: 404 });
 
   try {
     const { getAuditWithResults } = await import('@sitenexis/db');

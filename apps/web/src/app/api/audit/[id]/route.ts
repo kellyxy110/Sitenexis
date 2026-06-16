@@ -1,8 +1,9 @@
 export const dynamic = 'force-dynamic';
 import { type NextRequest, NextResponse } from 'next/server';
 import { requireAuth, unauthorizedResponse } from '@/lib/auth';
-import { getDemoAudit } from '@/lib/demo-store';
 import { isFullyConfigured } from '@/lib/mode';
+import { gtlEmpty, gtlResponse } from '@/lib/gtl';
+import type { AuditStatus } from '@sitenexis/shared';
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -18,26 +19,21 @@ export async function GET(req: NextRequest, { params }: Params): Promise<NextRes
 
   const { id } = await params;
 
-  // Always try demo store first — covers both demo mode and fallback from failed real mode
-  const demoAudit = getDemoAudit(id);
-  if (demoAudit) {
-    if (demoAudit.userId !== user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    return NextResponse.json(demoAudit);
-  }
-
-  // ── Real mode ──────────────────────────────────────────────────────────────
-  if (!isFullyConfigured()) {
-    return NextResponse.json({ error: 'Not found' }, { status: 404 });
-  }
+  if (!isFullyConfigured()) return gtlEmpty();
 
   try {
     const { getAuditWithResults } = await import('@sitenexis/db');
-    const audit = await getAuditWithResults(id) as { userId: string } | null;
-    if (!audit) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    const audit = await getAuditWithResults(id) as ({ userId: string; status: AuditStatus } & Record<string, unknown>) | null;
+    if (!audit) return gtlEmpty();
     if (audit.userId !== user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    return NextResponse.json(audit);
+
+    const state = audit.status === 'complete' ? 'complete'
+      : audit.status === 'running' || audit.status === 'queued' ? 'partial'
+      : 'empty';
+
+    return gtlResponse(state, audit);
   } catch {
-    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    return gtlEmpty();
   }
 }
 
@@ -51,15 +47,10 @@ export async function DELETE(req: NextRequest, { params }: Params): Promise<Next
 
   const { id } = await params;
 
-  // ── Demo mode ──────────────────────────────────────────────────────────────
   if (!isFullyConfigured()) {
-    const audit = getDemoAudit(id);
-    if (!audit) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-    if (audit.userId !== user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 
-  // ── Real mode ──────────────────────────────────────────────────────────────
   try {
     const { getAuditWithResults, softDeleteAudit } = await import('@sitenexis/db');
     const audit = await getAuditWithResults(id) as { userId: string } | null;

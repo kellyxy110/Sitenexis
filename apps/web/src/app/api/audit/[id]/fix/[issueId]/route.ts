@@ -1,7 +1,6 @@
 export const dynamic = 'force-dynamic';
 import { type NextRequest, NextResponse } from 'next/server';
 import { requireAuth, unauthorizedResponse } from '@/lib/auth';
-import { isFullyConfigured } from '@/lib/mode';
 
 interface Params {
   params: Promise<{ id: string; issueId: string }>;
@@ -13,10 +12,6 @@ export async function GET(req: NextRequest, { params }: Params): Promise<NextRes
     user = await requireAuth(req);
   } catch {
     return unauthorizedResponse();
-  }
-
-  if (!isFullyConfigured()) {
-    return NextResponse.json({ error: 'Not available in demo mode' }, { status: 501 });
   }
 
   const { id: auditId, issueId } = await params;

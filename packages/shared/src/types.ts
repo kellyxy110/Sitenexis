@@ -1,3 +1,13 @@
+// ─── GTL (Graceful Truth Layer) ───────────────────────────────────────────────
+
+export type GTLState = 'complete' | 'partial' | 'empty';
+
+export interface GTLResponse<T> {
+  state: GTLState;
+  timestamp: string;
+  data: T | null;
+}
+
 // ─── Audit ───────────────────────────────────────────────────────────────────
 
 export type AuditStatus = 'queued' | 'running' | 'complete' | 'failed';
@@ -36,6 +46,10 @@ export interface CrawledPage {
   responseTimeMs: number;
   contentType: string;
   crawledAt: Date;
+  /** Rich link refs populated by the extractor layer — parallel to internalLinks, do not modify internalLinks */
+  internalLinkRefs?: LinkRef[];
+  /** Per-page external link metadata aggregated by the extractor layer */
+  externalLinkMeta?: ExternalLinkMeta;
 }
 
 export interface CrawlResult {
@@ -195,6 +209,30 @@ export interface SchemaScore {
 
 // ─── Link Graph ───────────────────────────────────────────────────────────────
 
+export type LinkPosition = 'nav' | 'body' | 'footer' | 'sidebar' | 'other';
+
+export interface LinkRef {
+  url: string;
+  anchorText: string;
+  position: LinkPosition;
+  isNoFollow: boolean;
+}
+
+export interface ExternalLinkMeta {
+  externalLinkCount: number;
+  topDomains: { domain: string; count: number }[];
+  nofollowRatio: number;
+  externalAuthorityScore: number;
+}
+
+export interface LinkStructuralIssue {
+  type: 'orphan' | 'dead_end' | 'overlinked' | 'underlinked_critical';
+  url: string;
+  severity: SEOIssueSeverity;
+  description: string;
+  recommendation: string;
+}
+
 export interface GraphNode {
   /** Page URL — canonical identifier */
   url: string;
@@ -212,6 +250,8 @@ export interface GraphNode {
   depth: number;
   /** Topic cluster label assigned by label-propagation */
   cluster: string;
+  /** Link Authority Flow Score — 0-100 composite of PageRank, inbound density, depth penalty */
+  linkAuthorityFlowScore: number;
 }
 
 export interface GraphEdge {
@@ -220,6 +260,8 @@ export interface GraphEdge {
   /** Number of times page A links to page B */
   weight: number;
   anchorText: string | null;
+  /** DOM context where the link appears — populated when internalLinkRefs is available */
+  position: LinkPosition | null;
   /** Aliases matching prompt spec */
   source: string;
   target: string;
@@ -236,9 +278,16 @@ export interface LinkGraphScore {
   nodes: GraphNode[];
   edges: GraphEdge[];
   orphanPages: string[];
+  deadEndPages: string[];
+  overlinkedPages: string[];
+  underlinkedCriticalPages: string[];
   weakClusters: string[][];
   avgPageRank: number;
   linkSuggestions: LinkSuggestion[];
+  structuralIssues: LinkStructuralIssue[];
+  linkAuthorityFlowScore: number;
+  hierarchyDepth: number;
+  externalLinkMeta: ExternalLinkMeta;
 }
 
 // ─── Performance ─────────────────────────────────────────────────────────────
@@ -919,6 +968,7 @@ export interface AuditReport {
   machineTrustIntelligence: MachineTrustIntelligenceScore;
   topIssues: SEOIssue[];
   summaryInsights: string[];
+  verificationReport?: VerificationReport;
 }
 
 // ─── Naming aliases ───────────────────────────────────────────────────────────
@@ -1025,6 +1075,200 @@ export interface SIIScore {
   critical_gaps: string[];
   recommendation_priority: SIIRecommendationEntry[];
 }
+
+// ─── Source-Grounded Verification Layer ──────────────────────────────────────
+
+/** Where the evidence was extracted from — ordered from most to least authoritative */
+export type EvidenceSourceType =
+  | 'dom_element'        // direct HTML element (title, canonical, etc.)
+  | 'meta_tag'           // <meta> attributes
+  | 'link_element'       // <link> attributes (canonical, hreflang, etc.)
+  | 'schema_jsonld'      // JSON-LD structured data
+  | 'http_header'        // HTTP response headers (redirects, content-type, etc.)
+  | 'anchor_text'        // <a> link text
+  | 'heading'            // <h1>–<h6> content
+  | 'body_text'          // visible body text
+  | 'llm_interpretation'; // LLM-assisted interpretation — must be backed by DOM evidence
+
+export interface EvidenceReference {
+  sourceType: EvidenceSourceType;
+  pageUrl: string;
+  cssSelector?: string;    // e.g. 'head > meta[name="description"]'
+  exactValue: string;      // the exact extracted value (never inferred)
+  htmlSnippet?: string;    // up to 200 chars of source HTML
+  observedAt: Date;        // crawl timestamp — used for staleness detection
+}
+
+export interface EvidenceFactors {
+  /** Was the signal directly extracted from DOM, schema, or crawl artifacts? (0–1) */
+  evidenceCompleteness: number;
+  /**
+   * Schema + DOM agreement → 1.0
+   * Single reliable source (direct DOM attribute) → 0.9
+   * Body text / heading only → 0.65
+   * LLM interpretation with DOM backing → 0.5
+   * LLM only, no DOM anchor → 0.3
+   */
+  sourceReliability: number;
+  /**
+   * Signal appears consistently across pages, schema, metadata, content → 1.0
+   * Consistent in one source → 0.8
+   * Conflicting signals across sources → 0.3
+   */
+  extractionConsistency: number;
+}
+
+export type ConfidenceClass = 'VERIFIED' | 'PROBABLE' | 'WEAK' | 'SUPPRESSED';
+
+export interface ConfidenceScore {
+  /** Composite 0–1: evidenceCompleteness×0.4 + sourceReliability×0.3 + extractionConsistency×0.3 */
+  value: number;
+  class: ConfidenceClass;
+  factors: EvidenceFactors;
+}
+
+export interface VerifiedFinding {
+  findingId: string;
+  sourceAnalyzer: string;
+  /** Machine-readable issue identifier, used by the self-healing agent for template lookup */
+  issueType: string;
+  category: 'seo' | 'entity' | 'schema' | 'content' | 'trust' | 'citation' | 'performance';
+  description: string;
+  recommendation: string;
+  severity: SEOIssueSeverity;
+  /** Severity after confidence adjustment — 'suppressed' means confidence < 0.5 */
+  adjustedSeverity: SEOIssueSeverity | 'suppressed';
+  confidence: ConfidenceScore;
+  /** Direct evidence references — every finding must have at least one */
+  evidence: EvidenceReference[];
+  pageUrl: string | null;
+  originalFinding: unknown;
+}
+
+export interface VerificationReport {
+  auditId: string;
+  verifiedAt: Date;
+  totalFindings: number;
+  verifiedCount: number;    // confidence ≥ 0.9 — VERIFIED facts
+  probableCount: number;    // 0.70–0.89 — PROBABLE interpretations
+  weakCount: number;        // 0.50–0.69 — WEAK signals
+  suppressedCount: number;  // < 0.50 — suppressed (not shown to user)
+  findings: VerifiedFinding[];
+  coverageStats: {
+    deterministic: number;  // directly observed metrics (confidence = 1.0)
+    interpreted: number;    // LLM-assisted but evidence-backed
+    suppressed: number;
+  };
+}
+
+// ─── Self-Healing Agent ───────────────────────────────────────────────────────
+
+export interface HealingAction {
+  id: string;
+  findingId: string;
+  issueType: string;
+  title: string;
+  /** Higher number = higher urgency. Computed as severity_weight × confidence.value */
+  priority: number;
+  confidence: ConfidenceScore;
+  affectedUrl: string | null;
+  category: 'seo' | 'entity' | 'schema' | 'content' | 'trust' | 'citation' | 'performance';
+  problem: string;
+  solution: string;
+  fixCode: string;
+  fixLanguage: FixLanguage;
+  expectedImpact: 'high' | 'medium' | 'low';
+  effort: 'low' | 'medium' | 'high';
+  fixSource: 'template' | 'llm';
+}
+
+export interface SelfHealingPlan {
+  auditId: string;
+  generatedAt: Date;
+  totalActions: number;
+  criticalActions: number;
+  warningActions: number;
+  /** Estimated score points recoverable if all critical + warning fixes are applied */
+  estimatedScoreGain: number;
+  actions: HealingAction[];
+  /** Always present — surfaced in UI to prevent direct-deployment assumptions */
+  disclaimer: string;
+}
+
+// ─── Crawl microservice — SSE event types ─────────────────────────────────────
+
+export type CrawlEventType =
+  | 'started'
+  | 'page_crawled'
+  | 'page_failed'
+  | 'progress'
+  | 'completed'
+  | 'failed'
+  | 'keepalive';
+
+export interface CrawlEventStarted {
+  type: 'started';
+  jobId: string;
+  domain: string;
+  maxPages: number;
+  timestamp: string;
+}
+
+export interface CrawlEventPageCrawled {
+  type: 'page_crawled';
+  jobId: string;
+  url: string;
+  statusCode: number;
+  wordCount: number;
+  chunkCount: number;
+  hasSchema: boolean;
+  timestamp: string;
+}
+
+export interface CrawlEventPageFailed {
+  type: 'page_failed';
+  jobId: string;
+  url: string;
+  error: string;
+  timestamp: string;
+}
+
+export interface CrawlEventProgress {
+  type: 'progress';
+  jobId: string;
+  pagesProcessed: number;
+  pagesDiscovered: number;
+  timestamp: string;
+}
+
+export interface CrawlEventCompleted {
+  type: 'completed';
+  jobId: string;
+  pagesCount: number;
+  durationMs: number;
+  timestamp: string;
+}
+
+export interface CrawlEventFailed {
+  type: 'failed';
+  jobId: string;
+  error: string;
+  timestamp: string;
+}
+
+export interface CrawlEventKeepalive {
+  type: 'keepalive';
+  timestamp: string;
+}
+
+export type CrawlEvent =
+  | CrawlEventStarted
+  | CrawlEventPageCrawled
+  | CrawlEventPageFailed
+  | CrawlEventProgress
+  | CrawlEventCompleted
+  | CrawlEventFailed
+  | CrawlEventKeepalive;
 
 // ─── API response shapes ──────────────────────────────────────────────────────
 

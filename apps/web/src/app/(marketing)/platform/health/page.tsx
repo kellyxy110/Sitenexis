@@ -1,6 +1,5 @@
 import { Metadata } from 'next';
 import { PublicHealthShowcase } from './PublicHealthShowcase';
-import { buildDemoHealthData } from '@/lib/demo-health-data';
 import { isFullyConfigured } from '@/lib/mode';
 
 export const metadata: Metadata = {
@@ -13,16 +12,16 @@ export const revalidate = 300; // ISR: revalidate every 5 minutes
 
 async function getLatestHealthData() {
   if (!isFullyConfigured()) {
-    return buildDemoHealthData();
+    return { run: null };
   }
 
   try {
     const { getLatestSelfAuditRun } = await import('@sitenexis/db');
     const run = await getLatestSelfAuditRun('sitenexis.com');
-    if (!run) return buildDemoHealthData();
+    if (!run) return { run: null };
     return { run };
   } catch {
-    return buildDemoHealthData();
+    return { run: null };
   }
 }
 

@@ -17,14 +17,14 @@ async function Stats({ userId }: { userId: string }) {
   ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
       {cards.map(({ label, value, icon: Icon, color }) => (
-        <div key={label} className="bg-[#16162A] border border-[#2A2A4A] rounded-xl p-5">
-          <div className="flex items-start justify-between mb-3">
-            <span className="text-[#9090B8] text-xs font-medium uppercase tracking-wide">{label}</span>
-            <Icon size={16} className={color} />
+        <div key={label} className="bg-[#16162A] border border-[#2A2A4A] rounded-xl p-4 sm:p-5">
+          <div className="flex items-start justify-between mb-2 sm:mb-3">
+            <span className="text-[#9090B8] text-[10px] sm:text-xs font-medium uppercase tracking-wide">{label}</span>
+            <Icon size={14} className={color} />
           </div>
-          <p className="text-2xl font-bold text-[#F0F0FF]">{value}</p>
+          <p className="text-xl sm:text-2xl font-bold text-[#F0F0FF]">{value}</p>
         </div>
       ))}
     </div>
@@ -39,9 +39,9 @@ async function TrendSection({ userId }: { userId: string }) {
 
 function StatsSkeleton() {
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
       {[...Array(4)].map((_, i) => (
-        <div key={i} className="bg-[#16162A] border border-[#2A2A4A] rounded-xl p-5 animate-pulse">
+        <div key={i} className="bg-[#16162A] border border-[#2A2A4A] rounded-xl p-4 sm:p-5 animate-pulse">
           <div className="h-3 bg-[#1C1C30] rounded w-2/3 mb-3" />
           <div className="h-7 bg-[#1C1C30] rounded w-1/2" />
         </div>
@@ -79,19 +79,19 @@ export default async function DashboardPage() {
         <TrendSection userId={userId} />
       </Suspense>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Link href="/vault" className="bg-[#16162A] border border-[#2A2A4A] hover:border-purple-500/40 rounded-xl p-5 transition-all">
-          <BookOpen size={20} className="text-purple-400 mb-3" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+        <Link href="/vault" className="bg-[#16162A] border border-[#2A2A4A] hover:border-purple-500/40 rounded-xl p-4 sm:p-5 transition-all">
+          <BookOpen size={18} className="text-purple-400 mb-2 sm:mb-3" />
           <h3 className="font-semibold text-[#F0F0FF] mb-1">Swipe Vault</h3>
           <p className="text-[#9090B8] text-xs">Browse and search your saved ads</p>
         </Link>
-        <Link href="/analyze" className="bg-[#16162A] border border-[#2A2A4A] hover:border-teal-500/40 rounded-xl p-5 transition-all">
-          <Zap size={20} className="text-teal-400 mb-3" />
+        <Link href="/analyze" className="bg-[#16162A] border border-[#2A2A4A] hover:border-teal-500/40 rounded-xl p-4 sm:p-5 transition-all">
+          <Zap size={18} className="text-teal-400 mb-2 sm:mb-3" />
           <h3 className="font-semibold text-[#F0F0FF] mb-1">Analyze Ad</h3>
           <p className="text-[#9090B8] text-xs">Get full AI intelligence on any ad</p>
         </Link>
-        <Link href="/generate" className="bg-[#16162A] border border-[#2A2A4A] hover:border-orange-500/40 rounded-xl p-5 transition-all">
-          <TrendingUp size={20} className="text-orange-400 mb-3" />
+        <Link href="/generate" className="bg-[#16162A] border border-[#2A2A4A] hover:border-orange-500/40 rounded-xl p-4 sm:p-5 transition-all sm:col-span-2 lg:col-span-1">
+          <TrendingUp size={18} className="text-orange-400 mb-2 sm:mb-3" />
           <h3 className="font-semibold text-[#F0F0FF] mb-1">Generate</h3>
           <p className="text-[#9090B8] text-xs">Create platform-specific variations</p>
         </Link>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import type { GTLResponse, GTLState } from '@sitenexis/shared';
 
 export interface MeData {
   id?: string;
@@ -69,16 +70,25 @@ export function useLatestAudit() {
   return { audit: latest, isLoading, error };
 }
 
-/** Fetches a specific audit sub-report once auditId is known. */
+/** Fetches a specific audit sub-report once auditId is known.
+ *  Returns TanStack Query result with `data: T | null` unwrapped from the GTL envelope,
+ *  plus `gtlState: GTLState | null` for explicit state rendering.
+ */
 export function useAuditSubReport<T>(auditId: string | null, endpoint: string) {
-  return useQuery<T>({
+  const query = useQuery<GTLResponse<T>>({
     queryKey: ['audit-sub', auditId, endpoint],
     queryFn: () =>
       fetch(`/api/audit/${auditId}/${endpoint}`).then((r) => {
         if (!r.ok) throw new Error(`Failed to load ${endpoint}`);
-        return r.json() as Promise<T>;
+        return r.json() as Promise<GTLResponse<T>>;
       }),
     enabled: !!auditId,
     staleTime: 120_000,
   });
+
+  return {
+    ...query,
+    gtlState: (query.data?.state ?? null) as GTLState | null,
+    data: query.data?.data ?? null,
+  };
 }

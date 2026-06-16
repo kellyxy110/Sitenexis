@@ -47,7 +47,7 @@ export async function saveAuditScores(scores: AuditScores): Promise<AuditScore> 
             .filter((p) => p.detectedTypes.length > 0)
             .map((p) => p.url),
         },
-        linkGraph: { avgPageRank: scores.linkGraph.avgPageRank },
+        linkGraph: scores.linkGraph as unknown as Prisma.InputJsonObject,
         performance: {
           lcp: scores.performance.lcp,
           fid: scores.performance.fid,

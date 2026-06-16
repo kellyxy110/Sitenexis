@@ -93,7 +93,7 @@ export async function runInfrastructureAgent(input: AuditJobInput): Promise<void
           schemaCompletenessScore: schema.score,
           aiExtractabilityScore: aiReadability.score,
           externalValidationScore: Math.round(
-            entityIntelligence.entitiesDetected.reduce((s, e) => s + e.sameAsUrls.length, 0) * 15,
+            entityIntelligence.entitiesDetected.reduce((s, e) => s + (e.sameAsUrls ?? []).length, 0) * 15,
           ),
         }, domain),
         runSyntheticEntityAgent(auditId, pages, entityIntelligence),
@@ -349,6 +349,9 @@ async function populateSelfAuditRunAsync(selfAuditRunId: string, auditId: string
     const linkGraphInput = {
       score: scores.linkGraphScore, nodes: [], edges: [], orphanPages: [],
       weakClusters: [], avgPageRank: 0, linkSuggestions: [],
+      deadEndPages: [], overlinkedPages: [], underlinkedCriticalPages: [],
+      structuralIssues: [], linkAuthorityFlowScore: 0, hierarchyDepth: 0,
+      externalLinkMeta: { externalLinkCount: 0, topDomains: [], nofollowRatio: 0, externalAuthorityScore: 0 },
     };
     const perfInput = {
       score: scores.performanceScore,

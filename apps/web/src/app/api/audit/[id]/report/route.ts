@@ -1,7 +1,6 @@
 export const dynamic = 'force-dynamic';
 import { type NextRequest, NextResponse } from 'next/server';
 import { requireAuth, unauthorizedResponse } from '@/lib/auth';
-import { getDemoAudit } from '@/lib/demo-store';
 import { isFullyConfigured } from '@/lib/mode';
 
 interface Params {
@@ -155,13 +154,7 @@ export async function POST(req: NextRequest, { params }: Params): Promise<NextRe
   const { id } = await params;
 
   if (!isFullyConfigured()) {
-    const audit = getDemoAudit(id);
-    if (!audit) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-    if (audit.userId !== user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    return NextResponse.json({
-      reportUrl: null,
-      message: 'PDF generation requires a connected Supabase project. Connect your backend to enable this feature.',
-    }, { status: 202 });
+    return NextResponse.json({ error: 'No data available — run an audit to generate real analysis.' }, { status: 404 });
   }
 
   try {

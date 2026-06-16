@@ -1,5 +1,5 @@
 import { Queue, Worker, type Job } from 'bullmq';
-import IORedis from 'ioredis';
+import { createRedisClient } from '@sitenexis/crawler';
 
 export type AgentEvent = 'started' | 'progress' | 'completed' | 'failed';
 
@@ -31,9 +31,7 @@ export type AgentId =
   | 'recommendation-mapping'
   | 'synthetic-entity';
 
-const connection = new IORedis(process.env['REDIS_URL'] ?? 'redis://localhost:6379', {
-  maxRetriesPerRequest: null,
-});
+const connection = createRedisClient(true);
 
 export const agentBus = new Queue<AgentMessage>('agent-bus', { connection });
 

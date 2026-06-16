@@ -4,6 +4,7 @@ import * as cheerio from 'cheerio';
 import { type CrawledPage, type CrawlResult } from '@sitenexis/shared';
 import { RobotsParser } from './robots';
 import { fetchSitemapUrls } from './sitemap';
+import { extractLinkRefs } from './extractor';
 
 const USER_AGENT = 'SiteNexis-Bot/1.0 (+https://sitenexis.com/bot)';
 const DEFAULT_MAX_PAGES = 500;
@@ -270,6 +271,8 @@ function parseHtml(
     }
   });
 
+  const { internalLinkRefs, externalLinkMeta } = extractLinkRefs(html, url, domain);
+
   return {
     url,
     statusCode,
@@ -289,6 +292,8 @@ function parseHtml(
     responseTimeMs,
     contentType: 'text/html',
     crawledAt: new Date(),
+    internalLinkRefs,
+    externalLinkMeta,
   };
 }
 

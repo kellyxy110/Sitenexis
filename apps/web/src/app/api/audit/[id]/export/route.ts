@@ -1,7 +1,6 @@
 export const dynamic = 'force-dynamic';
 import { type NextRequest, NextResponse } from 'next/server';
 import { requireAuth, unauthorizedResponse } from '@/lib/auth';
-import { getDemoAudit } from '@/lib/demo-store';
 import { isFullyConfigured } from '@/lib/mode';
 
 interface Params {
@@ -30,24 +29,18 @@ export async function GET(req: NextRequest, { params }: Params): Promise<NextRes
 
   const { id } = await params;
 
-  // Resolve audit from demo store or DB
-  let audit: Record<string, unknown> | null = null;
+  if (!isFullyConfigured()) {
+    return NextResponse.json({ error: 'No data available — run an audit to generate real analysis.' }, { status: 404 });
+  }
 
-  const demoAudit = getDemoAudit(id);
-  if (demoAudit) {
-    if (demoAudit.userId !== user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    audit = demoAudit as unknown as Record<string, unknown>;
-  } else if (isFullyConfigured()) {
-    try {
-      const { getAuditWithResults } = await import('@sitenexis/db');
-      const result = await getAuditWithResults(id) as (Record<string, unknown> & { userId: string }) | null;
-      if (!result) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-      if (result.userId !== user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-      audit = result;
-    } catch {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 });
-    }
-  } else {
+  let audit: Record<string, unknown>;
+  try {
+    const { getAuditWithResults } = await import('@sitenexis/db');
+    const result = await getAuditWithResults(id) as (Record<string, unknown> & { userId: string }) | null;
+    if (!result) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    if (result.userId !== user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    audit = result;
+  } catch {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 
@@ -57,8 +50,6 @@ export async function GET(req: NextRequest, { params }: Params): Promise<NextRes
   const criticalCount = issues.filter((i) => i['severity'] === 'critical').length;
   const warningCount  = issues.filter((i) => i['severity'] === 'warning').length;
   const infoCount     = issues.filter((i) => i['severity'] === 'info').length;
-
-  // ── Build CSV ──────────────────────────────────────────────────────────────
 
   const headers = [
     'Audit ID', 'Domain', 'Status', 'Page Count',
@@ -86,7 +77,6 @@ export async function GET(req: NextRequest, { params }: Params): Promise<NextRes
     audit['createdAt'] ?? '',
   ];
 
-  // Issues detail section
   const issueHeaders = ['URL', 'Module', 'Type', 'Severity', 'Message', 'Recommendation'];
   const issueRows = issues.map((iss) => [
     iss['pageUrl'] ?? iss['url'] ?? '',

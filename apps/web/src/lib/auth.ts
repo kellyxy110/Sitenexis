@@ -1,13 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServerClient } from './supabase/server';
-import { DEMO_USER } from './demo-store';
-import { isFullyConfigured } from './mode';
 
 export async function requireAuth(_req: NextRequest): Promise<{ id: string; email: string }> {
-  if (!isFullyConfigured()) {
-    return DEMO_USER;
-  }
-
   const supabase = await createSupabaseServerClient();
   const { data: { user }, error } = await supabase.auth.getUser();
 

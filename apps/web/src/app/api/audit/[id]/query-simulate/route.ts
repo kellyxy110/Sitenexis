@@ -2,7 +2,6 @@ export const dynamic = 'force-dynamic';
 import { type NextRequest, NextResponse } from 'next/server';
 import { requireAuth, unauthorizedResponse } from '@/lib/auth';
 import { isFullyConfigured } from '@/lib/mode';
-import { getDemoAudit } from '@/lib/demo-store';
 import { z } from 'zod';
 
 interface Params { params: Promise<{ id: string }> }
@@ -110,16 +109,13 @@ function scorePageForQuery(
   const matchedTerms = [...matchedSet];
   const coverage = matchedTerms.length / Math.max(terms.length, 1);
 
-  // Coverage bonus
   if (coverage >= 0.8) { raw *= 1.35; reasons.push('High term coverage'); }
   else if (coverage >= 0.5) { raw *= 1.15; reasons.push('Moderate term coverage'); }
 
-  // PageRank authority
   const prBoost = 1 + Math.min(page.pageRank * 3, 1.5);
   if (page.pageRank > 0.1) reasons.push('High PageRank');
   raw *= prBoost;
 
-  // Word count — very thin pages penalised
   if (page.wordCount < 100) { raw *= 0.5; reasons.push('Thin content'); }
 
   const score = Math.min(Math.round(raw), 100);
@@ -155,34 +151,13 @@ export async function POST(req: NextRequest, { params }: Params): Promise<NextRe
     return NextResponse.json({ error: 'Query too generic — no meaningful terms extracted' }, { status: 400 });
   }
 
-  // ── Demo mode ──────────────────────────────────────────────────────────────
   if (!isFullyConfigured()) {
-    const audit = getDemoAudit(id);
-    if (!audit) return NextResponse.json({ error: 'Audit not found' }, { status: 404 });
-
-    const mockResults: SimulatedResult[] = audit.pages.slice(0, 5).map((p, i) => ({
-      rank: i + 1,
-      url: p.url,
-      title: p.url.replace(/^https?:\/\//, '').split('/').pop() || p.url,
-      retrievalScore: Math.max(10, 90 - i * 15),
-      matchedTerms: terms.slice(0, 3 - i),
-      termCoverage: Math.max(0.2, 1 - i * 0.2),
-      excerpt: `This page covers topics related to ${terms.join(', ')}. Content would appear here as an excerpt…`,
-      reasons: i === 0 ? ['High term coverage', 'High PageRank'] : ['Moderate term coverage'],
-      chunkStability: i === 0 ? 'high' : i < 3 ? 'medium' : 'low',
-      citationEligible: i < 3,
-    }));
-
-    return NextResponse.json({
-      query,
-      terms,
-      results: mockResults,
-      pagesAnalyzed: audit.pages.length,
-      simulatedAt: new Date().toISOString(),
-    } satisfies QuerySimulateResponse);
+    return NextResponse.json(
+      { error: 'No data available — run an audit to generate real analysis.' },
+      { status: 404 },
+    );
   }
 
-  // ── Real mode ──────────────────────────────────────────────────────────────
   try {
     const { getAuditById, getPagesByAudit } = await import('@sitenexis/db');
     const audit = await getAuditById(id);

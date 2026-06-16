@@ -8,6 +8,7 @@ export {
   redisConnection,
   createRedisClient,
   getRedisConnection,
+  getRedisUrl,
   HEARTBEAT_KEY,
   HEARTBEAT_INTERVAL_MS,
   HEARTBEAT_STALE_MS,
@@ -15,4 +16,4 @@ export {
 } from './queue';
 export { RobotsParser, fetchRobotsTxt, type RobotsRules } from './robots';
 export { fetchSitemapUrls } from './sitemap';
-export { extractChunks, type PageChunk } from './extractor';
+export { extractChunks, extractLinkRefs, type PageChunk } from './extractor';

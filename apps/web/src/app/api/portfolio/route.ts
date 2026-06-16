@@ -2,8 +2,6 @@ export const dynamic = 'force-dynamic';
 import { type NextRequest, NextResponse } from 'next/server';
 import { requireAuth, unauthorizedResponse } from '@/lib/auth';
 import { isFullyConfigured } from '@/lib/mode';
-import { listDemoAudits } from '@/lib/demo-store';
-
 export interface PortfolioDomain {
   domain: string;
   latestAuditId: string;
@@ -27,17 +25,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   }
 
   if (!isFullyConfigured()) {
-    const audits = listDemoAudits();
-    const portfolio = buildPortfolio(audits.map((a) => ({
-      domain: a.domain,
-      id: a.id,
-      status: a.status,
-      createdAt: a.createdAt,
-      scores: a.scores ? { overall: a.scores.overall, aiScore: a.scores.aiScore } : null,
-      _count: { issues: a.issues.filter((i) => i.severity === 'critical').length },
-      aiVisibilityScores: null,
-    })));
-    return NextResponse.json(portfolio);
+    return NextResponse.json([]);
   }
 
   try {

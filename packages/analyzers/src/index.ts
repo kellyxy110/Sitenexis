@@ -85,6 +85,25 @@ export type { GeoScoreResult } from './geo/engine';
 export { computeSnsScore } from './sns/engine';
 export type { SnsScoreResult, SnsLabel } from './sns/engine';
 
+// ─── Fix generation ───────────────────────────────────────────────────────────
+export { generateFix } from './fixes/engine';
+export type { GeneratedFix, IssueContext } from './fixes/types';
+
+// ─── Source-Grounded Verification Layer ──────────────────────────────────────
+export {
+  runVerificationPass,
+  surfaceableFindings,
+  groupByConfidence,
+  computeConfidence,
+  DETERMINISTIC_CONFIDENCE,
+  computeSourceReliability,
+  computeExtractionConsistency,
+  verifySEOIssue,
+  verifySchemaIssue,
+  verifyEntity,
+  adjustedSeverity,
+} from './verification';
+
 // ─── Intelligence Modules (plug-in layer, non-breaking) ───────────────────────
 
 // Module 1: AI Discovery Intelligence Engine

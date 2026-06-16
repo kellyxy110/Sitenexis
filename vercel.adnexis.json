@@ -1,0 +1,8 @@
+{
+  "version": 2,
+  "name": "adnexis",
+  "buildCommand": "pnpm --filter @sitenexis/db exec prisma generate --schema=./schema.prisma && turbo run build --filter=adnexis",
+  "outputDirectory": "apps/adnexis/.next",
+  "installCommand": "pnpm install --no-frozen-lockfile",
+  "framework": "nextjs"
+}
