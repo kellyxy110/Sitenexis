@@ -22,6 +22,7 @@ export async function getAuditWithResults(id: string) {
       pages: { where: { archivedAt: null } },
       issues: true,
       scores: true,
+      aiVisibilityScores: true,
       report: true,
     },
   });

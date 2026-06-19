@@ -92,6 +92,15 @@ interface AuditData {
     schemaData?: unknown[];
   }>;
   linkGraph?: InternalLinkGraph | null;
+  aiVisibilityScores?: {
+    aiVisibilityScore: number;
+    entityConfidenceScore: number;
+    citationProbabilityScore: number;
+    machineReadabilityScore: number;
+    semanticTrustScore: number;
+    retrievalReadinessScore: number;
+    recommendationConfidenceScore: number;
+  } | null;
 }
 
 const TAB_IDS = [
@@ -303,6 +312,21 @@ function BarMini({ label, value }: { label: string; value: number }) {
       <div className="h-1 w-full rounded-full bg-white/10">
         <div className="h-1 rounded-full transition-all" style={{ width: `${value}%`, background: color }} />
       </div>
+    </div>
+  );
+}
+
+function InlineMetric({ label, value }: { label: string; value: number | null }) {
+  const display = value != null ? Math.round(value) : '—';
+  const color = value == null ? '#4A6280' : value >= 80 ? '#22C55E' : value >= 60 ? '#0BCEBC' : value >= 40 ? '#F59E0B' : '#EF4444';
+  const pct = value != null ? Math.min(value, 100) : 0;
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-[11px] text-[#4A6280] min-w-[110px]">{label}</span>
+      <div className="flex-1 h-1.5 rounded-full bg-white/10">
+        <div className="h-1.5 rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: color }} />
+      </div>
+      <span className="text-[11px] font-semibold tabular-nums w-7 text-right" style={{ color }}>{display}</span>
     </div>
   );
 }
@@ -1566,7 +1590,8 @@ function AuditPageInner() {
       }
       const detail = await fetch(`/api/audit/${match.id}`);
       if (!detail.ok) throw new Error(`Failed to load audit results (${detail.status})`);
-      return detail.json() as Promise<AuditData>;
+      const envelope = await detail.json() as { state?: string; data?: AuditData } | AuditData;
+      return ('data' in envelope && envelope.data) ? envelope.data : envelope as AuditData;
     },
     enabled: !auditId, // if auditId present, show progress first
     staleTime: 60_000,
@@ -1585,45 +1610,50 @@ function AuditPageInner() {
   // ── v3 lazy queries — only fetch when tab is active ───────────────────────
   const auditId2 = data?.id ?? null;
 
+  function unwrapGTL<T>(json: unknown): T {
+    const obj = json as Record<string, unknown>;
+    return (obj && typeof obj === 'object' && 'data' in obj && obj.data != null ? obj.data : obj) as T;
+  }
+
   const { data: retrievalData, isLoading: retrievalLoading } = useQuery<RetrievalData>({
     queryKey: ['audit-retrieval', auditId2],
-    queryFn: () => fetch(`/api/audit/${auditId2}/retrieval`).then((r) => r.json() as Promise<RetrievalData>),
+    queryFn: () => fetch(`/api/audit/${auditId2}/retrieval`).then((r) => r.json()).then(unwrapGTL<RetrievalData>),
     enabled: activeTab === 'retrieval' && !!auditId2,
     staleTime: 120_000,
   });
   const { data: machineTrustData, isLoading: machineTrustLoading } = useQuery<MachineTrustData>({
     queryKey: ['audit-machine-trust', auditId2],
-    queryFn: () => fetch(`/api/audit/${auditId2}/machine-trust`).then((r) => r.json() as Promise<MachineTrustData>),
-    enabled: activeTab === 'machine-trust' && !!auditId2,
+    queryFn: () => fetch(`/api/audit/${auditId2}/machine-trust`).then((r) => r.json()).then(unwrapGTL<MachineTrustData>),
+    enabled: !!auditId2,
     staleTime: 120_000,
   });
   const { data: temporalData, isLoading: temporalLoading } = useQuery<TemporalData>({
     queryKey: ['audit-temporal', auditId2],
-    queryFn: () => fetch(`/api/audit/${auditId2}/temporal`).then((r) => r.json() as Promise<TemporalData>),
+    queryFn: () => fetch(`/api/audit/${auditId2}/temporal`).then((r) => r.json()).then(unwrapGTL<TemporalData>),
     enabled: activeTab === 'temporal' && !!auditId2,
     staleTime: 120_000,
   });
   const { data: surfacesData, isLoading: surfacesLoading } = useQuery<SurfacesData>({
     queryKey: ['audit-surfaces', auditId2],
-    queryFn: () => fetch(`/api/audit/${auditId2}/surfaces`).then((r) => r.json() as Promise<SurfacesData>),
-    enabled: activeTab === 'surfaces' && !!auditId2,
+    queryFn: () => fetch(`/api/audit/${auditId2}/surfaces`).then((r) => r.json()).then(unwrapGTL<SurfacesData>),
+    enabled: !!auditId2,
     staleTime: 120_000,
   });
   const { data: authenticityData, isLoading: authenticityLoading } = useQuery<AuthenticityData>({
     queryKey: ['audit-authenticity', auditId2],
-    queryFn: () => fetch(`/api/audit/${auditId2}/authenticity`).then((r) => r.json() as Promise<AuthenticityData>),
-    enabled: activeTab === 'authenticity' && !!auditId2,
+    queryFn: () => fetch(`/api/audit/${auditId2}/authenticity`).then((r) => r.json()).then(unwrapGTL<AuthenticityData>),
+    enabled: !!auditId2,
     staleTime: 120_000,
   });
   const { data: perceptionData, isLoading: perceptionLoading } = useQuery<PerceptionGraphData>({
     queryKey: ['audit-perception-graph', auditId2],
-    queryFn: () => fetch(`/api/audit/${auditId2}/perception-graph`).then((r) => r.json() as Promise<PerceptionGraphData>),
+    queryFn: () => fetch(`/api/audit/${auditId2}/perception-graph`).then((r) => r.json()).then(unwrapGTL<PerceptionGraphData>),
     enabled: activeTab === 'perception-graph' && !!auditId2,
     staleTime: 120_000,
   });
   const { data: schemaApiData, isLoading: schemaApiLoading } = useQuery<SchemaApiData>({
     queryKey: ['audit-schema', auditId2],
-    queryFn: () => fetch(`/api/audit/${auditId2}/schema`).then((r) => r.json() as Promise<SchemaApiData>),
+    queryFn: () => fetch(`/api/audit/${auditId2}/schema`).then((r) => r.json()).then(unwrapGTL<SchemaApiData>),
     enabled: activeTab === 'schema' && !!auditId2,
     staleTime: 120_000,
   });
@@ -1636,7 +1666,8 @@ function AuditPageInner() {
       const r = await fetch(`/api/audit/${auditId2}/sse`);
       if (r.status === 404) return null;
       if (!r.ok) throw new Error('Failed to load SSE scores');
-      return r.json() as Promise<SseData>;
+      const json = await r.json();
+      return unwrapGTL<SseData | null>(json);
     },
     enabled: !!auditId2 && data?.status === 'complete',
     staleTime: 300_000,
@@ -1710,8 +1741,10 @@ function AuditPageInner() {
           )}
         </div>
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-          <span className="hidden text-xs text-[#4A6280] md:block">
-            Overall: <span className="font-bold text-white">{data.scores?.overall ?? '—'}</span>
+          <span className="hidden text-xs text-[#4A6280] md:flex items-center gap-3">
+            <span>Web <span className="font-bold text-cyan">{data.scores?.seoScore ?? '—'}</span></span>
+            <span className="text-white/10">·</span>
+            <span>AI <span className="font-bold text-[#8B5CF6]">{data.scores?.aiScore ?? '—'}</span></span>
           </span>
           <button
             onClick={() => router.push(`/dashboard`)}
@@ -1724,27 +1757,139 @@ function AuditPageInner() {
 
       <div className="mx-auto max-w-6xl px-6 py-8">
 
-        {/* ── Score hero ───────────────────────────────────────────────────── */}
-        <div className="mb-8 card-glass rounded-2xl p-4 sm:p-8">
-          <div className="mb-6 grid grid-cols-3 justify-items-center gap-4 sm:grid-cols-5 lg:grid-cols-9 sm:gap-6">
-            <ScoreGauge label="SEO Health"         score={data.scores?.seoScore ?? null} />
-            <ScoreGauge label="AI Readability"     score={data.scores?.aiScore ?? null} />
-            <ScoreGauge label="Machine Readability"score={data.scores?.breakdown?.machineReadability ? Math.round((data.scores.breakdown.machineReadability.renderingFidelity + data.scores.breakdown.machineReadability.boilerplateRatio + data.scores.breakdown.machineReadability.chunkBoundaryQuality + data.scores.breakdown.machineReadability.signalToNoiseRatio + data.scores.breakdown.machineReadability.headingHierarchy + data.scores.breakdown.machineReadability.readingOrderConsistency + data.scores.breakdown.machineReadability.linkAnchorQuality) / 7) : null} />
-            <ScoreGauge label="Entity Confidence"  score={data.scores?.breakdown?.entityIntelligence?.entityConfidenceScore ?? null} />
-            <ScoreGauge label="Citation Probability" score={data.scores?.breakdown?.citationAnalysis?.citationProbabilityScore ?? null} />
-            <ScoreGauge label="Semantic Trust"     score={data.scores?.breakdown?.semanticTrust?.score ?? null} />
-            <ScoreGauge label="Schema"             score={data.scores?.schemaScore ?? null} />
-            <ScoreGauge label="Link Strength"      score={data.scores?.linkGraphScore ?? null} />
-            <ScoreGauge label="Performance"        score={data.scores?.performanceScore ?? null} />
-          </div>
-          <div className="flex flex-wrap justify-center gap-6 border-t border-white/10 pt-6 text-sm text-[#4A6280]">
-            {data.pageCount != null && <span><strong className="text-white">{data.pageCount}</strong> pages crawled</span>}
-            <span><strong className="text-white">{totalIssues}</strong> issues found</span>
-            {avgTtfb != null && <span><strong className="text-white">{avgTtfb}ms</strong> avg response time</span>}
-            {data.completedAt && (
-              <span>Completed {new Date(data.completedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
-            )}
-          </div>
+        {/* ── Three-Layer Intelligence Hero ─────────────────────────────── */}
+        {(() => {
+          const bd = data.scores?.breakdown;
+          const aiv = data.aiVisibilityScores;
+          const mr = bd?.machineReadability;
+          const mrScore = aiv?.machineReadabilityScore ?? (mr ? Math.round((mr.renderingFidelity + mr.boilerplateRatio + mr.chunkBoundaryQuality + mr.signalToNoiseRatio + mr.headingHierarchy + mr.readingOrderConsistency + mr.linkAnchorQuality) / 7) : null);
+          const entityScore = aiv?.entityConfidenceScore ?? bd?.entityIntelligence?.entityConfidenceScore ?? null;
+          const citationScore = aiv?.citationProbabilityScore ?? bd?.citationAnalysis?.citationProbabilityScore ?? null;
+          const trustScore = aiv?.semanticTrustScore ?? bd?.semanticTrust?.score ?? null;
+
+          const webHealthScore = data.scores ? Math.round(
+            (data.scores.seoScore * 0.35) +
+            ((data.scores.performanceScore ?? 70) * 0.25) +
+            ((data.scores.schemaScore ?? 0) * 0.20) +
+            ((data.scores.linkGraphScore ?? 50) * 0.20)
+          ) : null;
+
+          const aiVisScore = aiv?.aiVisibilityScore ?? (data.scores ? Math.round(
+            ((mrScore ?? 0) * 0.15) +
+            ((entityScore ?? 0) * 0.25) +
+            ((data.scores.aiScore ?? 0) * 0.20) +
+            ((citationScore ?? 0) * 0.20) +
+            ((trustScore ?? 0) * 0.20)
+          ) : null);
+
+          const competitiveScore = machineTrustData && surfacesData ? Math.round(
+            ((machineTrustData.overall ?? 0) * 0.40) +
+            ((surfacesData.overallSurfaceScore ?? 0) * 0.35) +
+            ((citationScore ?? 0) * 0.25)
+          ) : null;
+
+          const statusLabel = (s: number | null) => {
+            if (s == null) return { text: 'No Data', color: '#4A6280' };
+            if (s >= 80) return { text: 'Strong', color: '#22C55E' };
+            if (s >= 60) return { text: 'Moderate', color: '#0BCEBC' };
+            if (s >= 40) return { text: 'Needs Work', color: '#F59E0B' };
+            return { text: 'Critical', color: '#EF4444' };
+          };
+
+          return (
+            <div className="mb-8 grid gap-4 lg:grid-cols-3">
+
+              {/* ── Card 1: Web Health ──────────────────────────────────────── */}
+              <div className="rounded-2xl border border-cyan/10 bg-gradient-to-br from-[#0A1628] to-[#0C1E35] p-5 sm:p-6">
+                <div className="mb-4 flex items-center gap-2">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan/10">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00C8FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                  </div>
+                  <h3 className="text-sm font-semibold text-white">Web Health</h3>
+                  <span className="ml-auto text-[10px] font-medium uppercase tracking-widest" style={{ color: statusLabel(webHealthScore).color }}>
+                    {statusLabel(webHealthScore).text}
+                  </span>
+                </div>
+                <div className="flex items-end gap-4 mb-5">
+                  <ScoreGauge label="" score={webHealthScore} />
+                  <div className="flex-1 space-y-2">
+                    <InlineMetric label="SEO" value={data.scores?.seoScore ?? null} />
+                    <InlineMetric label="Performance" value={data.scores?.performanceScore ?? null} />
+                    <InlineMetric label="Schema" value={data.scores?.schemaScore ?? null} />
+                    <InlineMetric label="Link Strength" value={data.scores?.linkGraphScore ?? null} />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 text-[11px] text-[#4A6280]">
+                  {avgTtfb != null && <span>TTFB <strong className="text-white">{avgTtfb}ms</strong></span>}
+                  {data.pageCount != null && <span className="ml-auto"><strong className="text-white">{data.pageCount}</strong> pages</span>}
+                </div>
+              </div>
+
+              {/* ── Card 2: AI Visibility ───────────────────────────────────── */}
+              <div className="rounded-2xl border border-[#8B5CF6]/15 bg-gradient-to-br from-[#0A1628] to-[#15102A] p-5 sm:p-6">
+                <div className="mb-4 flex items-center gap-2">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#8B5CF6]/10">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+                  </div>
+                  <h3 className="text-sm font-semibold text-white">AI Visibility</h3>
+                  <span className="ml-auto text-[10px] font-medium uppercase tracking-widest" style={{ color: statusLabel(aiVisScore).color }}>
+                    {statusLabel(aiVisScore).text}
+                  </span>
+                </div>
+                <div className="flex items-end gap-4 mb-5">
+                  <ScoreGauge label="" score={aiVisScore} />
+                  <div className="flex-1 space-y-2">
+                    <InlineMetric label="Entity Confidence" value={entityScore} />
+                    <InlineMetric label="Citation Probability" value={citationScore} />
+                    <InlineMetric label="Semantic Trust" value={trustScore} />
+                    <InlineMetric label="Machine Readability" value={mrScore} />
+                  </div>
+                </div>
+                <div className="text-[11px] text-[#4A6280]">
+                  AI Readability <strong className="text-white">{data.scores?.aiScore ?? '—'}</strong>
+                  <span className="mx-2 text-white/10">·</span>
+                  Retrieval Readiness <strong className="text-white">{mrScore ?? '—'}</strong>
+                </div>
+              </div>
+
+              {/* ── Card 3: Competitive Position ───────────────────────────── */}
+              <div className="rounded-2xl border border-amber-500/15 bg-gradient-to-br from-[#0A1628] to-[#1A1508] p-5 sm:p-6">
+                <div className="mb-4 flex items-center gap-2">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/10">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+                  </div>
+                  <h3 className="text-sm font-semibold text-white">Competitive Position</h3>
+                  <span className="ml-auto text-[10px] font-medium uppercase tracking-widest" style={{ color: statusLabel(competitiveScore).color }}>
+                    {statusLabel(competitiveScore).text}
+                  </span>
+                </div>
+                <div className="flex items-end gap-4 mb-5">
+                  <ScoreGauge label="" score={competitiveScore} />
+                  <div className="flex-1 space-y-2">
+                    <InlineMetric label="Machine Trust" value={machineTrustData?.overall ?? null} />
+                    <InlineMetric label="Surface Coverage" value={surfacesData?.overallSurfaceScore ?? null} />
+                    <InlineMetric label="Citation Strength" value={citationScore} />
+                    <InlineMetric label="Authenticity" value={authenticityData?.entityAuthenticityConfidence ?? null} />
+                  </div>
+                </div>
+                <div className="text-[11px] text-[#4A6280]">
+                  {competitiveScore == null
+                    ? <span>Click <strong className="text-white">Machine Trust</strong> or <strong className="text-white">Surfaces</strong> tab to load</span>
+                    : <>Displacement risk <strong className="text-white">{100 - competitiveScore}</strong></>
+                  }
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* ── Audit summary bar ────────────────────────────────────────────── */}
+        <div className="mb-8 flex flex-wrap justify-center gap-6 text-sm text-[#4A6280]">
+          {data.pageCount != null && <span><strong className="text-white">{data.pageCount}</strong> pages crawled</span>}
+          <span><strong className="text-white">{totalIssues}</strong> issues found</span>
+          {data.completedAt && (
+            <span>Completed {new Date(data.completedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+          )}
         </div>
 
         {/* ── SSE — SiteNexis Scoring Engine panel ─────────────────────────── */}
