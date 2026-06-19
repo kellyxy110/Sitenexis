@@ -1398,6 +1398,64 @@ export type CrawlEvent =
   | CrawlEventFailed
   | CrawlEventKeepalive;
 
+// ─── Global Fix Plan ─────────────────────────────────────────────────────────
+
+export type FixPriority = 'P0' | 'P1' | 'P2';
+
+export interface FixPlanImpactScores {
+  seoImpact: number;
+  aiVisibilityImpact: number;
+  trustImpact: number;
+}
+
+export interface FixPlanItem {
+  id: string;
+  priority: FixPriority;
+  module: string;
+  type: string;
+  severity: SEOIssueSeverity;
+  pageUrl: string | null;
+  message: string;
+  recommendation: string;
+  problem: string | null;
+  solution: string | null;
+  fixCode: string | null;
+  fixLanguage: string | null;
+  expectedImpact: 'high' | 'medium' | 'low';
+  effort: 'low' | 'medium' | 'high';
+  dependsOn: string[];
+  impactScores: FixPlanImpactScores;
+}
+
+export interface FixPlanModuleBreakdown {
+  module: string;
+  count: number;
+  p0: number;
+  p1: number;
+  p2: number;
+}
+
+export interface FixPlanDependencyChain {
+  name: string;
+  description: string;
+  steps: string[];
+}
+
+export interface FixPlan {
+  state: GTLState;
+  timestamp: string;
+  domain: string;
+  totalItems: number;
+  p0Count: number;
+  p1Count: number;
+  p2Count: number;
+  overallFixScore: number;
+  estimatedTotalEffortHours: number;
+  items: FixPlanItem[];
+  dependencyChains: FixPlanDependencyChain[];
+  moduleBreakdown: FixPlanModuleBreakdown[];
+}
+
 // ─── Scout v1 — Intent Engine ────────────────────────────────────────────────
 
 export type ScoutIntentType =

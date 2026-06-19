@@ -22,6 +22,7 @@ import {
   Activity,
   Search,
   FolderKanban,
+  ListChecks,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -119,6 +120,7 @@ export const NAV_GROUPS: NavGroup[] = [
         permission: 'competitiveAnalysis',
       },
       { id: 'schema',  label: 'Schema Generator', href: '/dashboard/schema',  icon: FileJson },
+      { id: 'fix-plan', label: 'Fix Plan',         href: '/dashboard/fix-plan', icon: ListChecks, badge: 'NEW' },
       { id: 'issues',  label: 'Issues Center',   href: '/dashboard/issues',  icon: AlertTriangle },
       { id: 'reports', label: 'Reports',          href: '/dashboard/reports', icon: FileText },
     ],

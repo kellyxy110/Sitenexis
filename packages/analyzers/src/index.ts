@@ -126,6 +126,10 @@ export type { IGEEngineInput } from './information-gain/engine';
 export { runScoutAnalysis } from './intent/engine';
 export type { ScoutEngineInput } from './intent/engine';
 
+// ─── Global Fix Plan ─────────────────────────────────────────────────────────
+export { buildFixPlan } from './fix-plan/engine';
+export type { FixPlanInput, SubReportIssues, IssueRecord } from './fix-plan/engine';
+
 export async function runAllAnalyzers(
   auditId: string,
   pages: CrawledPage[],
