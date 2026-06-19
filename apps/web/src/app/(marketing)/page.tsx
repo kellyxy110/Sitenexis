@@ -91,17 +91,24 @@ function PentagonMark({ size = 20 }: { size?: number }) {
 // ─── Intelligence card data ───────────────────────────────────────────────────
 
 const INTEL_CARDS = [
-  { label: 'AI Visibility',       sub: 'Layer 3' },
-  { label: 'Retrieval Readiness', sub: 'Layer 3' },
-  { label: 'Entity Intelligence', sub: 'Layer 2' },
-  { label: 'Semantic Trust',      sub: 'Layer 2' },
-  { label: 'Citation Readiness',  sub: 'Layer 2' },
-  { label: 'Machine Readability', sub: 'Layer 2' },
-  { label: 'AI Extractability',   sub: 'Layer 2' },
-  { label: 'Schema Intelligence', sub: 'Layer 1' },
-  { label: 'Machine Trust',       sub: 'Layer 4' },
-  { label: 'Temporal Authority',  sub: 'Layer 4' },
-  { label: 'Surface Mapping',     sub: 'Layer 4' },
+  { label: 'AI Visibility',          sub: 'Layer 3' },
+  { label: 'Retrieval Readiness',    sub: 'Layer 3' },
+  { label: 'Entity Intelligence',    sub: 'Layer 2' },
+  { label: 'Semantic Trust',         sub: 'Layer 2' },
+  { label: 'Citation Readiness',     sub: 'Layer 2' },
+  { label: 'Machine Readability',    sub: 'Layer 2' },
+  { label: 'AI Extractability',      sub: 'Layer 2' },
+  { label: 'Schema Intelligence',    sub: 'Layer 1' },
+  { label: 'Machine Trust',          sub: 'Layer 4' },
+  { label: 'Temporal Authority',     sub: 'Layer 4' },
+  { label: 'Surface Mapping',        sub: 'Layer 4' },
+  { label: 'Information Gain',       sub: 'IGE' },
+  { label: 'Scout Intent Engine',    sub: 'Scout' },
+  { label: 'Global Fix Plan',        sub: 'P0·P1·P2' },
+  { label: 'Retrieval Simulation',   sub: '6-stage' },
+  { label: 'Synthetic Entity',       sub: 'Layer 4' },
+  { label: 'Perception Graph',       sub: 'Layer 3' },
+  { label: 'Authority Velocity',     sub: 'Layer 4' },
 ];
 
 const SCORES_PREVIEW = [
@@ -112,38 +119,6 @@ const SCORES_PREVIEW = [
   { label: 'Citation Score',   score: 79, delta: '+6'  },
 ];
 
-const CAPABILITIES = [
-  {
-    heading: 'Retrieval Simulation',
-    body: 'Models how AI systems extract, chunk, rank, and compress your content across six retrieval stages — identifying exactly where meaning degrades.',
-    layer: 'Layer 4',
-  },
-  {
-    heading: 'Entity Intelligence',
-    body: 'Maps every named entity across your domain and scores consistency, disambiguation, and external validation signal depth.',
-    layer: 'Layer 2',
-  },
-  {
-    heading: 'Machine Trust Scoring',
-    body: 'Computes the trust state of your domain from an AI perspective: credibility consistency, schema alignment, contradiction detection, and decay signals.',
-    layer: 'Layer 4',
-  },
-  {
-    heading: 'Citation Probability',
-    body: 'Scores the likelihood an AI system selects your content as a citation source — factual density, claim specificity, and authority signal depth.',
-    layer: 'Layer 2',
-  },
-  {
-    heading: 'Semantic Trust Layer',
-    body: 'Analyses authorship trust, organisational trust, structural trust, and content trust — detecting contradictions across pages via Claude API.',
-    layer: 'Layer 2',
-  },
-  {
-    heading: 'Recommendation Surfaces',
-    body: 'Maps your visibility across AI Overviews, chat-based retrieval, voice assistants, and autonomous agent discovery — surface by surface.',
-    layer: 'Layer 4',
-  },
-];
 
 const PRICING = [
   {
@@ -367,32 +342,32 @@ export default function HomePage() {
       {
         '@type': 'Question',
         name: 'What is SiteNexis?',
-        acceptedAnswer: { '@type': 'Answer', text: 'SiteNexis is an AI Retrieval and Machine Trust Intelligence platform that models how AI systems retrieve, interpret, trust, and recommend your website — across every layer from semantic structure to machine trust formation.' },
+        acceptedAnswer: { '@type': 'Answer', text: 'SiteNexis is an AI Retrieval and Machine Trust Intelligence platform. It runs 16 autonomous agents across four dependency layers to model how AI systems retrieve, interpret, trust, and recommend web content — producing twelve intelligence scores, a Global Fix Plan, and a full PDF report in a single scan.' },
       },
       {
         '@type': 'Question',
-        name: 'How is SiteNexis different from traditional SEO tools?',
-        acceptedAnswer: { '@type': 'Answer', text: 'Traditional SEO tools audit for search engine bots. SiteNexis models how large language models like ChatGPT, Perplexity, Gemini, and Claude retrieve and cite your content — measuring AI Visibility Score, Machine Trust Score, Entity Confidence, Citation Probability, and Retrieval Quality.' },
+        name: 'How does SiteNexis differ from traditional SEO tools?',
+        acceptedAnswer: { '@type': 'Answer', text: 'Traditional SEO tools audit for human search engine bots. SiteNexis models the AI retrieval pipeline: chunk extraction, ranking pressure, summarization degradation, context truncation, answer formation, and citation eligibility filtering — the six stages where AI systems drop or include your content. It also measures Machine Trust (entity credibility, schema alignment, external validation, contradiction absence) and Recommendation Surface coverage across AI Overviews, chat, voice, and autonomous agent discovery.' },
       },
       {
         '@type': 'Question',
-        name: 'What is a Machine Trust Score?',
-        acceptedAnswer: { '@type': 'Answer', text: 'The Machine Trust Score measures the confidence an AI model would have in using your content as a reliable source. It is composed of entity credibility consistency, schema trust alignment, external validation depth, contradiction absence, and trust degradation resistance.' },
+        name: 'What is the Global Fix Plan?',
+        acceptedAnswer: { '@type': 'Answer', text: 'The Global Fix Plan aggregates every issue from all twelve intelligence modules into a single P0/P1/P2 priority queue. It maps cross-module dependency chains (schema must be fixed before trust scores improve, entity issues must resolve before citation probability improves), estimates effort hours per fix, and scores each item across three dimensions: SEO impact, AI Visibility impact, and Trust impact.' },
       },
       {
         '@type': 'Question',
-        name: 'Is SiteNexis free to use?',
-        acceptedAnswer: { '@type': 'Answer', text: 'Yes. SiteNexis offers a free tier with 1 audit per month. Paid plans (Starter, Pro, Agency, Enterprise) unlock unlimited audits, Layer 4 Machine Trust analysis, competitive AI visibility comparison, and API access.' },
+        name: 'What is the Machine Trust Score?',
+        acceptedAnswer: { '@type': 'Answer', text: 'The Machine Trust Score measures the confidence an AI system would have in using a domain as a reliable source. It is computed from five dimensions: entity credibility consistency (30%), schema trust alignment (20%), external validation depth (25%), contradiction absence (15%), and trust degradation resistance (10%). A low Machine Trust Score indicates that entity data conflicts, schema over-claims page content, or external validation sources are absent or broken.' },
       },
       {
         '@type': 'Question',
-        name: 'Which AI systems does SiteNexis analyze?',
-        acceptedAnswer: { '@type': 'Answer', text: 'SiteNexis models visibility and trust across Google AI Overviews, ChatGPT (browsing and RAG), Perplexity, Gemini, Claude web search, voice assistants, and autonomous AI agents.' },
+        name: 'What is the Information Gain Engine?',
+        acceptedAnswer: { '@type': 'Answer', text: 'The Information Gain Engine measures what a page adds beyond what the top-ranking SERP results already cover. It collects the SERP cohort via Serper API, extracts entities, questions, and evidence from each result, and scores the target page on entity gaps filled, questions answered that the cohort does not answer, and evidence uniqueness. Pages with low information gain are adding little marginal value to the AI knowledge base.' },
       },
       {
         '@type': 'Question',
         name: 'What is the AI Visibility Score?',
-        acceptedAnswer: { '@type': 'Answer', text: 'The AI Visibility Score is a 0–100 composite that measures how well AI systems can find, extract, and trust your content. It combines Machine Readability (15%), Entity Confidence (20%), Retrieval Readiness (20%), Citation Probability (20%), Semantic Trust (15%), and Schema Completeness (10%).' },
+        acceptedAnswer: { '@type': 'Answer', text: 'The AI Visibility Score is a 0–100 composite: Machine Readability (15%) + Entity Confidence (20%) + Retrieval Readiness (20%) + Citation Probability (20%) + Semantic Trust (15%) + Schema Completeness (10%). Every deduction maps to a named Issue with description, recommendation, and expected score impact. No black-box scoring.' },
       },
     ],
   };
@@ -417,18 +392,17 @@ export default function HomePage() {
           <div className="grid items-center gap-16 lg:grid-cols-2">
             <Reveal>
               <div>
-                <p className="mb-5 text-[11px] font-semibold tracking-[0.18em] text-cyan/70 uppercase">The Problem</p>
+                <p className="mb-5 text-[11px] font-semibold tracking-[0.18em] text-cyan/70 uppercase">The Gap</p>
                 <h2 className="text-[clamp(2rem,4vw,3rem)] font-bold leading-[1.1] tracking-[-0.03em] text-white text-balance">
-                  {"SEO tools miss AI retrieval."}
+                  {"AI systems don't read pages."}
                   <br />
-                  <span className="text-gradient-cyan">SiteNexis models all four layers.</span>
+                  <span className="text-gradient-cyan">They retrieve, rank, and cite chunks.</span>
                 </h2>
                 <p className="mt-6 text-[16px] leading-[1.8] text-[#94A3B8]">
-                  SEO tools miss AI retrieval. AI tools miss technical structure. Schema validators miss entity consistency.
-                  None of them model how AI systems actually form and decay trust in your content.
+                  Your content is stripped of navigation, split into 300–600 token semantic units, embedded, ranked against competing chunks, compressed into a generated answer, and filtered for citation eligibility. That is six failure points before your name appears in an AI response.
                 </p>
                 <p className="mt-4 text-[16px] leading-[1.8] text-[#94A3B8]">
-                  SiteNexis runs 16 intelligence agents in a single scan — four dependency layers, each building on the last.
+                  Traditional tools audit what humans see. SiteNexis audits what machines extract — running 16 autonomous agents across four dependency layers to model the complete AI retrieval and trust formation pipeline.
                 </p>
                 <div className="mt-10 flex items-center gap-4">
                   <a href="/signup" className="btn-primary px-6 py-3 text-sm font-semibold inline-flex items-center gap-2">
@@ -609,14 +583,14 @@ export default function HomePage() {
           <div className="grid items-center gap-20 lg:grid-cols-2">
             {/* Left — copy */}
             <Reveal>
-              <p className="mb-5 text-[11px] font-semibold tracking-[0.18em] text-cyan/70 uppercase">AI Readiness</p>
+              <p className="mb-5 text-[11px] font-semibold tracking-[0.18em] text-cyan/70 uppercase">Surface Coverage</p>
               <h2 className="text-[clamp(2rem,4vw,3rem)] font-bold leading-[1.1] tracking-[-0.03em] text-white text-balance">
-                How AI systems retrieve
+                Four AI surfaces.
                 <br />
-                <span className="text-gradient-cyan">your domain.</span>
+                <span className="text-gradient-cyan">One coverage map.</span>
               </h2>
               <p className="mt-6 text-[16px] leading-[1.8] text-[#94A3B8]">
-                SiteNexis models retrieval behavior across five major AI systems — estimating where your content surfaces, where it doesn&apos;t, and which structural signals are blocking inclusion.
+                Retrieval and recommendation are not the same thing. A page can score well on AI Visibility and still be absent from AI Overviews, chat responses, voice answers, and agent discovery. SiteNexis maps your inclusion probability across all four surfaces — and diagnoses exactly what is blocking each one.
               </p>
               <div className="mt-8 space-y-3">
                 {[
@@ -872,68 +846,77 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── Capabilities (hidden — replaced by Intelligence Layers above) ── */}
-      <section id="features-legacy" className="hidden border-t border-white/[0.04] bg-[#050B09] py-32 px-6">
+      {/* ── Methodology section ───────────────────────────────────────────── */}
+      <section id="methodology" className="border-t border-white/[0.05] bg-[#07111F] py-32 px-6">
         <div className="mx-auto max-w-6xl">
-
-          <Reveal className="mb-16 max-w-xl">
-            <p className="mb-4 text-[11px] font-medium tracking-[0.14em] text-slate-600 uppercase">
-              Intelligence Modules
-            </p>
+          <Reveal className="mb-16 text-center">
+            <p className="mb-5 text-[11px] font-semibold tracking-[0.18em] text-cyan/70 uppercase">Methodology</p>
             <h2 className="text-[clamp(2rem,4vw,3rem)] font-bold leading-[1.1] tracking-[-0.03em] text-white">
-              Built for the
+              How SiteNexis works.
               <br />
-              <span className="text-slate-400 font-[350]">machine-first web.</span>
+              <span className="text-[#64748B] font-normal">Every step, every agent, every score.</span>
             </h2>
           </Reveal>
 
-          <motion.div
-            className="grid gap-px border border-white/[0.05] rounded-2xl overflow-hidden bg-white/[0.03]"
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: '-60px' }}
-            variants={stagger}
-          >
-            {CAPABILITIES.map((cap) => (
-              <motion.div
-                key={cap.heading}
-                variants={fadeUp}
-                className={[
-                  'group relative flex flex-col gap-3 bg-[#050B09] p-7',
-                  'transition-colors duration-200 hover:bg-[#081410]',
-                  'md:flex-row md:items-start md:gap-8',
-                ].join(' ')}
-              >
-                <div className="shrink-0 pt-0.5">
-                  <span
-                    className={[
-                      'inline-block rounded-full border px-2.5 py-1 text-[10px] font-medium tracking-wide uppercase',
-                      cap.layer === 'Layer 4'
-                        ? 'border-teal-500/20 bg-teal-500/[0.08] text-teal-400/80'
-                        : cap.layer === 'Layer 3'
-                        ? 'border-emerald-500/20 bg-emerald-500/[0.07] text-emerald-400/70'
-                        : 'border-white/[0.07] bg-white/[0.03] text-slate-600',
-                    ].join(' ')}
-                  >
-                    {cap.layer}
-                  </span>
+          {/* Pipeline steps */}
+          <div className="grid gap-5 md:grid-cols-2">
+            {[
+              {
+                step: '01',
+                heading: 'Full-Site Crawl',
+                body: 'The Crawl Agent renders every page with Puppeteer, strips navigation and boilerplate, extracts semantic chunks of 300–600 tokens, and pre-identifies entities. Up to 500 pages per audit. Respects robots.txt.',
+                color: '#00C8FF',
+              },
+              {
+                step: '02',
+                heading: 'Parallel Layer 1–2 Analysis',
+                body: 'Six agents run simultaneously: SEO (title, meta, canonicals, sitemaps), Schema (structured data validation), AI Readability (chunk quality, extractability), Entity Intelligence (consistency, disambiguation), Citation Probability (7-factor weighted score), and Semantic Trust (contradiction detection via Claude API on top 20 pages).',
+                color: '#0BCEBC',
+              },
+              {
+                step: '03',
+                heading: 'Layer 3 AI Visibility Scoring',
+                body: 'AI Visibility Score = Machine Readability × 15% + Entity Confidence × 20% + Retrieval Readiness × 20% + Citation Probability × 20% + Semantic Trust × 15% + Schema Completeness × 10%. The AI Perception Graph is built from entity relationships and typed connections. Every deduction maps to a named, actionable Issue.',
+                color: '#8B5CF6',
+              },
+              {
+                step: '04',
+                heading: 'Layer 4 Machine Trust (Pro+)',
+                body: 'Five Layer 4 agents run in parallel after Layers 1–3 complete. Retrieval Simulation models 6 stages on top 30 pages by PageRank. Machine Trust scores entity credibility, schema alignment, external validation, contradiction absence, and decay signals. Temporal Authority tracks velocity and drift across audits. Recommendation Mapping scores inclusion probability across four AI surfaces. Synthetic Entity Detection identifies manufactured authority patterns.',
+                color: '#F59E0B',
+              },
+              {
+                step: '05',
+                heading: 'Information Gain + Scout',
+                body: 'The Information Gain Engine fetches the SERP cohort via Serper API and measures what your content adds that the top results do not already cover — entity gaps, question gaps, evidence uniqueness. Scout classifies every page by query intent (informational, commercial, research, voice, agent) and scores structural alignment between intent and page signals.',
+                color: '#0BCEBC',
+              },
+              {
+                step: '06',
+                heading: 'Global Fix Plan + Reports',
+                body: 'The Fix Plan aggregates every issue from all 12 modules into a single P0/P1/P2 queue with cross-module dependency chains, effort estimation, and three-dimension impact scoring (SEO / AI Visibility / Trust). The Reporting Agent generates a full PDF with all scores, issues, and recommendations. Every API route returns a GTL state envelope: complete, partial, or empty.',
+                color: '#00C8FF',
+              },
+            ].map(({ step, heading, body, color }) => (
+              <Reveal key={step}>
+                <div className="flex gap-5 rounded-xl border border-white/[0.06] bg-[#0A1628] p-6">
+                  <div className="shrink-0">
+                    <span className="block h-8 w-8 rounded-lg text-center text-[11px] font-bold leading-8 border border-white/[0.07] bg-white/[0.03]" style={{ color }}>{step}</span>
+                  </div>
+                  <div>
+                    <h3 className="mb-2 text-[15px] font-semibold text-white">{heading}</h3>
+                    <p className="text-[13px] leading-[1.75] text-[#4A6280]">{body}</p>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <h3 className="mb-2 text-[15px] font-semibold tracking-[-0.01em] text-white">
-                    {cap.heading}
-                  </h3>
-                  <p className="text-[13px] leading-[1.75] text-slate-500">
-                    {cap.body}
-                  </p>
-                </div>
-                <ArrowRight
-                  size={14}
-                  strokeWidth={1.5}
-                  className="absolute right-6 top-7 text-slate-700 opacity-0 transition-opacity duration-200 group-hover:opacity-100 md:static md:shrink-0 md:self-start md:mt-1"
-                />
-              </motion.div>
+              </Reveal>
             ))}
-          </motion.div>
+          </div>
+
+          <Reveal className="mt-8 text-center">
+            <a href="/methodology" className="inline-flex items-center gap-2 text-sm font-medium text-[#4A6280] hover:text-white transition-colors duration-150">
+              Read the full methodology <ArrowRight size={13} />
+            </a>
+          </Reveal>
         </div>
       </section>
 
@@ -1136,18 +1119,19 @@ export default function HomePage() {
       <Reveal>
         <section className="border-t border-white/[0.05] bg-[#0A1628] py-32 px-6">
           <div className="mx-auto max-w-2xl text-center">
-            <p className="mb-5 text-[11px] font-semibold tracking-[0.18em] text-cyan/70 uppercase">Get Started</p>
+            <p className="mb-5 text-[11px] font-semibold tracking-[0.18em] text-cyan/70 uppercase">Get Started Free</p>
             <h2 className="text-[clamp(2rem,4vw,3.25rem)] font-bold leading-[1.1] tracking-[-0.03em] text-white">
-              See how AI reads
+              See what AI systems
               <br />
-              <span className="text-gradient-cyan">your website.</span>
+              <span className="text-gradient-cyan">actually extract from your site.</span>
             </h2>
-            <p className="mx-auto mt-5 max-w-sm text-[16px] leading-relaxed text-[#64748B]">
-              Free scan. No account required. Results in 60 seconds.
+            <p className="mx-auto mt-5 max-w-md text-[16px] leading-relaxed text-[#64748B]">
+              16 agents. 12 intelligence scores. A Global Fix Plan with P0/P1/P2 priorities. One audit — free, no account required.
             </p>
             <div className="mt-10 mx-auto max-w-lg">
               <AuditInput onSubmit={handleAudit} loading={loading} />
             </div>
+            <p className="mt-4 text-[11px] text-[#334155]">Layer 4 Machine Trust analysis requires Pro plan or above.</p>
           </div>
         </section>
       </Reveal>
