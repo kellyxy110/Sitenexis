@@ -122,6 +122,10 @@ export { compareToBenchmark, getBenchmarkProfile, AVAILABLE_BENCHMARKS } from '.
 export { runIGEEngine } from './information-gain/engine';
 export type { IGEEngineInput } from './information-gain/engine';
 
+// ─── Scout v1 — Intent Engine ────────────────────────────────────────────────
+export { runScoutAnalysis } from './intent/engine';
+export type { ScoutEngineInput } from './intent/engine';
+
 export async function runAllAnalyzers(
   auditId: string,
   pages: CrawledPage[],

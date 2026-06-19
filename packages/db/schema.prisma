@@ -108,6 +108,7 @@ model Audit {
   siiScore                 SIIScore?
   sseScore                 SseScore?
   informationGainResult    InformationGainResult?
+  scoutAnalysis            ScoutAnalysis?
   // Graph Core v1 (append-only, derived from DOM extraction)
   factNodes                FactNode[]
   factEdges                FactEdge[]
@@ -880,6 +881,21 @@ model Ad {
   @@index([hookType])
   @@index([funnelStage])
   @@map("ads")
+}
+
+model ScoutAnalysis {
+  id         String   @id @default(cuid())
+  auditId    String   @unique @map("audit_id")
+  domain     String
+  state      String   @default("empty")
+  resultJson Json     @map("result_json")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  audit Audit @relation(fields: [auditId], references: [id])
+
+  @@index([domain])
+  @@map("scout_analyses")
 }
 
 model AdGeneration {

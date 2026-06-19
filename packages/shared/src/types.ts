@@ -1398,6 +1398,60 @@ export type CrawlEvent =
   | CrawlEventFailed
   | CrawlEventKeepalive;
 
+// ─── Scout v1 — Intent Engine ────────────────────────────────────────────────
+
+export type ScoutIntentType =
+  | 'informational'
+  | 'commercial'
+  | 'navigational'
+  | 'research'
+  | 'creation'
+  | 'learn_and_solve'
+  | 'local';
+
+export interface ScoutPageIntent {
+  url: string;
+  title: string;
+  primaryIntent: ScoutIntentType;
+  primaryConfidence: number;
+  secondaryIntents: Array<{ intent: ScoutIntentType; confidence: number }>;
+  intentSignals: string[];
+}
+
+export interface ScoutIntentDistribution {
+  intent: ScoutIntentType;
+  pageCount: number;
+  percentage: number;
+  averageConfidence: number;
+}
+
+export type ScoutPipelineStageStatus = 'complete' | 'partial' | 'skipped';
+
+export interface ScoutPipelineStage {
+  status: ScoutPipelineStageStatus;
+  detail: string;
+}
+
+export interface ScoutAnalysisResult {
+  state: GTLState;
+  timestamp: string;
+  reason?: string;
+  domain: string;
+  pagesAnalyzed: number;
+  pageIntents: ScoutPageIntent[];
+  intentDistribution: ScoutIntentDistribution[];
+  dominantIntent: ScoutIntentType;
+  intentCoverageScore: number;
+  intentAlignmentScore: number;
+  recommendations: string[];
+  pipeline: {
+    ingestion: ScoutPipelineStage;
+    embedding: ScoutPipelineStage;
+    reasoning: ScoutPipelineStage;
+    memoryWriteback: ScoutPipelineStage;
+  };
+}
+
 // ─── API response shapes ──────────────────────────────────────────────────────
 
 export interface ApiError {

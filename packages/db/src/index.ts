@@ -13,3 +13,4 @@ export * from './queries/ads';
 export * from './queries/sse';
 export * from './queries/graph';
 export * from './queries/ige';
+export * from './queries/scout';

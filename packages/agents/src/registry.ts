@@ -30,7 +30,8 @@ export type AgentId =
   | 'temporal-authority'
   | 'recommendation-mapping'
   | 'synthetic-entity'
-  | 'information-gain';
+  | 'information-gain'
+  | 'scout';
 
 const connection = createRedisClient(true);
 
