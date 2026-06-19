@@ -29,7 +29,8 @@ export type AgentId =
   | 'machine-trust'
   | 'temporal-authority'
   | 'recommendation-mapping'
-  | 'synthetic-entity';
+  | 'synthetic-entity'
+  | 'information-gain';
 
 const connection = createRedisClient(true);
 

@@ -118,6 +118,10 @@ export { simulateCoreUpdateScenarios } from './core-update-simulation/engine';
 // Module 4: Self-Audit Benchmark Layer
 export { compareToBenchmark, getBenchmarkProfile, AVAILABLE_BENCHMARKS } from './self-audit/benchmark';
 
+// ─── Information Gain Engine ──────────────────────────────────────────────────
+export { runIGEEngine } from './information-gain/engine';
+export type { IGEEngineInput } from './information-gain/engine';
+
 export async function runAllAnalyzers(
   auditId: string,
   pages: CrawledPage[],

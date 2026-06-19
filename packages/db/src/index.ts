@@ -12,3 +12,4 @@ export * from './queries/scheduled-reports';
 export * from './queries/ads';
 export * from './queries/sse';
 export * from './queries/graph';
+export * from './queries/ige';

@@ -107,6 +107,7 @@ model Audit {
   syntheticEntityFlags     SyntheticEntityFlag[]
   siiScore                 SIIScore?
   sseScore                 SseScore?
+  informationGainResult    InformationGainResult?
   // Graph Core v1 (append-only, derived from DOM extraction)
   factNodes                FactNode[]
   factEdges                FactEdge[]
@@ -674,6 +675,28 @@ model ScheduledReport {
   @@index([userId])
   @@index([nextSendAt])
   @@map("scheduled_reports")
+}
+
+// ─── Information Gain Engine ─────────────────────────────────────────────────
+
+model InformationGainResult {
+  id              String   @id @default(cuid())
+  auditId         String   @unique @map("audit_id")
+  keyword         String
+  targetUrl       String   @map("target_url")
+  cohortSize      Int      @default(0) @map("cohort_size")
+  overallScore    Int      @default(0) @map("overall_score")
+  confidence      Float    @default(0)
+  state           String   @default("empty")
+  cohortPagesJson Json     @default("[]") @map("cohort_pages_json")
+  resultJson      Json     @map("result_json")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  audit Audit @relation(fields: [auditId], references: [id])
+
+  @@index([auditId])
+  @@map("information_gain_results")
 }
 
 // ─── Graph Core v1 — Fact Graph (append-only, DOM-extracted truth) ───────────

@@ -25,6 +25,9 @@ const envSchema = z.object({
   OPENROUTER_KIMI_KEY: z.string().optional(),      // Kimi K2.6 — code/schema generation
   OPENROUTER_LLAMA_KEY: z.string().optional(),     // Llama 3.3 70B — multilingual
 
+  // Serper — SERP API for IGE cohort collection
+  SERPER_API_KEY: z.string().default(''),
+
   REDIS_URL: z.string().default('redis://localhost:6379'),
 
   S3_BUCKET_NAME: z.string().default('sitenexis-reports'),

@@ -900,6 +900,127 @@ export interface BenchmarkComparisonResult {
   verdict:                   string;
 }
 
+// ── Information Gain Engine ──────────────────────────────────────────────────
+
+export interface IGECohortPage {
+  url: string;
+  title: string;
+  wordCount: number;
+  headings: string[];
+  entities: IGEEntity[];
+  questions: IGEQuestion[];
+  evidenceBlocks: IGEEvidenceBlock[];
+  crawlSuccess: boolean;
+  crawledAt: string;
+}
+
+export interface IGEEntity {
+  name: string;
+  type: string;
+  mentionCount: number;
+}
+
+export interface IGEQuestion {
+  text: string;
+  sourceType: 'heading' | 'faq_schema' | 'interrogative';
+  answeredInPage: boolean;
+}
+
+export interface IGEEvidenceBlock {
+  type: 'statistic' | 'benchmark' | 'case_study' | 'experiment' | 'dataset' | 'framework' | 'example';
+  content: string;
+  hasNumericData: boolean;
+  isAttributed: boolean;
+}
+
+export interface IGESharedKnowledge {
+  sharedCoveragePercent: number;
+  sharedTopics: Array<{
+    topic: string;
+    coverageCount: number;
+    coveragePercent: number;
+  }>;
+}
+
+export interface IGEQuestionGap {
+  totalQuestionsExtracted: number;
+  coveredQuestions: IGEQuestionCoverage[];
+  rareQuestions: IGEQuestionCoverage[];
+  unansweredQuestions: IGEQuestionCoverage[];
+}
+
+export interface IGEQuestionCoverage {
+  question: string;
+  coverageCount: number;
+  coveragePercent: number;
+  coveredByTarget: boolean;
+  tier: 'universal' | 'common' | 'rare' | 'unclaimed';
+  opportunity: 'critical' | 'high' | 'medium' | 'low';
+}
+
+export interface IGEEntityGap {
+  universalEntities: string[];
+  commonEntities: string[];
+  rareEntities: string[];
+  targetUniqueEntities: string[];
+  missingFromTarget: string[];
+}
+
+export interface IGEEvidenceGap {
+  cohortAverageBlocks: number;
+  targetBlocks: number;
+  evidenceGap: number;
+  cohortTypeCounts: Partial<Record<IGEEvidenceBlock['type'], number>>;
+  targetTypeCounts: Partial<Record<IGEEvidenceBlock['type'], number>>;
+  missingTypes: IGEEvidenceBlock['type'][];
+}
+
+export interface IGEScoreBreakdown {
+  uniqueEntityScore: number;
+  uniqueQuestionScore: number;
+  uniqueEvidenceScore: number;
+  novelChunkScore: number;
+  coverageScore: number;
+}
+
+export type IGERetrievalValue = 'low' | 'medium' | 'high';
+
+export interface InformationGainResult {
+  state: 'complete' | 'partial' | 'empty';
+  timestamp: string;
+  reason?: string;
+
+  keyword: string;
+  targetUrl: string;
+  cohortSize: number;
+  cohortPagesSuccessful: number;
+  cohortQualityScore: number;
+
+  informationGainScore: number;
+  confidence: number;
+  scoreBreakdown: IGEScoreBreakdown;
+
+  sharedKnowledge: IGESharedKnowledge;
+  questionGap: IGEQuestionGap;
+  entityGap: IGEEntityGap;
+  evidenceGap: IGEEvidenceGap;
+  retrievalValue: IGERetrievalValue;
+  citationOpportunities: string[];
+
+  factLayer: {
+    extractedQuestions: IGEQuestion[];
+    extractedEntities: IGEEntity[];
+    extractedEvidence: IGEEvidenceBlock[];
+    sourcedFromUrls: string[];
+  };
+
+  perceptionLayer: {
+    inferredThemes: string[];
+    inferredOpportunities: string[];
+    perceptionConfidence: number;
+  };
+}
+
 // ─── Plan limits (v3 — includes layer4Analysis + competitiveAnalysis) ────────
 
 export const PLAN_LIMITS: Record<Plan, {
