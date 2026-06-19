@@ -1,5 +1,5 @@
 # CLAUDE.md — SiteNexis AI Retrieval + Machine Trust Intelligence System
-### Project Intelligence & Architectural Specification · Version 3.0
+### Project Intelligence & Architectural Specification · Version 4.0
 
 > This file is the operational brain of the SiteNexis codebase.
 > Claude Code reads it at the start of every session.
@@ -1720,10 +1720,449 @@ PRs must pass: `typecheck` + `lint` + `pnpm test`. Main branch protected.
 | BullMQ over simple async | 16 agents, 500 pages, Layer 4 analysis — total audit time 3–8 minutes; must be background jobs |
 | Anti-manipulation as architecture | Manipulation produces brittle, short-lived visibility; semantic quality produces durable machine trust |
 | Explainability as a hard requirement | Trust in the platform requires transparency in every score; no deduction without a named, actionable reason |
+| Decision Orchestrator as sequencing layer | Fix Plan ranks issues; Orchestrator sequences them optimally using SVS (impact × unlock multiplier / effort) with dependency-aware topological sort |
+| Competitive visibility as redistribution model | AI citation selection is comparative (softmax allocation), not absolute; score improvements only matter relative to the competitive set |
+| Uncertainty decomposition over confidence labels | Named uncertainty sources with interval contributions are actionable; confidence labels hide what is unknown and why |
+| Simulation compressed to four output primitives | Position / Trajectory / Displacement / Decision covers the full decision surface; internal model complexity is queryable but not exposed by default |
+| Tradeoff engine as first-class output | Opportunity cost of action sequencing is as important as the action itself; users need to know what they give up, not just what they gain |
 
 ---
 
-*Version 3.0 — AI Retrieval + Machine Trust Intelligence System*
-*Last updated: May 2025*
-*Maintainer: update this file whenever architecture, agents, scoring logic, config, or API routes change.*
+## PART VIII — DECISION INTELLIGENCE LAYER (v4)
+
+*(Phase 4 — Decision Orchestrator + Competitive Reality Simulation + Outcome Intelligence)*
+*(These systems sit above the scoring layer and transform scores into competitive market intelligence)*
+
+---
+
+## 42. Decision Orchestrator
+
+**Implemented in:** `packages/analyzers/src/fix-plan/orchestrator.ts`
+**Input:** `FixPlan` (output of `buildFixPlan`) + optional `CapacityModel`
+**Output:** `DecisionRoadmap`
+**Dependencies:** None beyond the Fix Plan. No DB access. No AI API calls. Pure transformation.
+
+The Decision Orchestrator transforms a ranked issue list into an optimally sequenced action roadmap. It addresses the gap between "here are your issues by priority" and "here is your optimal sequence of actions."
+
+### Sequencing Value Score (SVS)
+
+The sort key for every action in the sequence:
+
+```
+SVS(item) = (ImpactTotal × UnlockMultiplier × CriticalPathBonus) / EffortHours
+
+ImpactTotal       = seoImpact + aiVisibilityImpact + trustImpact  (0–27)
+UnlockMultiplier  = 1 + (directUnlocks × 0.30) + (transitiveUnlocks × 0.10)
+CriticalPathBonus = 1.25 if on critical path, else 1.0
+EffortHours       = 0.5 (low) / 2 (medium) / 6 (high)
+```
+
+**Quick Win Override:** If the highest-SVS candidate requires 6h effort and a low-effort candidate is within 15% SVS, prefer the low-effort item. First-session engagement takes precedence over marginal SVS optimality.
+
+### Algorithm
+
+Dependency-constrained greedy topological sort. O(n log n). Guaranteed termination.
+
+1. Build DAG from dependency rules
+2. Compute critical path (highest-impact dependency chain via DFS)
+3. Initialize available set: items with no unresolved blockers
+4. Iterate: score all available items, select highest SVS (with quick win check), emit as SequencedAction, resolve blockers, unlock newly available items
+5. Repeat until queue empty
+
+Re-scores on every iteration because unlocking items changes the candidate pool's SVS landscape.
+
+### Output Types
+
+```typescript
+type DecisionRoadmap = {
+  auditId: string; domain: string; generatedAt: Date
+  startHere: SequencedAction        // position 1, always exactly one
+  doNext: SequencedAction | null    // position 2
+  thisWeek: SequencedAction[]       // cumulative effort ≤ 8h
+  thisSprint: SequencedAction[]     // 8h–56h cumulative effort
+  backlog: SequencedAction[]        // >56h
+  criticalPath: CriticalPathRecord
+  parallelTracks: ParallelTrack[]   // items with no inter-dependency (team parallel work)
+  projectedScoreImpact: ScoreImpactProjection
+  roadmapSummary: RoadmapSummary
+  meta: RoadmapMeta
+}
+
+type SequencedAction = {
+  position: number
+  fixItem: FixPlanItem
+  sequencingValueScore: number
+  isOnCriticalPath: boolean; isStartHere: boolean; isQuickWin: boolean
+  decisionReason: string            // one sentence: WHY this position
+  unlocks: string[]                 // IDs unlocked by this action
+  blockedBy: string[]               // always empty — all resolved earlier in sequence
+  parallelWith: string[]            // IDs workable simultaneously
+  capacitySlot: 'this-week' | 'this-sprint' | 'backlog'
+  cumulativeEffortHours: number
+  projectedImpact: ScoreImpactProjection
+}
+```
+
+### API Route
+
+`GET /api/audit/[id]/fix-plan/roadmap` — separate from `/fix-plan` (backwards compatible)
+
+GTL state: complete | partial (some sub-scores unavailable) | empty (no issues)
+
+Redis cache: 24h TTL, invalidated on new audit completion.
+
+---
+
+## 43. Competitive Reality Simulation Engine
+
+**Implemented in:** `packages/analyzers/src/competitive-simulation/` (planned)
+**Input:** `AuditScores` + `CategoryBenchmark` + optional `CompetitorAuditData[]`
+**Output:** `CompetitiveSimulationOutput`
+**Dependencies:** Runs after all Layer 4 agents complete. Requires at minimum: Entity Confidence, Citation Probability, Recommendation Surface Map, Machine Trust Score.
+
+### Foundational Principle
+
+AI citation selection is a competitive allocation process, not an absolute scoring process. A domain does not "achieve" high citation probability independently — it holds a position in a relative distribution that reshapes continuously as competing domains improve, enter, or exit. **Score improvements only translate to outcomes when they represent relative improvement within the competitive set for a specific query cluster.**
+
+### The Core Model: Competitive Citation Pool
+
+For query cluster Q, the probability domain dᵢ is cited:
+
+```
+P(dᵢ cited | Q) = exp(σᵢ · wQ) / Σⱼ exp(σⱼ · wQ)
+
+σᵢ  = composite signal strength for domain i in cluster Q
+wQ  = query-type weight vector (which signals dominate for this cluster type)
+```
+
+This is a model, not a claim about AI system internals. It captures the essential property: citation probability is relative. The same absolute signal improvement produces different citation share changes depending on where the domain sits in the competitive distribution.
+
+**Key implication:** If all domains in a cluster improve equally, citation probability is unchanged for all. Relative improvement is the only kind that produces outcomes.
+
+### Query Cluster Topology
+
+Every domain competes in one or more query clusters classified by intent type. Each type has different competitive dynamics:
+
+| Intent Type | Citation Budget K | Zero-Sum Degree | Dominant Signals |
+|---|---|---|---|
+| Informational | 3–6 | Low | Entity clarity, factual density, chunk stability |
+| Commercial | 2–4 | High | Entity authority, trust signals, topical depth |
+| Comparative | 2–3 | Very High | Entity disambiguation, schema completeness |
+| Navigational | 1 | Near-monopolistic | Exact entity match, brand schema |
+| Research | 4–8 | Low | Factual density, citation depth, evidence specificity |
+
+Query clusters are inferred from entity type, schema, and topic cluster analysis. Not user-inputted — derived.
+
+### Competitor Trajectory Assumptions
+
+Without competitor audit data (base case), the model uses three scenario brackets:
+
+- **Conservative:** Top-quartile competitors improve at historical benchmark rate; mid-tier static
+- **Baseline:** All competitors above category median improve at benchmark rate
+- **Aggressive:** All competitors above category median improve at 1.5× benchmark rate
+
+With competitor audit data (Pro+ competitive analysis), actual competitor scores replace the assumptions for named competitors, narrowing uncertainty intervals significantly.
+
+### Displacement Model
+
+Displacement has three distinct mechanisms with different reversibility properties:
+
+| Mechanism | Source | Reversible by domain action? |
+|---|---|---|
+| Trust decay | Internal: stale schema, expired sameAs, missing dateModified | Yes — Fix Plan items address directly |
+| Competitor improvement | External: competing domains improving signals | Partially — requires relative improvement, not maintenance |
+| Market saturation | Structural: query cluster reaching competitive equilibrium | No — requires new cluster development |
+
+Displacement model always reports mechanism decomposition so users understand which part of their projected share decline they can reverse through their own action.
+
+### Absolute vs. Relative Decomposition
+
+```
+Total citation frequency change =
+  (Δshare) × (market volume at t)
+  + (current share) × (market volume change)
+```
+
+A domain in a growing market may gain absolute citation frequency while losing relative share. Both dimensions are reported separately. Conflating them produces misleading "stable" or "declining" narratives.
+
+### Output Types
+
+```typescript
+type CompetitiveSimulationOutput = {
+  queryClusters: QueryClusterState[]
+  trajectoryScenarios: TrajectoryScenario[]    // all scenario × time combinations
+  displacementModel: DisplacementModel
+  uncertaintyDecomposition: UncertaintyDecomposition
+  modelAssumptions: ModelAssumptions           // always present, cannot be omitted
+}
+
+type QueryClusterState = {
+  clusterId: string; label: string
+  intentType: 'informational' | 'commercial' | 'comparative' | 'navigational' | 'research'
+  estimatedDensity: 'sparse' | 'moderate' | 'dense' | 'saturated'
+  citationBudgetK: [number, number]     // estimated range
+  marketGrowthRate: 'declining' | 'flat' | 'growing' | 'accelerating' | 'unknown'
+  zeroSumDegree: number                 // 0–1
+  domainCurrentShare: InfluenceRange    // P(domain cited | Q) as probability interval
+  domainCurrentPercentile: InfluenceRange
+}
+
+type TrajectoryScenario = {
+  scenarioName: 'do-nothing' | 'complete-this-week' | 'complete-sprint' | 'complete-roadmap'
+  competitorAssumption: 'conservative' | 'baseline' | 'aggressive'
+  timeHorizonDays: 30 | 90 | 365
+  projectedCitationShare: InfluenceRange
+  projectedPercentile: InfluenceRange
+}
+
+type InfluenceRange = {
+  lower: number              // 5th percentile estimate
+  central: number            // 50th percentile (median, not expected value)
+  upper: number              // 95th percentile estimate
+  uncertainty: UncertaintyDecomposition
+}
+
+type UncertaintyDecomposition = {
+  overallInterval: [number, number]
+  sources: UncertaintySource[]
+  dominantSource: string
+  reducibleSources: string[]   // narrowable with additional data
+  irreducibleSources: string[] // genuine market unpredictability
+}
+
+type ModelAssumptions = {
+  competitorDataSource: 'category-benchmark' | 'direct-audit' | 'none'
+  citationModelBasis: string
+  queryClusterBasis: string
+  marketGrowthAssumption: string
+  knownLimitations: string[]   // always non-empty
+}
+```
+
+---
+
+## 44. Outcome Intelligence (v2)
+
+**Implemented in:** `packages/analyzers/src/outcome-intelligence/` (planned)
+**Input:** `DecisionRoadmap` + `CompetitiveSimulationOutput`
+**Output:** `CompetitivePositionSummary`
+**Position in stack:** Sits above the Competitive Reality Simulation Engine. Pure compression and narrative layer.
+
+### What Outcome Intelligence Is
+
+A system that predicts visibility redistribution in AI query-response systems. It is not a reporting layer. It does not summarize SEO improvements. It does not translate scores to business outcomes through linear mapping.
+
+It compresses the simulation output into four decision primitives — Position, Trajectory, Displacement, Decision — expressed with preserved uncertainty and explicit narrative framing.
+
+### The Four Output Primitives
+
+Every user-facing output is one of these four types. If an output cannot be expressed as one of them, it belongs in the full simulation layer.
+
+**Position** — Where the domain stands in the competitive distribution, for its primary query cluster, as a percentile interval. Never a single number.
+
+**Trajectory** — Where the domain is headed under do-nothing vs. act scenarios at two time horizons, with the primary driver named. Always conditional, never predictive.
+
+**Displacement** — Whether the domain is gaining or losing ground, the dominant mechanism, and whether the mechanism is reversible through the domain's own action.
+
+**Decision** — The next recommended action expressed in competitive terms: which cluster it affects, how it changes competitive signal, what the tradeoff is against the alternative.
+
+### Aggregation
+
+Three levels of aggregation from query-cluster simulation output:
+
+1. **Primary cluster signal** — the highest-value query cluster for this domain; all four primitives expressed at this level
+2. **Portfolio signal** — aggregated position across all clusters weighted by cluster value weight; useful for trend tracking, not action decisions
+3. **Cluster divergence flag** — when the domain is strong in one cluster type but weak in another; surfaces strategic implication of the asymmetry
+
+### Narrative Layer
+
+Template-driven, deterministic. No language model inference. Produces five plain-language statements:
+
+- **Position statement** — percentile interval + competitive set context
+- **Trajectory statement** — do-nothing vs. act comparison + primary driver
+- **Displacement statement** — mechanism decomposition in plain language
+- **Decision statement** — recommended action in competitive terms
+- **Uncertainty statement** — dominant unknown + how to narrow it
+
+All statements preserve interval framing. No interval is collapsed to a point in the narrative.
+
+### Tradeoff Engine
+
+For pairs of competing Fix Plan actions (where effort capacity requires a choice):
+
+- Query-cluster impact asymmetry: which cluster each action affects and by how much
+- Competitor-sensitivity: whether competitors are improving the same signals (reducing relative value of the action)
+- Time-sensitivity: whether the improvement compounds over time or is a one-time gain
+- Output: TradeoffMatrix with preferred action named under specific conditions, not unconditionally
+
+### What Outcome Intelligence Does NOT Do
+
+- Claim to know AI system internals
+- Translate scores to revenue, traffic, or conversion through linear mapping
+- Produce point estimates (always intervals)
+- Hide uncertainty (always named, always decomposed)
+- Present competitor trajectories as known (always bracketed by scenario assumptions)
+
+---
+
+## 45. Output Layer and API Surface
+
+### Compressed Output (Default)
+
+The simulation produces query-cluster-level trajectory distributions. The output layer compresses this to four primitives delivered via a single endpoint.
+
+**Route:** `GET /api/audit/[id]/competitive-position`
+
+**Default response:** `CompetitivePositionSummary` — compressed, four primitives, narrative, uncertainty summary.
+
+**Full simulation:** `GET /api/audit/[id]/competitive-position?detail=full` — includes all scenario × time combinations, full uncertainty decomposition, tradeoff matrices.
+
+**Sub-routes for specific simulation layers:**
+```
+GET /api/audit/[id]/competitive-position/trajectory
+GET /api/audit/[id]/competitive-position/displacement
+GET /api/audit/[id]/competitive-position/tradeoffs
+GET /api/audit/[id]/competitive-position/uncertainty
+POST /api/audit/[id]/competitive-position/context
+     Body: { competitors?: string[], queryCluster?: string }
+     Enriches simulation with domain-specific context; narrows uncertainty intervals
+```
+
+**GTL behavior:**
+- `complete` — full simulation ran, all clusters modeled
+- `partial` — some clusters lack benchmark data; those clusters return raw score signals only
+- `empty` — insufficient audit data (first-run or fewer than 2 agents completed)
+
+**Cache:** Redis 6h TTL keyed by `auditId + modelVersion`. Invalidated on new audit or context update.
+
+### Response Types
+
+```typescript
+type CompetitivePositionSummary = {
+  auditId: string; domain: string; generatedAt: Date
+  position: PositionSignal
+  trajectory: TrajectorySignal
+  displacement: DisplacementSignal
+  decision: DecisionSignal
+  uncertainty: UncertaintySummary
+  narrative: NarrativeOutput
+  aggregated: AggregatedPosition
+  simulationAvailable: boolean
+  simulationLinks: { trajectory: string; displacement: string; tradeoffs: string; uncertainty: string }
+}
+
+type PositionSignal = {
+  primaryCluster: string
+  percentileInterval: [number, number]
+  interpretation: 'below-median' | 'at-median' | 'above-median' | 'top-quartile'
+  statement: string
+}
+
+type TrajectorySignal = {
+  direction: 'eroding' | 'stable' | 'improving'
+  primaryDriver: string
+  doNothingInterval: [number, number]   // percentile range under inaction
+  actInterval: [number, number]         // percentile range after This Week
+  timeHorizon: 30 | 90
+  statement: string
+}
+
+type DisplacementSignal = {
+  atRisk: boolean
+  dominantMechanism: 'competitor-improvement' | 'trust-decay' | 'market-saturation' | 'none'
+  reversibleByOwnAction: boolean
+  urgencyLevel: 'low' | 'moderate' | 'high' | 'critical'
+  statement: string
+}
+
+type DecisionSignal = {
+  recommendedAction: string
+  competitiveRationale: string
+  clusterImpact: string
+  alternativeAction: string | null
+  tradeoffStatement: string | null
+}
+
+type UncertaintySummary = {
+  intervalWidth: 'narrow' | 'moderate' | 'wide'
+  dominantUnknown: string
+  howToNarrow: string
+}
+
+type NarrativeOutput = {
+  positionStatement: string
+  trajectoryStatement: string
+  displacementStatement: string
+  decisionStatement: string
+  uncertaintyStatement: string
+}
+
+type AggregatedPosition = {
+  primaryCluster: QueryClusterPosition
+  portfolioPercentile: InfluenceRange
+  clusterDivergenceFlag: ClusterDivergence | null
+  clusterCount: number
+}
+```
+
+### Dashboard UX Principles
+
+The competitive position dashboard replaces the score-first paradigm with a market-position paradigm.
+
+**Primary frame:** "Where do you stand in the competitive distribution for your primary query cluster?" — not "What is your score?"
+
+**What is removed:**
+- Score cards as primary display primitive
+- Progress bars mapped to scores
+- Confidence labels (replaced by named uncertainty with interval width)
+- "Your score will improve by X" framing
+
+**Panel 1 — Market Position:** Percentile interval + competitive set context + surface coverage in plain language. No score.
+
+**Panel 2 — Displacement Analysis:** Mechanism decomposition showing what share of projected decline is reversible by domain action vs. driven by competitor improvement. Always shown before positive projections.
+
+**Panel 3 — Scenario Trajectories:** Three futures (do-nothing, complete-this-week, complete-sprint) on the same axes over 90 days. The spread between lines is the cost of uncertainty. The spread between do-nothing and act is the value of action.
+
+**Panel 4 — Tradeoff View:** For the top 2 competing Fix Plan actions, side-by-side cluster impact comparison. Strategic, not technical.
+
+**Panel 5 — Uncertainty Profile:** Named uncertainty sources with interval contributions. First-class output, not a footer disclaimer.
+
+---
+
+## Updated API Routes (v4 additions)
+
+| Method | Route | Auth | Purpose |
+|---|---|---|---|
+| GET | `/api/audit/[id]/fix-plan` | Required | Raw Fix Plan: ranked, prioritized issue list |
+| GET | `/api/audit/[id]/fix-plan/roadmap` | Required | Decision Orchestrator output: sequenced action roadmap |
+| GET | `/api/audit/[id]/competitive-position` | Required | Compressed competitive position (4 primitives + narrative) |
+| GET | `/api/audit/[id]/competitive-position?detail=full` | Required | Full simulation output including all scenarios |
+| GET | `/api/audit/[id]/competitive-position/trajectory` | Required | All scenario × time trajectory combinations |
+| GET | `/api/audit/[id]/competitive-position/displacement` | Required | Full displacement model with mechanism decomposition |
+| GET | `/api/audit/[id]/competitive-position/tradeoffs` | Required | Tradeoff matrix for top competing action pairs |
+| GET | `/api/audit/[id]/competitive-position/uncertainty` | Required | Full uncertainty decomposition, all clusters |
+| POST | `/api/audit/[id]/competitive-position/context` | Required | Enrich simulation with competitor domains or query cluster context |
+
+---
+
+## Additional What NOT To Do (v4)
+
+```
+✗ Treat AI citation probability as absolute score      → it is a relative position in a competitive distribution
+✗ Project outcomes linearly from score improvements    → use InfluenceRange (distributional intervals), not point estimates
+✗ Hide uncertainty behind confidence labels            → decompose into named sources with interval contributions
+✗ Present competitor trajectory as known               → always bracket with conservative/baseline/aggressive scenarios
+✗ Collapse probability intervals to point estimates    → never; the interval IS the answer
+✗ Frame displacement as only internal decay            → competitor improvement is typically the dominant mechanism
+✗ Skip ModelAssumptions in simulation output           → always present, always non-empty knownLimitations
+✗ Present Tradeoff Engine output as a single winner    → output conditions under which each action wins, not a verdict
+✗ Expose full simulation by default                    → compressed 4-primitive output is default; full detail is opt-in via ?detail=full
+✗ Conflate absolute and relative citation gain         → decompose: (Δshare × market volume) + (share × Δmarket volume)
+```
+
+---
+
+*Version 4.0 — AI Retrieval + Machine Trust Intelligence + Decision Intelligence System*
+*Last updated: June 2026*
+*Maintainer: update this file whenever architecture, agents, scoring logic, config, API routes, or decision intelligence models change.*
 *This document is the source of truth. If code and CLAUDE.md conflict, CLAUDE.md defines intent — fix the code.*
