@@ -343,6 +343,217 @@ Return ONLY valid JSON. No explanation. No markdown.
 Example: {"contradictions": [{"entityInvolved": "founding year", "claimA": "founded in 2010", "claimB": "founded in 2015", "severity": "critical"}]}`;
 }
 
+// ─── Prompt 8: v4 Hybrid Audit Narrative Report ──────────────────────────────
+
+/**
+ * Generates the full v4 Hybrid Audit Engine narrative report.
+ *
+ * Consumes a compact audit context summary and returns a structured JSON report
+ * covering all 12 sections of the SiteNexis v4 audit format:
+ * executive header, overall scores, score breakdown, technical SEO,
+ * semantic structure, entity + trust, AI retrieval simulation,
+ * AI visibility explanation, critical issues, fix recommendations,
+ * AI visibility strategy, and final verdict.
+ *
+ * Token budget: ~3000 input tokens, ~2000 output tokens.
+ * Cache key pattern: `narrative:${auditId}:v4.1`
+ */
+
+const MAX_HYBRID_CONTEXT_CHARS = 12_000;
+
+export interface HybridAuditContext {
+  domain: string;
+  pageCount: number;
+  scores: {
+    aiVisibility: number;
+    technicalSeo: number;
+    semanticStructure: number;
+    citationReadiness: number;
+    machineTrust: number;
+    entityClarity: number;
+  };
+  topIssues: Array<{
+    module: string;
+    type: string;
+    severity: 'critical' | 'warning' | 'info';
+    message: string;
+    recommendation: string;
+  }>;
+  entitySummary: {
+    primaryEntityName: string | null;
+    entityCount: number;
+    entityConfidenceScore: number;
+    sameAsLinksCount: number;
+    missingAttributes: string[];
+  };
+  retrievalSummary: {
+    avgRetrievalQualityScore: number;
+    avgChunkStabilityIndex: number;
+    avgCitationEligibilityScore: number;
+    totalFragileClaimsCount: number;
+  } | null;
+  trustSummary: {
+    overall: number;
+    entityCredibilityScore: number;
+    schemaTrustAlignmentScore: number;
+    externalValidationScore: number;
+    contradictionAbsenceScore: number | null;
+  } | null;
+  surfaceSummary: {
+    aiOverviewsProbability: number;
+    chatProbability: number;
+    voiceProbability: number;
+    agentProbability: number;
+  } | null;
+  schemaTypes: string[];
+  updateFrequency: string | null;
+}
+
+export function hybridAuditReportPrompt(context: HybridAuditContext): string {
+  const contextStr = truncateWithWarning(
+    JSON.stringify(context, null, 2),
+    MAX_HYBRID_CONTEXT_CHARS,
+    `hybridAuditReportPrompt domain="${context.domain}"`,
+  );
+
+  return `You are SiteNexis Hybrid Audit Narrator.
+
+You do NOT perform crawling or computation.
+You ONLY synthesize structured outputs produced by upstream agents into a unified intelligence report.
+
+You are operating on verified multi-agent outputs from:
+
+- SEO Agent
+- Schema Agent
+- Machine Readability Agent
+- Entity Agent
+- Citation Agent
+- Retrieval Simulation Agent
+- Machine Trust Agent
+- Temporal Authority Agent
+- Recommendation Engine
+
+AUDIT CONTEXT:
+${contextStr}
+
+---
+
+## CORE RULE
+
+You must NEVER invent data.
+
+You may only:
+- summarize
+- interpret
+- restructure
+- compare
+- prioritize
+
+If a field is missing, explicitly mark it as "insufficient data".
+
+---
+
+## TRACEABILITY MODE (CRITICAL)
+
+Every major insight MUST optionally include a trace reference:
+
+Format:
+[trace: agent_name.field_name]
+
+Example:
+[trace: machine_trust.overall_score]
+[trace: retrieval_simulation.chunk_retrievability]
+
+If multiple sources contributed:
+[trace: seo_agent.h1 | schema_agent.structured_data]
+
+This ensures full audit explainability.
+
+---
+
+## OUTPUT FORMAT (STRICT)
+
+Return VALID JSON ONLY. No explanation. No markdown.
+
+{
+  "overview": {
+    "domain": string,
+    "audit_date": string,
+    "system_version": "v4 Hybrid Audit Engine",
+    "confidence_score": number
+  },
+  "scoring_layer": {
+    "seo_score":       { "value": number, "band": string, "explanation": string, "trace": string },
+    "semantic_score":  { "value": number, "band": string, "explanation": string, "trace": string },
+    "schema_score":    { "value": number, "band": string, "explanation": string, "trace": string },
+    "entity_score":    { "value": number, "band": string, "explanation": string, "trace": string },
+    "citation_score":  { "value": number, "band": string, "explanation": string, "trace": string },
+    "trust_score":     { "value": number, "band": string, "explanation": string, "trace": string },
+    "retrieval_score": { "value": number, "band": string, "explanation": string, "trace": string },
+    "temporal_score":  { "value": number, "band": string, "explanation": string, "trace": string },
+    "visibility_score": { "value": number, "band": string, "explanation": string, "trace": string }
+  },
+  "technical_seo_audit": {
+    "h1_analysis":       { "issues": [string], "recommendations": [string], "trace": string },
+    "h2_structure":      { "issues": [string], "recommendations": [string], "trace": string },
+    "metadata_quality":  { "issues": [string], "recommendations": [string], "trace": string },
+    "internal_linking":  { "issues": [string], "recommendations": [string], "trace": string },
+    "sitemap_status":    { "issues": [string], "recommendations": [string], "trace": string },
+    "robots_txt_status": { "issues": [string], "recommendations": [string], "trace": string },
+    "performance_notes": { "issues": [string], "recommendations": [string], "trace": string }
+  },
+  "entity_intelligence_layer": {
+    "entity_clarity_score": number,
+    "external_entity_alignment": string,
+    "sameAs_presence": string,
+    "entity_conflicts": [string]
+  },
+  "retrieval_simulation_layer": {
+    "chunk_extractability_score": number,
+    "answerability_score": number,
+    "citation_readiness": string,
+    "top_retrievable_chunks": [string]
+  },
+  "machine_trust_layer": {
+    "trust_score": number,
+    "trust_decay_risk": string,
+    "cross_source_consistency": string,
+    "authority_signals": [string]
+  },
+  "citation_probability_layer": {
+    "query_cluster_breakdown": [{ "cluster": string, "probability": string }],
+    "estimated_citation_probability": number,
+    "competitive_pressure_index": number
+  },
+  "surface_coverage_layer": {
+    "ai_overview_readiness":       { "probability": string, "status": string },
+    "chatgpt_citation_likelihood": { "probability": string, "status": string },
+    "voice_search_readiness":      { "probability": string, "status": string },
+    "agent_discovery_readiness":   { "probability": string, "status": string }
+  },
+  "issues_and_fix_engine": [
+    { "title": string, "severity": string, "affected_layer": string, "fix_recommendation": string, "expected_impact": string, "trace": string }
+  ],
+  "competitive_position_model": {
+    "category_position_estimate": string,
+    "competitor_pressure": string,
+    "displacement_risk": string,
+    "opportunity_gaps": [string]
+  },
+  "decision_engine": {
+    "top_actions": [string],
+    "quick_wins": [string],
+    "structural_fixes": [string],
+    "strategic_moves": [string]
+  },
+  "final_verdict": {
+    "summary": string,
+    "confidence_interval": string,
+    "trajectory_prediction": { "30_days": string, "90_days": string, "365_days": string }
+  }
+}`;
+}
+
 // ─── parseAIResponse<T> ───────────────────────────────────────────────────────
 
 /**

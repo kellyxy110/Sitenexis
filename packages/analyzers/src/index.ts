@@ -28,7 +28,9 @@ export {
   aiExtractabilityPrompt,
   entityDetectionPrompt,
   contradictionDetectionPrompt,
+  hybridAuditReportPrompt,
 } from './ai/prompts';
+export type { HybridAuditContext } from './ai/prompts';
 export { analyzeMachineReadability } from './machine-readability/engine';
 export { analyzeEntityIntelligence } from './entity/engine';
 export { analyzeCitationProbability } from './citation/engine';
@@ -43,7 +45,7 @@ export { runRetrievalSimulation } from './retrieval-simulation/engine';
 // ─── v3 — Machine Trust ───────────────────────────────────────────────────────
 export { runMachineTrustAnalysis } from './machine-trust/engine';
 export { detectContradictionsWithDeepSeek } from './machine-trust/deep-contradiction';
-export { isAnyOpenRouterAvailable } from './ai/model-router';
+export { isAnyOpenRouterAvailable, routeTask } from './ai/model-router';
 
 // ─── v3 — Temporal Authority ──────────────────────────────────────────────────
 export { runTemporalAuthorityAnalysis } from './temporal-authority/engine';

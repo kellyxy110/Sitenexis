@@ -75,11 +75,13 @@ const PLANS: Plan[] = [
     highlight: false,
     features: [
       '50 audits / month',
-      'All Layer 1–2 modules',
+      'All Layer 1–3 modules',
       'AI Visibility Score',
       'Entity Intelligence',
       'Citation Probability',
       'Semantic Trust',
+      'Information Gain Engine',
+      'Scout Intent Engine',
       'PDF reports',
       'Email support',
     ],
@@ -95,10 +97,12 @@ const PLANS: Plan[] = [
       'Unlimited audits',
       'All 4 intelligence layers',
       'Machine Trust (Layer 4)',
-      'Retrieval Simulation',
-      'Temporal Authority',
+      'Retrieval Simulation (6-stage)',
+      'Temporal Authority + Velocity',
       'Recommendation Surface Mapping',
-      'Competitive AI Visibility Analysis',
+      'Competitive AI Visibility',
+      'Global Fix Plan (P0/P1/P2)',
+      'v4 Narrative Report',
       'Priority support',
     ],
   },
@@ -203,7 +207,11 @@ const FAQS = [
   },
   {
     q: 'What AI models power the analysis?',
-    a: 'SiteNexis uses Claude (Anthropic) as the primary model for entity extraction, contradiction detection, and AI extractability scoring. OpenAI is available as a fallback. All prompts and scoring logic are deterministic — the same content always produces the same score.',
+    a: 'SiteNexis uses a multi-model architecture routed through OpenRouter. Hermes 3 405B handles structured scoring and entity extraction. DeepSeek V4 Flash handles full-site analysis and contradiction detection with 1M context. Kimi K2.6 generates schema snippets and fix code. Gemma 4 31B runs visual page analysis. Qwen3-Next handles RAG simulation. Groq llama-3.3-70b-versatile serves as the fast fallback. Same content always produces the same score.',
+  },
+  {
+    q: 'What is the Global Fix Plan?',
+    a: 'The Fix Plan aggregates every issue from all 12 intelligence modules into a single P0/P1/P2 priority queue. It maps cross-module dependency chains, estimates effort hours per fix, and scores each item across three dimensions: SEO impact, AI Visibility impact, and Trust impact.',
   },
 ]
 
@@ -238,7 +246,7 @@ export default function PricingPage() {
         {
           '@type': 'Question',
           name: 'What is included in the SiteNexis free plan?',
-          acceptedAnswer: { '@type': 'Answer', text: 'The free plan includes 1 audit per month covering SEO health, AI readability, machine readability, entity intelligence, citation probability, semantic trust, schema analysis, link graph, content quality, and performance scoring.' },
+          acceptedAnswer: { '@type': 'Answer', text: 'The free plan includes 1 audit per month covering SEO health, AI readability, machine readability, entity intelligence, citation probability, semantic trust, schema analysis, link graph, content quality, performance scoring, and a Global Fix Plan with prioritised issues.' },
         },
         {
           '@type': 'Question',
@@ -291,11 +299,13 @@ export default function PricingPage() {
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1] }}>
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">Pricing</p>
             <h1 className="mt-4 text-[42px] font-bold leading-[1.1] tracking-[-0.03em] text-white md:text-[56px]">
-              Intelligence that<br />
-              <span className="bg-gradient-to-r from-cyan-400 to-teal-400 bg-clip-text text-transparent">scales with you</span>
+              AI visibility intelligence<br />
+              <span className="bg-gradient-to-r from-cyan-400 to-teal-400 bg-clip-text text-transparent">for every stage</span>
             </h1>
-            <p className="mx-auto mt-5 max-w-lg text-[16px] leading-[1.7] text-slate-400">
-              Start free. Upgrade when you need the full machine trust intelligence stack.
+            <p className="mx-auto mt-5 max-w-xl text-[16px] leading-[1.7] text-slate-400">
+              16 autonomous agents. 12 intelligence scores. A Global Fix Plan with cross-module dependency chains.
+              From technical SEO to machine trust formation — one scan covers the full AI retrieval pipeline.
+              Start free, unlock Layer 4 on Pro.
             </p>
 
             {/* Billing toggle */}
