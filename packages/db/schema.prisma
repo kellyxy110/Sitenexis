@@ -115,6 +115,17 @@ model Audit {
   perceptionNodes          PerceptionNode[]
   perceptionEdges          PerceptionEdge[]
 
+  // v4 — Competitive Intelligence Layer
+  v4IntelligenceScore      V4IntelligenceScore?
+  competitivePosition      CompetitivePosition?
+  displacementRecord       DisplacementRecord?
+  uncertaintyDecomposition UncertaintyDecomposition?
+  trajectoryScenarios      TrajectoryScenario[]
+  queryClusters            QueryCluster[]
+  competitiveSetMembers    CompetitiveSetMember[]
+  scoreDeltasFrom          ScoreDelta[] @relation("ScoreDeltaFromAudit")
+  scoreDeltasTo            ScoreDelta[] @relation("ScoreDeltaToAudit")
+
   @@index([userId])
   @@index([domain])
   @@index([status])
@@ -915,4 +926,283 @@ model AdGeneration {
 
   @@index([userId])
   @@map("ad_generations")
+}
+
+// ─── v4 — Competitive Intelligence Layer ─────────────────────────────────────
+//
+// Design principles:
+//   - V4IntelligenceScore is the diagnostic overlay (interpretability layer)
+//   - CompetitivePosition + QueryCluster are the simulation outputs (primary truth)
+//   - TrajectoryScenario stores all scenario × time combinations (queryable)
+//   - DisplacementRecord holds mechanism decomposition with reversibility flags
+//   - UncertaintyDecomposition makes uncertainty explicit and named (never hidden)
+//   - ScoreDelta is the temporal intelligence layer — requires 2+ audits per domain
+//   - CompetitiveSetMember tracks which domains are in the competitive allocation pool
+
+model V4IntelligenceScore {
+  id      String @id @default(cuid())
+  auditId String @unique @map("audit_id")
+  audit   Audit  @relation(fields: [auditId], references: [id])
+
+  // Nine diagnostic scores (0–100). Derived from simulation state, not computed independently.
+  aiVisibilityIndex                 Float @map("ai_visibility_index")
+  citationProbabilityScore          Float @map("citation_probability_score")
+  semanticClarityScore              Float @map("semantic_clarity_score")
+  entityAuthorityScore              Float @map("entity_authority_score")
+  trustCredibilityScore             Float @map("trust_credibility_score")
+  contentDepthScore                 Float @map("content_depth_score")
+  competitiveDifferentiationScore   Float @map("competitive_differentiation_score")
+  retrievalSurfaceOptimizationScore Float @map("retrieval_surface_optimization_score")
+  marketPositionStrength            Float @map("market_position_strength")
+
+  // Weighted composite of all nine
+  compositeIntelligenceScore Float @map("composite_intelligence_score")
+
+  // { "aiVisibilityIndex": "Low-Mid", "citationProbabilityScore": "Low", ... }
+  scoreBands Json @default("{}") @map("score_bands")
+
+  // Full sub-component breakdown for explainability
+  breakdown Json @default("{}")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("v4_intelligence_scores")
+}
+
+model CompetitivePosition {
+  id      String @id @default(cuid())
+  auditId String @unique @map("audit_id")
+  audit   Audit  @relation(fields: [auditId], references: [id])
+
+  primaryCluster String @map("primary_cluster")
+
+  // Citation share — core category queries (e.g. "AI visibility tool")
+  citationShareCoreLower   Float @map("citation_share_core_lower")
+  citationShareCoreCentral Float @map("citation_share_core_central")
+  citationShareCoreUpper   Float @map("citation_share_core_upper")
+
+  // Citation share — niche concept queries (e.g. "machine trust scoring")
+  citationShareNicheLower   Float @map("citation_share_niche_lower")
+  citationShareNicheCentral Float @map("citation_share_niche_central")
+  citationShareNicheUpper   Float @map("citation_share_niche_upper")
+
+  // Estimated rank band within the tool category
+  categoryRankLower Int @map("category_rank_lower")
+  categoryRankUpper Int @map("category_rank_upper")
+
+  // Position percentile in primary cluster (0–100)
+  percentileLower   Float @map("percentile_lower")
+  percentileCentral Float @map("percentile_central")
+  percentileUpper   Float @map("percentile_upper")
+
+  interpretation    String @default("below-median") // below-median | at-median | above-median | top-quartile
+  positionStatement String @map("position_statement") @db.Text
+
+  simulationModelVersion String @default("v4.1") @map("simulation_model_version")
+
+  // Always present — captures assumptions used in this simulation run
+  modelAssumptions Json @default("{}") @map("model_assumptions")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  queryClusters QueryCluster[]
+
+  @@map("competitive_positions")
+}
+
+model QueryCluster {
+  id                    String @id @default(cuid())
+  auditId               String @map("audit_id")
+  competitivePositionId String @map("competitive_position_id")
+
+  audit               Audit               @relation(fields: [auditId], references: [id])
+  competitivePosition CompetitivePosition @relation(fields: [competitivePositionId], references: [id])
+
+  clusterId String @map("cluster_id") // kebab-case slug
+  label     String
+
+  // informational | commercial | comparative | navigational | research
+  intentType String @map("intent_type")
+
+  // sparse | moderate | dense | saturated
+  estimatedDensity String @map("estimated_density")
+
+  citationBudgetLower Int @map("citation_budget_lower")
+  citationBudgetUpper Int @map("citation_budget_upper")
+
+  // declining | flat | growing | accelerating | unknown
+  marketGrowthRate String @map("market_growth_rate")
+
+  zeroSumDegree Float @map("zero_sum_degree") // 0–1
+
+  // P(domain cited | Q) as probability interval
+  shareLower   Float @map("share_lower")
+  shareCentral Float @map("share_central")
+  shareUpper   Float @map("share_upper")
+
+  // Competitive percentile in this cluster
+  percentileLower   Float @map("percentile_lower")
+  percentileCentral Float @map("percentile_central")
+  percentileUpper   Float @map("percentile_upper")
+
+  // low | medium | high | dominant
+  exposureLevel String @default("low") @map("exposure_level")
+
+  // declining | flat | rising
+  exposureTrend String @default("flat") @map("exposure_trend")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([auditId])
+  @@index([competitivePositionId])
+  @@index([intentType])
+  @@map("query_clusters")
+}
+
+model TrajectoryScenario {
+  id      String @id @default(cuid())
+  auditId String @map("audit_id")
+  audit   Audit  @relation(fields: [auditId], references: [id])
+
+  // do-nothing | complete-this-week | complete-sprint | complete-roadmap
+  scenarioName String @map("scenario_name")
+
+  // conservative | baseline | aggressive
+  competitorAssumption String @map("competitor_assumption")
+
+  // 30 | 90 | 365
+  timeHorizonDays Int @map("time_horizon_days")
+
+  // Projected citation share under this scenario
+  projectedShareLower   Float @map("projected_share_lower")
+  projectedShareCentral Float @map("projected_share_central")
+  projectedShareUpper   Float @map("projected_share_upper")
+
+  // Projected percentile under this scenario
+  projectedPercentileLower   Float @map("projected_percentile_lower")
+  projectedPercentileCentral Float @map("projected_percentile_central")
+  projectedPercentileUpper   Float @map("projected_percentile_upper")
+
+  primaryDriver String @default("") @map("primary_driver")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([auditId])
+  @@index([scenarioName, timeHorizonDays])
+  @@map("trajectory_scenarios")
+}
+
+model DisplacementRecord {
+  id      String @id @default(cuid())
+  auditId String @unique @map("audit_id")
+  audit   Audit  @relation(fields: [auditId], references: [id])
+
+  atRisk Boolean @default(false) @map("at_risk")
+
+  // competitor-improvement | trust-decay | market-saturation | none
+  dominantMechanism String @map("dominant_mechanism")
+
+  // Percentage contribution from each mechanism — should sum to ~100
+  competitorImprovementPct Float @default(0) @map("competitor_improvement_pct")
+  trustDecayPct            Float @default(0) @map("trust_decay_pct")
+  marketSaturationPct      Float @default(0) @map("market_saturation_pct")
+
+  reversibleByOwnAction Boolean @default(true) @map("reversible_by_own_action")
+
+  // low | moderate | high | critical
+  urgencyLevel String @default("low") @map("urgency_level")
+
+  statement String @db.Text
+
+  // Array of DisplacementMechanismDetail objects
+  mechanismsJson Json @default("[]") @map("mechanisms_json")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("displacement_records")
+}
+
+model UncertaintyDecomposition {
+  id      String @id @default(cuid())
+  auditId String @unique @map("audit_id")
+  audit   Audit  @relation(fields: [auditId], references: [id])
+
+  overallIntervalLower Float @map("overall_interval_lower")
+  overallIntervalUpper Float @map("overall_interval_upper")
+
+  // narrow | moderate | wide
+  intervalWidth  String @map("interval_width")
+  dominantSource String @map("dominant_source")
+  howToNarrow    String @map("how_to_narrow") @db.Text
+
+  // Array of UncertaintySource objects with name, contributionPct, reducible, description
+  sourcesJson        Json     @default("[]") @map("sources_json")
+  reducibleSources   String[] @map("reducible_sources")
+  irreducibleSources String[] @map("irreducible_sources")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("uncertainty_decompositions")
+}
+
+model ScoreDelta {
+  id          String @id @default(cuid())
+  domain      String
+  fromAuditId String @map("from_audit_id")
+  toAuditId   String @map("to_audit_id")
+
+  fromAudit Audit @relation("ScoreDeltaFromAudit", fields: [fromAuditId], references: [id])
+  toAudit   Audit @relation("ScoreDeltaToAudit",   fields: [toAuditId],   references: [id])
+
+  // Per-dimension deltas — positive = improving
+  deltaAiVisibilityIndex            Float @default(0) @map("delta_ai_visibility_index")
+  deltaCitationProbability          Float @default(0) @map("delta_citation_probability")
+  deltaSemanticClarity              Float @default(0) @map("delta_semantic_clarity")
+  deltaEntityAuthority              Float @default(0) @map("delta_entity_authority")
+  deltaTrustCredibility             Float @default(0) @map("delta_trust_credibility")
+  deltaContentDepth                 Float @default(0) @map("delta_content_depth")
+  deltaCompetitiveDifferentiation   Float @default(0) @map("delta_competitive_differentiation")
+  deltaRetrievalSurfaceOptimization Float @default(0) @map("delta_retrieval_surface_optimization")
+  deltaMarketPositionStrength       Float @default(0) @map("delta_market_position_strength")
+
+  deltaCompositeScore Float @default(0) @map("delta_composite_score")
+
+  // improving | stable | declining
+  velocityDirection     String @default("stable") @map("velocity_direction")
+  primaryVelocityDriver String @default("")        @map("primary_velocity_driver")
+
+  // Full delta map for flexible queries
+  allDeltasJson Json @default("{}") @map("all_deltas_json")
+
+  computedAt DateTime @default(now()) @map("computed_at")
+
+  @@unique([fromAuditId, toAuditId])
+  @@index([domain, computedAt])
+  @@index([toAuditId])
+  @@map("score_deltas")
+}
+
+model CompetitiveSetMember {
+  id      String @id @default(cuid())
+  auditId String @map("audit_id")
+  audit   Audit  @relation(fields: [auditId], references: [id])
+
+  domain     String
+  // category-benchmark | direct-audit | none
+  dataSource String @default("category-benchmark") @map("data_source")
+
+  // Which query clusters this competitor appears in
+  clusterIds String[] @map("cluster_ids")
+
+  // { clusterId: relativeStrength (0–1) }
+  clusterStrengthJson Json @default("{}") @map("cluster_strength_json")
+
+  // FK to competitor's own audit record, if available
+  competitorAuditId String? @map("competitor_audit_id")
+
+  addedAt DateTime @default(now()) @map("added_at")
+
+  @@index([auditId])
+  @@index([domain])
+  @@map("competitive_set_members")
 }

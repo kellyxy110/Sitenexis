@@ -1099,6 +1099,180 @@ export interface AuditReport {
   verificationReport?: VerificationReport;
 }
 
+// ─── v4 — Competitive Intelligence Layer ─────────────────────────────────────
+
+export type V4ScoreBand =
+  | 'Very High'
+  | 'High'
+  | 'Mid'
+  | 'Low-Mid'
+  | 'Low'
+  | 'Very Low';
+
+export type QueryClusterIntentType =
+  | 'informational'
+  | 'commercial'
+  | 'comparative'
+  | 'navigational'
+  | 'research';
+
+export type QueryClusterDensity = 'sparse' | 'moderate' | 'dense' | 'saturated';
+
+export type MarketGrowthRate =
+  | 'declining'
+  | 'flat'
+  | 'growing'
+  | 'accelerating'
+  | 'unknown';
+
+export type DisplacementMechanism =
+  | 'competitor-improvement'
+  | 'trust-decay'
+  | 'market-saturation'
+  | 'none';
+
+export type UrgencyLevel = 'low' | 'moderate' | 'high' | 'critical';
+
+export type VelocityDirection = 'improving' | 'stable' | 'declining';
+
+export type CompetitorAssumption = 'conservative' | 'baseline' | 'aggressive';
+
+export type ScenarioName =
+  | 'do-nothing'
+  | 'complete-this-week'
+  | 'complete-sprint'
+  | 'complete-roadmap';
+
+export type PositionInterpretation =
+  | 'below-median'
+  | 'at-median'
+  | 'above-median'
+  | 'top-quartile';
+
+export type IntervalWidth = 'narrow' | 'moderate' | 'wide';
+
+/** Probability interval — never collapse to a point estimate */
+export interface InfluenceRange {
+  lower: number;    // 5th percentile
+  central: number;  // 50th percentile (median)
+  upper: number;    // 95th percentile
+}
+
+export interface UncertaintySource {
+  name: string;
+  contributionPct: number;  // % of total interval width attributed to this source
+  reducible: boolean;       // narrows with more data (true) vs. genuine market uncertainty (false)
+  description: string;
+}
+
+export interface V4IntelligenceScore {
+  // The 9 diagnostic scores (0–100)
+  aiVisibilityIndex: number;
+  citationProbabilityScore: number;
+  semanticClarityScore: number;
+  entityAuthorityScore: number;
+  trustCredibilityScore: number;
+  contentDepthScore: number;
+  competitiveDifferentiationScore: number;
+  retrievalSurfaceOptimizationScore: number;
+  marketPositionStrength: number;
+  // Composite
+  compositeIntelligenceScore: number;
+  // Human-readable bands per score
+  scoreBands: Record<string, V4ScoreBand>;
+  breakdown: Record<string, unknown>;
+}
+
+export interface QueryCluster {
+  clusterId: string;
+  label: string;
+  intentType: QueryClusterIntentType;
+  estimatedDensity: QueryClusterDensity;
+  citationBudget: [number, number];   // [lower, upper]
+  marketGrowthRate: MarketGrowthRate;
+  zeroSumDegree: number;              // 0–1
+  domainCurrentShare: InfluenceRange;
+  domainCurrentPercentile: InfluenceRange;
+  exposureLevel: 'low' | 'medium' | 'high' | 'dominant';
+  exposureTrend: 'declining' | 'flat' | 'rising';
+}
+
+export interface CompetitivePosition {
+  primaryCluster: string;
+  citationShareCore: InfluenceRange;
+  citationShareNiche: InfluenceRange;
+  categoryRank: [number, number];     // [lower, upper]
+  positionPercentile: InfluenceRange;
+  interpretation: PositionInterpretation;
+  positionStatement: string;
+  simulationModelVersion: string;
+  modelAssumptions: {
+    competitorDataSource: 'category-benchmark' | 'direct-audit' | 'none';
+    citationModelBasis: string;
+    queryClusterBasis: string;
+    marketGrowthAssumption: string;
+    knownLimitations: string[];
+  };
+  queryClusters: QueryCluster[];
+}
+
+export interface TrajectoryScenario {
+  scenarioName: ScenarioName;
+  competitorAssumption: CompetitorAssumption;
+  timeHorizonDays: 30 | 90 | 365;
+  projectedShare: InfluenceRange;
+  projectedPercentile: InfluenceRange;
+  primaryDriver: string;
+}
+
+export interface DisplacementMechanismDetail {
+  mechanism: DisplacementMechanism;
+  contributionPct: number;
+  reversible: boolean;
+  description: string;
+}
+
+export interface DisplacementRecord {
+  atRisk: boolean;
+  dominantMechanism: DisplacementMechanism;
+  competitorImprovementPct: number;
+  trustDecayPct: number;
+  marketSaturationPct: number;
+  reversibleByOwnAction: boolean;
+  urgencyLevel: UrgencyLevel;
+  statement: string;
+  mechanisms: DisplacementMechanismDetail[];
+}
+
+export interface UncertaintyDecomposition {
+  overallInterval: [number, number];
+  intervalWidth: IntervalWidth;
+  dominantSource: string;
+  howToNarrow: string;
+  sources: UncertaintySource[];
+  reducibleSources: string[];
+  irreducibleSources: string[];
+}
+
+export interface ScoreDelta {
+  domain: string;
+  fromAuditId: string;
+  toAuditId: string;
+  deltaAiVisibilityIndex: number;
+  deltaCitationProbability: number;
+  deltaSemanticClarity: number;
+  deltaEntityAuthority: number;
+  deltaTrustCredibility: number;
+  deltaContentDepth: number;
+  deltaCompetitiveDifferentiation: number;
+  deltaRetrievalSurfaceOptimization: number;
+  deltaMarketPositionStrength: number;
+  deltaCompositeScore: number;
+  velocityDirection: VelocityDirection;
+  primaryVelocityDriver: string;
+  computedAt: Date;
+}
+
 // ─── Naming aliases ───────────────────────────────────────────────────────────
 
 export type AuditJob = Audit;
