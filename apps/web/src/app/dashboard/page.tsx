@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
@@ -223,9 +224,9 @@ export default function DashboardPage() {
                 </p>
               </div>
             </div>
-            <a href="/dashboard/settings/billing" className="rounded-lg border border-white/[0.08] bg-white/[0.02] px-3 py-1.5 text-xs font-semibold text-[#7A9AB4] hover:text-white hover:border-white/[0.15] transition-colors">
+            <Link href="/dashboard/settings/billing" className="rounded-lg border border-white/[0.08] bg-white/[0.02] px-3 py-1.5 text-xs font-semibold text-[#7A9AB4] hover:text-white hover:border-white/[0.15] transition-colors">
               Buy credits
-            </a>
+            </Link>
           </div>
         )}
 

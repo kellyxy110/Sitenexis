@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion, useInView, type Variants } from 'framer-motion';
 import { ArrowRight, Globe } from 'lucide-react';
@@ -1202,7 +1203,7 @@ export default function HomePage() {
                 <p className="mb-4 text-[11px] font-semibold uppercase tracking-widest text-[#334155]">Products</p>
                 <ul className="space-y-3">
                   <li>
-                    <a href="/" className="text-[#475569] transition-colors duration-150 hover:text-[#94A3B8]">SiteNexis</a>
+                    <Link href="/" className="text-[#475569] transition-colors duration-150 hover:text-[#94A3B8]">SiteNexis</Link>
                   </li>
                   <li>
                     <a href="https://adnexis-ai.vercel.app" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-[#475569] transition-colors duration-150 hover:text-[#9B77FF]">
