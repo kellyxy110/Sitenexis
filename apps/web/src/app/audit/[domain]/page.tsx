@@ -85,9 +85,17 @@ interface AuditData {
   issues: Array<SEOIssue & { module?: string }>;
   pages: Array<{
     url: string;
+    statusCode: number;
+    title: string | null;
+    metaDescription: string | null;
+    h1: string | null;
+    canonicalUrl: string | null;
+    wordCount: number;
+    isIndexable: boolean;
+    internalLinks: number;
+    externalLinks: number;
     seoScore: number | null;
     aiScore: number | null;
-    wordCount: number;
     responseTimeMs?: number;
     schemaData?: unknown[];
   }>;
@@ -104,6 +112,7 @@ interface AuditData {
 }
 
 const TAB_IDS = [
+  'pages',
   'action-plan',
   'seo', 'ai', 'machine-readability', 'entity', 'citation', 'semantic-trust',
   'schema', 'links', 'content', 'performance',
@@ -111,6 +120,7 @@ const TAB_IDS = [
 ] as const;
 type TabId = typeof TAB_IDS[number];
 const TAB_LABELS: Record<TabId, string> = {
+  pages: 'Pages',
   'action-plan': 'Action Plan',
   seo: 'SEO',
   ai: 'AI Readability',
@@ -655,6 +665,369 @@ function ContentTab({ data }: { data: AuditData }) {
           </ul>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Pages Tab — URL Inventory ───────────────────────────────────────────────
+
+type PageRow = AuditData['pages'][number];
+
+function statusBadge(code: number) {
+  if (code >= 200 && code < 300) return 'text-green-400 bg-green-500/10';
+  if (code >= 300 && code < 400) return 'text-amber-400 bg-amber-500/10';
+  return 'text-red-400 bg-red-500/10';
+}
+
+function signalDot(ok: boolean) {
+  return ok
+    ? <span className="h-2 w-2 rounded-full bg-green-400 shrink-0" title="Present" />
+    : <span className="h-2 w-2 rounded-full bg-red-400 shrink-0" title="Missing" />;
+}
+
+function PageDrillDown({ page, issues }: { page: PageRow; issues: Array<SEOIssue & { module?: string }> }) {
+  const pageIssues = issues.filter((i) => {
+    const iUrl = (i.url ?? '').replace(/\/$/, '');
+    const pUrl = page.url.replace(/\/$/, '');
+    return iUrl === pUrl;
+  });
+  const critical = pageIssues.filter((i) => i.severity === 'critical');
+  const warnings = pageIssues.filter((i) => i.severity === 'warning');
+  const info = pageIssues.filter((i) => i.severity === 'info');
+
+  return (
+    <div className="border-t border-white/5 bg-[#070F1A] px-5 py-5 space-y-5">
+      {/* SEO Signals */}
+      <div>
+        <h4 className="text-[10px] font-semibold uppercase tracking-widest text-[#4A6280] mb-3">SEO Signals</h4>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
+            <div className="flex items-center gap-2 mb-1">
+              {signalDot(!!page.title)}
+              <span className="text-[10px] font-semibold uppercase text-[#4A6280]">Title</span>
+            </div>
+            {page.title
+              ? <p className="text-xs text-white break-all">{page.title}</p>
+              : <p className="text-xs text-red-400">Missing — no {'<title>'} tag detected</p>
+            }
+          </div>
+          <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
+            <div className="flex items-center gap-2 mb-1">
+              {signalDot(!!page.h1)}
+              <span className="text-[10px] font-semibold uppercase text-[#4A6280]">H1</span>
+            </div>
+            {page.h1
+              ? <p className="text-xs text-white break-all">{page.h1}</p>
+              : <p className="text-xs text-red-400">Missing — no {'<h1>'} tag detected</p>
+            }
+          </div>
+          <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
+            <div className="flex items-center gap-2 mb-1">
+              {signalDot(!!page.metaDescription)}
+              <span className="text-[10px] font-semibold uppercase text-[#4A6280]">Meta Description</span>
+            </div>
+            {page.metaDescription
+              ? <p className="text-xs text-[#C8DFE8] line-clamp-2">{page.metaDescription}</p>
+              : <p className="text-xs text-red-400">Missing</p>
+            }
+          </div>
+          <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
+            <div className="flex items-center gap-2 mb-1">
+              {signalDot(!!page.canonicalUrl)}
+              <span className="text-[10px] font-semibold uppercase text-[#4A6280]">Canonical</span>
+            </div>
+            {page.canonicalUrl
+              ? <p className="text-xs text-[#C8DFE8] break-all">{page.canonicalUrl}</p>
+              : <p className="text-xs text-red-400">Missing — no canonical tag</p>
+            }
+          </div>
+        </div>
+      </div>
+
+      {/* Page Stats */}
+      <div className="flex flex-wrap gap-4 text-xs text-[#4A6280]">
+        <span>Words: <strong className="text-white">{page.wordCount}</strong></span>
+        <span>Internal links: <strong className="text-white">{page.internalLinks}</strong></span>
+        <span>External links: <strong className="text-white">{page.externalLinks}</strong></span>
+        <span>Indexable: <strong className={page.isIndexable ? 'text-green-400' : 'text-red-400'}>{page.isIndexable ? 'Yes' : 'No'}</strong></span>
+        <span>Schema: <strong className="text-white">{(page.schemaData as unknown[] ?? []).length > 0 ? 'Yes' : 'No'}</strong></span>
+      </div>
+
+      {/* Issues for this page */}
+      {pageIssues.length > 0 ? (
+        <div>
+          <h4 className="text-[10px] font-semibold uppercase tracking-widest text-[#4A6280] mb-3">
+            Issues on this page ({critical.length} critical · {warnings.length} warnings · {info.length} info)
+          </h4>
+          <div className="space-y-2">
+            {pageIssues.map((issue, i) => {
+              const sevStyle = issue.severity === 'critical'
+                ? 'border-red-500/20 bg-red-500/[0.04]'
+                : issue.severity === 'warning'
+                ? 'border-amber-500/20 bg-amber-500/[0.04]'
+                : 'border-blue-500/20 bg-blue-500/[0.04]';
+              const sevColor = issue.severity === 'critical' ? 'text-red-400'
+                : issue.severity === 'warning' ? 'text-amber-400' : 'text-blue-400';
+
+              return (
+                <div key={i} className={`rounded-lg border p-3 ${sevStyle}`}>
+                  <div className="flex items-start gap-2">
+                    <span className={`text-[10px] font-semibold uppercase shrink-0 mt-0.5 ${sevColor}`}>
+                      {issue.severity}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-white font-medium">{issue.message}</p>
+                      {issue.problem && (
+                        <p className="mt-1.5 text-xs text-[#4A6280]">
+                          <strong className="text-[#7A9AB4]">Problem:</strong> {issue.problem}
+                        </p>
+                      )}
+                      {issue.solution && (
+                        <p className="mt-1 text-xs text-[#4A6280]">
+                          <strong className="text-[#7A9AB4]">Fix:</strong> {issue.solution}
+                        </p>
+                      )}
+                      {!issue.solution && issue.recommendation && (
+                        <p className="mt-1 text-xs text-[#4A6280]">
+                          <strong className="text-[#7A9AB4]">Recommendation:</strong> {issue.recommendation}
+                        </p>
+                      )}
+                      {issue.fixCode && (
+                        <pre className="mt-2 overflow-x-auto rounded bg-[#020A16] p-2 text-[10px] text-[#6B9BB0] font-mono whitespace-pre-wrap max-h-24">
+                          {issue.fixCode}
+                        </pre>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2 text-xs text-green-400">
+          <span className="h-2 w-2 rounded-full bg-green-400" />
+          No issues detected on this page
+        </div>
+      )}
+
+      {/* Open page link */}
+      <a
+        href={page.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-1 text-xs text-cyan hover:underline"
+      >
+        Open page ↗
+      </a>
+    </div>
+  );
+}
+
+function PagesTab({ data }: { data: AuditData }) {
+  const [expandedUrl, setExpandedUrl] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [sortKey, setSortKey] = useState<'url' | 'seo' | 'ai' | 'issues' | 'words'>('issues');
+  const [sortDesc, setSortDesc] = useState(true);
+
+  const issuesByUrl = useMemo(() => {
+    const map: Record<string, { critical: number; warning: number; info: number; total: number }> = {};
+    for (const issue of data.issues) {
+      const url = (issue.url ?? '').replace(/\/$/, '');
+      if (!url) continue;
+      if (!map[url]) map[url] = { critical: 0, warning: 0, info: 0, total: 0 };
+      map[url]![issue.severity]++;
+      map[url]!.total++;
+    }
+    return map;
+  }, [data.issues]);
+
+  const rows = useMemo(() => {
+    let filtered = data.pages;
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      filtered = filtered.filter((p) => p.url.toLowerCase().includes(q));
+    }
+    const sorted = [...filtered].sort((a, b) => {
+      const aUrl = a.url.replace(/\/$/, '');
+      const bUrl = b.url.replace(/\/$/, '');
+      let cmp = 0;
+      switch (sortKey) {
+        case 'url': cmp = aUrl.localeCompare(bUrl); break;
+        case 'seo': cmp = (a.seoScore ?? -1) - (b.seoScore ?? -1); break;
+        case 'ai': cmp = (a.aiScore ?? -1) - (b.aiScore ?? -1); break;
+        case 'issues': cmp = (issuesByUrl[aUrl]?.total ?? 0) - (issuesByUrl[bUrl]?.total ?? 0); break;
+        case 'words': cmp = a.wordCount - b.wordCount; break;
+      }
+      return sortDesc ? -cmp : cmp;
+    });
+    return sorted;
+  }, [data.pages, search, sortKey, sortDesc, issuesByUrl]);
+
+  const toggleSort = (key: typeof sortKey) => {
+    if (sortKey === key) setSortDesc(!sortDesc);
+    else { setSortKey(key); setSortDesc(true); }
+  };
+
+  const sortArrow = (key: typeof sortKey) => {
+    if (sortKey !== key) return <span className="opacity-30 ml-0.5">↕</span>;
+    return sortDesc ? <span className="ml-0.5">↓</span> : <span className="ml-0.5">↑</span>;
+  };
+
+  const totalCritical = data.issues.filter((i) => i.severity === 'critical').length;
+  const totalWarnings = data.issues.filter((i) => i.severity === 'warning').length;
+  const totalInfo = data.issues.filter((i) => i.severity === 'info').length;
+
+  return (
+    <div className="space-y-5">
+      {/* Summary bar */}
+      <div className="grid gap-3 sm:grid-cols-4">
+        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 text-center">
+          <span className="text-2xl font-bold text-white tabular-nums">{data.pages.length}</span>
+          <div className="text-[10px] text-[#4A6280]">Pages Crawled</div>
+        </div>
+        <div className="rounded-xl border border-red-500/10 bg-red-500/[0.03] p-4 text-center">
+          <span className="text-2xl font-bold text-red-400 tabular-nums">{totalCritical}</span>
+          <div className="text-[10px] text-[#4A6280]">Critical Issues</div>
+        </div>
+        <div className="rounded-xl border border-amber-500/10 bg-amber-500/[0.03] p-4 text-center">
+          <span className="text-2xl font-bold text-amber-400 tabular-nums">{totalWarnings}</span>
+          <div className="text-[10px] text-[#4A6280]">Warnings</div>
+        </div>
+        <div className="rounded-xl border border-blue-500/10 bg-blue-500/[0.03] p-4 text-center">
+          <span className="text-2xl font-bold text-blue-400 tabular-nums">{totalInfo}</span>
+          <div className="text-[10px] text-[#4A6280]">Info</div>
+        </div>
+      </div>
+
+      {/* Search */}
+      <div className="flex items-center gap-3">
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Filter by URL..."
+          className="flex-1 max-w-sm rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-white placeholder-[#4A6280] outline-none focus:border-cyan/40 focus:ring-1 focus:ring-cyan/20 transition-colors"
+        />
+        <span className="text-xs text-[#4A6280]">
+          {rows.length === data.pages.length ? `${rows.length} pages` : `${rows.length} of ${data.pages.length}`}
+        </span>
+      </div>
+
+      {/* Table */}
+      <div className="overflow-hidden rounded-xl border border-white/10">
+        {/* Header */}
+        <div className="flex items-center border-b border-white/10 bg-[#050B09] px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-[#4A6280]">
+          <button onClick={() => toggleSort('url')} className="flex-1 min-w-0 text-left flex items-center gap-1 hover:text-white transition-colors">
+            URL {sortArrow('url')}
+          </button>
+          <button onClick={() => toggleSort('seo')} className="w-14 text-center flex items-center justify-center gap-0.5 hover:text-white transition-colors">
+            SEO {sortArrow('seo')}
+          </button>
+          <button onClick={() => toggleSort('ai')} className="w-14 text-center flex items-center justify-center gap-0.5 hover:text-white transition-colors">
+            AI {sortArrow('ai')}
+          </button>
+          <button onClick={() => toggleSort('issues')} className="w-24 text-center flex items-center justify-center gap-0.5 hover:text-white transition-colors">
+            Issues {sortArrow('issues')}
+          </button>
+          <button onClick={() => toggleSort('words')} className="w-16 text-center flex items-center justify-center gap-0.5 hidden sm:flex hover:text-white transition-colors">
+            Words {sortArrow('words')}
+          </button>
+          <div className="w-28 text-center hidden md:block">Signals</div>
+          <div className="w-14 text-center">Status</div>
+        </div>
+
+        {/* Rows */}
+        <div>
+          {rows.map((page, idx) => {
+            const normalUrl = page.url.replace(/\/$/, '');
+            const counts = issuesByUrl[normalUrl];
+            const expanded = expandedUrl === page.url;
+            return (
+              <div key={page.url}>
+                <div
+                  onClick={() => setExpandedUrl(expanded ? null : page.url)}
+                  className={[
+                    'flex items-center px-4 py-3 cursor-pointer border-b border-white/5 transition-colors',
+                    expanded ? 'bg-[#0A1628]' : idx % 2 === 1 ? 'bg-[#050B09]/50 hover:bg-white/[0.03]' : 'hover:bg-white/[0.03]',
+                  ].join(' ')}
+                >
+                  {/* URL */}
+                  <div className="flex-1 min-w-0 flex items-center gap-2">
+                    <span className="text-xs text-white truncate" title={page.url}>
+                      {page.url.replace(/^https?:\/\/[^/]+/, '')}
+                    </span>
+                    {!page.isIndexable && (
+                      <span className="shrink-0 rounded bg-red-500/10 px-1.5 py-0.5 text-[9px] text-red-400 font-semibold">NOINDEX</span>
+                    )}
+                  </div>
+
+                  {/* SEO Score */}
+                  <div className="w-14 text-center">
+                    <span className="text-xs font-semibold tabular-nums" style={{ color: scoreColor(page.seoScore) }}>
+                      {page.seoScore != null ? Math.round(page.seoScore) : '—'}
+                    </span>
+                  </div>
+
+                  {/* AI Score */}
+                  <div className="w-14 text-center">
+                    <span className="text-xs font-semibold tabular-nums" style={{ color: scoreColor(page.aiScore) }}>
+                      {page.aiScore != null ? Math.round(page.aiScore) : '—'}
+                    </span>
+                  </div>
+
+                  {/* Issue counts */}
+                  <div className="w-24 flex items-center justify-center gap-1">
+                    {counts && counts.total > 0 ? (
+                      <>
+                        {counts.critical > 0 && <span className="rounded-full bg-red-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-red-400">{counts.critical}</span>}
+                        {counts.warning > 0 && <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-400">{counts.warning}</span>}
+                        {counts.info > 0 && <span className="rounded-full bg-blue-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-blue-400">{counts.info}</span>}
+                      </>
+                    ) : (
+                      <span className="text-[10px] text-green-400">✓</span>
+                    )}
+                  </div>
+
+                  {/* Word count */}
+                  <div className="w-16 text-center hidden sm:block">
+                    <span className={`text-xs tabular-nums ${page.wordCount < 300 ? 'text-red-400' : 'text-[#4A6280]'}`}>
+                      {page.wordCount}
+                    </span>
+                  </div>
+
+                  {/* SEO signals dots */}
+                  <div className="w-28 hidden md:flex items-center justify-center gap-1.5" title={`Title: ${page.title ? '✓' : '✗'} | H1: ${page.h1 ? '✓' : '✗'} | Meta: ${page.metaDescription ? '✓' : '✗'} | Canonical: ${page.canonicalUrl ? '✓' : '✗'}`}>
+                    {signalDot(!!page.title)}
+                    {signalDot(!!page.h1)}
+                    {signalDot(!!page.metaDescription)}
+                    {signalDot(!!page.canonicalUrl)}
+                  </div>
+
+                  {/* Status code */}
+                  <div className="w-14 text-center">
+                    <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${statusBadge(page.statusCode)}`}>
+                      {page.statusCode}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Drill-down */}
+                {expanded && <PageDrillDown page={page} issues={data.issues} />}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Signals legend */}
+      <div className="flex items-center gap-4 text-[10px] text-[#4A6280]">
+        <span className="font-semibold">Signal dots:</span>
+        <span className="flex items-center gap-1">{signalDot(true)} Title</span>
+        <span className="flex items-center gap-1">{signalDot(true)} H1</span>
+        <span className="flex items-center gap-1">{signalDot(true)} Meta Desc</span>
+        <span className="flex items-center gap-1">{signalDot(true)} Canonical</span>
+      </div>
     </div>
   );
 }
@@ -1570,7 +1943,7 @@ function AuditPageInner() {
   const router = useRouter();
   const domain = decodeURIComponent(params.domain ?? '');
   const auditId = searchParams.get('auditId');
-  const [activeTab, setActiveTab] = useState<TabId>('seo');
+  const [activeTab, setActiveTab] = useState<TabId>('pages');
 
   // ── Main audit query ───────────────────────────────────────────────────────
   const { data, isLoading, error } = useQuery<AuditData>({
@@ -2009,6 +2382,7 @@ function AuditPageInner() {
 
         {/* ── Tab content ──────────────────────────────────────────────────── */}
         <div>
+          {activeTab === 'pages'              && <PagesTab data={data} />}
           {activeTab === 'action-plan'        && <ActionPlanTab data={data} />}
           {activeTab === 'seo'                && <SeoTab data={data} />}
           {activeTab === 'ai'                 && <AiTab data={data} />}
