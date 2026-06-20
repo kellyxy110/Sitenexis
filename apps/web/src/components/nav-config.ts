@@ -23,6 +23,15 @@ import {
   Search,
   FolderKanban,
   ListChecks,
+  Radar,
+  Sparkles,
+  Link2,
+  Shield,
+  Clock,
+  Radio,
+  Fingerprint,
+  BookOpen,
+  Route,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -87,6 +96,8 @@ export const NAV_GROUPS: NavGroup[] = [
       { id: 'retrieval',      label: 'Retrieval Optimization',href: '/dashboard/retrieval',       icon: ScanSearch },
       { id: 'citation',       label: 'Citation Probability',  href: '/dashboard/citation',        icon: Quote },
       { id: 'semantic-trust', label: 'Semantic Trust',        href: '/dashboard/semantic-trust',  icon: ShieldCheck },
+      { id: 'scout',          label: 'Scout Agent',           href: '/dashboard/scout',           icon: Radar, badge: 'AI' },
+      { id: 'info-gain',      label: 'Information Gain',      href: '/dashboard/information-gain', icon: Sparkles },
     ],
   },
   {
@@ -108,10 +119,21 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    id: 'trust',
+    label: 'Machine Trust',
+    items: [
+      { id: 'machine-trust',  label: 'Trust Score',          href: '/dashboard/machine-trust',   icon: Shield, permission: 'layer4Analysis' },
+      { id: 'temporal',        label: 'Temporal Authority',   href: '/dashboard/temporal',        icon: Clock, permission: 'layer4Analysis' },
+      { id: 'surfaces',        label: 'Recommendation Surfaces', href: '/dashboard/surfaces',    icon: Radio, permission: 'layer4Analysis' },
+      { id: 'authenticity',    label: 'Entity Authenticity',  href: '/dashboard/authenticity',    icon: Fingerprint, permission: 'layer4Analysis' },
+    ],
+  },
+  {
     id: 'systems',
     label: 'Systems',
     items: [
       { id: 'perception-graph', label: 'Perception Graph',     href: '/dashboard/perception-graph', icon: GitFork },
+      { id: 'links',            label: 'Link Graph',           href: '/dashboard/links',            icon: Link2 },
       {
         id: 'competitive',
         label: 'Competitive Analysis',
@@ -119,10 +141,12 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: BarChart3,
         permission: 'competitiveAnalysis',
       },
-      { id: 'schema',  label: 'Schema Generator', href: '/dashboard/schema',  icon: FileJson },
-      { id: 'fix-plan', label: 'Fix Plan',         href: '/dashboard/fix-plan', icon: ListChecks, badge: 'NEW' },
-      { id: 'issues',  label: 'Issues Center',   href: '/dashboard/issues',  icon: AlertTriangle },
-      { id: 'reports', label: 'Reports',          href: '/dashboard/reports', icon: FileText },
+      { id: 'schema',     label: 'Schema Generator',   href: '/dashboard/schema',           icon: FileJson },
+      { id: 'fix-plan',   label: 'Fix Plan',            href: '/dashboard/fix-plan',         icon: ListChecks, badge: 'NEW' },
+      { id: 'roadmap',    label: 'Decision Roadmap',    href: '/dashboard/roadmap',          icon: Route, badge: 'v4' },
+      { id: 'narrative',  label: 'Narrative Report',    href: '/dashboard/narrative-report',  icon: BookOpen },
+      { id: 'issues',     label: 'Issues Center',       href: '/dashboard/issues',           icon: AlertTriangle },
+      { id: 'reports',    label: 'Reports',              href: '/dashboard/reports',          icon: FileText },
     ],
   },
   {
