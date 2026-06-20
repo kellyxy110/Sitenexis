@@ -23,11 +23,182 @@ import type { SEOIssue, SEOIssueSeverity } from '@sitenexis/shared';
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
+interface PageData {
+  url: string;
+  title: string | null;
+  h1: string | null;
+  canonicalUrl: string | null;
+  metaDescription: string | null;
+  wordCount: number;
+  statusCode?: number;
+  isIndexable?: boolean;
+}
+
 export interface IssuesTableProps {
   issues: SEOIssue[];
   isLoading?: boolean;
   showModuleFilter?: boolean;
   auditId?: string;
+  pages?: PageData[];
+}
+
+// ─── Evidence builder ─────────────────────────────────────────────────────────
+
+type ImpactLevel = 'critical' | 'high' | 'medium' | 'low';
+
+interface IssueEvidence {
+  detected: string;
+  expected: string;
+  impactSeo: ImpactLevel;
+  impactAi: ImpactLevel;
+}
+
+const IMPACT_COLOR: Record<ImpactLevel, string> = {
+  critical: 'text-red-400',
+  high: 'text-red-400',
+  medium: 'text-amber-400',
+  low: 'text-blue-400',
+};
+
+function buildEvidence(type: string, page: PageData | undefined): IssueEvidence | null {
+  switch (type) {
+    case 'missing_title':
+      return {
+        detected: '<title></title>  ← empty or absent',
+        expected: '<title>Descriptive Page Title — Brand</title>',
+        impactSeo: 'critical',
+        impactAi: 'high',
+      };
+    case 'title_too_long': {
+      const t = page?.title ?? 'Your page title that is too long to display in full...';
+      return {
+        detected: `<title>${t}</title>  (${t.length} chars)`,
+        expected: `<title>${t.slice(0, 60)}${t.length > 60 ? '…' : ''}</title>  (≤ 60 chars)`,
+        impactSeo: 'medium',
+        impactAi: 'low',
+      };
+    }
+    case 'title_too_short': {
+      const t = page?.title ?? 'Short';
+      return {
+        detected: `<title>${t}</title>  (${t.length} chars)`,
+        expected: '<title>Specific, descriptive title with primary keyword (30–60 chars)</title>',
+        impactSeo: 'medium',
+        impactAi: 'medium',
+      };
+    }
+    case 'duplicate_title':
+      return {
+        detected: `<title>${page?.title ?? '(same title as other pages)'}</title>`,
+        expected: '<title>Unique title specific to this page\'s content</title>',
+        impactSeo: 'high',
+        impactAi: 'medium',
+      };
+    case 'missing_meta_description':
+      return {
+        detected: '← no <meta name="description"> tag found',
+        expected: '<meta name="description" content="Clear 120–155 character summary of page content.">',
+        impactSeo: 'medium',
+        impactAi: 'medium',
+      };
+    case 'meta_description_too_long': {
+      const d = page?.metaDescription ?? '';
+      return {
+        detected: `<meta name="description" content="${d}">  (${d.length} chars)`,
+        expected: `<meta name="description" content="${d.slice(0, 150)}…">  (≤ 155 chars)`,
+        impactSeo: 'low',
+        impactAi: 'low',
+      };
+    }
+    case 'duplicate_meta_description':
+      return {
+        detected: `<meta name="description" content="${page?.metaDescription ?? '(duplicate)'}">`,
+        expected: '<meta name="description" content="Unique description for this specific page.">',
+        impactSeo: 'medium',
+        impactAi: 'low',
+      };
+    case 'missing_h1':
+      return {
+        detected: '← no <h1> tag found in page body',
+        expected: '<h1>Primary Page Heading That Matches User Intent</h1>',
+        impactSeo: 'critical',
+        impactAi: 'critical',
+      };
+    case 'multiple_h1':
+      return {
+        detected: '<h1>First heading</h1>  +  <h1>Second heading</h1>  (ambiguous)',
+        expected: '<h1>Single primary heading</h1>  (one per page only)',
+        impactSeo: 'high',
+        impactAi: 'high',
+      };
+    case 'missing_canonical': {
+      const pageUrl = page?.url ?? 'https://example.com/page';
+      return {
+        detected: '← no <link rel="canonical"> tag found',
+        expected: `<link rel="canonical" href="${pageUrl}">`,
+        impactSeo: 'high',
+        impactAi: 'low',
+      };
+    }
+    case 'broken_canonical':
+      return {
+        detected: `<link rel="canonical" href="${page?.canonicalUrl ?? '(broken URL)'}">  ← returns 404`,
+        expected: `<link rel="canonical" href="${page?.url ?? 'https://example.com/correct-url'}">`,
+        impactSeo: 'high',
+        impactAi: 'low',
+      };
+    case 'noindex_page':
+      return {
+        detected: '<meta name="robots" content="noindex">  ← blocks all crawlers',
+        expected: '<meta name="robots" content="index, follow">  (or remove the tag)',
+        impactSeo: 'critical',
+        impactAi: 'critical',
+      };
+    case 'missing_alt_text':
+      return {
+        detected: '<img src="image.jpg" alt="">  ← empty alt attribute',
+        expected: '<img src="image.jpg" alt="Descriptive text about the image content">',
+        impactSeo: 'low',
+        impactAi: 'low',
+      };
+    case 'broken_internal_link':
+      return {
+        detected: '<a href="/missing-page">Link text</a>  ← target returns 404',
+        expected: '<a href="/correct-existing-page">Link text</a>',
+        impactSeo: 'medium',
+        impactAi: 'low',
+      };
+    case 'redirect_chain':
+      return {
+        detected: 'URL → 301 → URL2 → 301 → URL3  (chain of 3+ redirects)',
+        expected: 'URL → 301 → Final URL  (direct, single redirect)',
+        impactSeo: 'medium',
+        impactAi: 'low',
+      };
+    case 'low_word_count':
+      return {
+        detected: `${page?.wordCount ?? 0} words detected  ← below 300 word minimum`,
+        expected: '300–600+ words with substantive content to form stable AI retrieval chunks',
+        impactSeo: 'medium',
+        impactAi: 'critical',
+      };
+    case 'missing_robots_txt':
+      return {
+        detected: 'GET /robots.txt  → 404 Not Found',
+        expected: 'GET /robots.txt  → 200 OK  with crawl directives',
+        impactSeo: 'high',
+        impactAi: 'medium',
+      };
+    case 'missing_sitemap':
+      return {
+        detected: 'GET /sitemap.xml  → 404 Not Found',
+        expected: 'GET /sitemap.xml  → 200 OK  listing all indexable URLs',
+        impactSeo: 'high',
+        impactAi: 'medium',
+      };
+    default:
+      return null;
+  }
 }
 
 // ─── Severity helpers ─────────────────────────────────────────────────────────
@@ -109,7 +280,12 @@ const VIRTUALISE_THRESHOLD = 100;
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function IssuesTable({ issues, isLoading = false, auditId }: IssuesTableProps) {
+export function IssuesTable({ issues, isLoading = false, auditId, pages }: IssuesTableProps) {
+  const pageMap = useMemo(() => {
+    const map = new Map<string, PageData>();
+    for (const p of pages ?? []) map.set(p.url.replace(/\/$/, ''), p);
+    return map;
+  }, [pages]);
   const [sorting, setSorting] = useState<SortingState>([
     { id: 'severity', desc: false },
   ]);
@@ -359,6 +535,7 @@ export function IssuesTable({ issues, isLoading = false, auditId }: IssuesTableP
                       auditId={auditId}
                       fixPanelId={fixPanelId}
                       onToggleFix={(id) => setFixPanelId((prev) => (prev === id ? null : id))}
+                      pageMap={pageMap}
                     />
                   </div>
                 );
@@ -381,6 +558,7 @@ export function IssuesTable({ issues, isLoading = false, auditId }: IssuesTableP
                     auditId={auditId}
                     fixPanelId={fixPanelId}
                     onToggleFix={(id) => setFixPanelId((prev) => (prev === id ? null : id))}
+                    pageMap={pageMap}
                   />
                 </div>
               );
@@ -547,16 +725,23 @@ function RowContent({
   auditId,
   fixPanelId,
   onToggleFix,
+  pageMap,
 }: {
   row: any;
   expanded: boolean;
   auditId: string | undefined;
   fixPanelId: string | null;
   onToggleFix: (id: string) => void;
+  pageMap: Map<string, PageData>;
 }) {
   const issueId: string | undefined = row.original.id;
   const showFixButton = !!auditId && !!issueId;
   const fixOpen = fixPanelId === issueId;
+
+  const issueType = row.original.type as string;
+  const issueUrl = (row.original.url as string ?? '').replace(/\/$/, '');
+  const page = pageMap.get(issueUrl);
+  const evidence = buildEvidence(issueType, page);
 
   return (
     <>
@@ -571,10 +756,50 @@ function RowContent({
         </div>
       </div>
       {expanded && (
-        <div className="border-t border-white/5 bg-[#0A1F14] px-5 py-4 space-y-4">
+        <div className="border-t border-white/5 bg-[#070F1A] px-5 py-4 space-y-4">
+
+          {/* Affected URL */}
+          {issueUrl && (
+            <div className="flex items-center gap-2 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2">
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-[#4A6280]">Affected URL</span>
+              <a
+                href={row.original.url as string}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="ml-auto text-xs text-cyan hover:underline truncate max-w-sm"
+              >
+                {issueUrl.replace(/^https?:\/\//, '')} ↗
+              </a>
+            </div>
+          )}
+
+          {/* Evidence block */}
+          {evidence && (
+            <div className="rounded-lg border border-white/[0.06] bg-[#020A16] overflow-hidden">
+              <div className="border-b border-white/[0.06] px-3 py-2 flex items-center justify-between">
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-[#4A6280]">Evidence</span>
+                <div className="flex items-center gap-3 text-[10px]">
+                  <span>SEO impact: <span className={`font-semibold ${IMPACT_COLOR[evidence.impactSeo]}`}>{evidence.impactSeo}</span></span>
+                  <span>AI impact: <span className={`font-semibold ${IMPACT_COLOR[evidence.impactAi]}`}>{evidence.impactAi}</span></span>
+                </div>
+              </div>
+              <div className="p-3 space-y-2">
+                <div>
+                  <p className="mb-1 text-[10px] font-semibold text-red-400 uppercase tracking-wide">Detected</p>
+                  <pre className="text-[11px] text-[#EF9090] font-mono leading-relaxed whitespace-pre-wrap break-all">{evidence.detected}</pre>
+                </div>
+                <div className="border-t border-white/[0.04] pt-2">
+                  <p className="mb-1 text-[10px] font-semibold text-green-400 uppercase tracking-wide">Expected</p>
+                  <pre className="text-[11px] text-[#6ECF8A] font-mono leading-relaxed whitespace-pre-wrap break-all">{evidence.expected}</pre>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Problem */}
           <div>
-            <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-red-400">Problem</p>
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-red-400">Why This Matters</p>
             <p className="text-sm text-white leading-relaxed">
               {(row.original.problem as string | undefined) ?? row.original.message}
             </p>
@@ -582,15 +807,15 @@ function RowContent({
 
           {/* Cause */}
           <div>
-            <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-amber-400">Cause</p>
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-amber-400">Root Cause</p>
             <p className="text-sm text-[#b0c4cc] leading-relaxed">
-              {(row.original.cause as string | undefined) ?? CAUSE_MAP[row.original.type as string] ?? 'This issue degrades crawlability, AI retrievability, or user experience — each of which contributes to overall visibility.'}
+              {(row.original.cause as string | undefined) ?? CAUSE_MAP[issueType] ?? 'This issue degrades crawlability, AI retrievability, or user experience — each of which contributes to overall visibility.'}
             </p>
           </div>
 
           {/* Solution */}
           <div>
-            <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-teal-400">Solution</p>
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-teal-400">How to Fix</p>
             <p className="text-sm text-white leading-relaxed">
               {(row.original.solution as string | undefined) ?? row.original.recommendation}
             </p>
@@ -598,15 +823,17 @@ function RowContent({
 
           {/* Actions */}
           <div className="flex items-center gap-3 pt-1">
-            <a
-              href={row.original.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="text-xs text-cyan underline hover:text-teal"
-            >
-              Open page ↗
-            </a>
+            {issueUrl && (
+              <a
+                href={row.original.url as string}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="text-xs text-cyan underline hover:text-teal"
+              >
+                Open page ↗
+              </a>
+            )}
             {showFixButton && (
               <button
                 onClick={(e) => {

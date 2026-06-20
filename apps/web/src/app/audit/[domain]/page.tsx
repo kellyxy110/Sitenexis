@@ -393,7 +393,7 @@ function SeoTab({ data }: { data: AuditData }) {
         </div>
       )}
 
-      <IssuesTable issues={seoIssues} auditId={data.id} />
+      <IssuesTable issues={seoIssues} auditId={data.id} pages={data.pages} />
     </div>
   );
 }
@@ -538,7 +538,7 @@ function SchemaTab({ data, schemaApi, schemaApiLoading }: { data: AuditData; sch
         </div>
       )}
 
-      <IssuesTable issues={schemaIssues} auditId={data.id} />
+      <IssuesTable issues={schemaIssues} auditId={data.id} pages={data.pages} />
 
       {/* Real AI-generated snippets */}
       {schemaApiLoading ? (
@@ -1049,7 +1049,7 @@ function PerformanceTab({ data }: { data: AuditData }) {
         <CwvBadge label="Avg Response" value={avgResponseMs} unit="ms" good={800} needsWork={2000} />
       </div>
 
-      <IssuesTable issues={perfIssues} auditId={data.id} />
+      <IssuesTable issues={perfIssues} auditId={data.id} pages={data.pages} />
     </div>
   );
 }
@@ -1100,7 +1100,7 @@ function MachineReadabilityTab({ data }: { data: AuditData }) {
         </ResponsiveContainer>
       </div>
 
-      {mrIssues.length > 0 && <IssuesTable issues={mrIssues} auditId={data.id} />}
+      {mrIssues.length > 0 && <IssuesTable issues={mrIssues} auditId={data.id} pages={data.pages} />}
     </div>
   );
 }
@@ -1144,7 +1144,7 @@ function EntityTab({ data }: { data: AuditData }) {
         ))}
       </div>
 
-      {entityIssues.length > 0 && <IssuesTable issues={entityIssues} auditId={data.id} />}
+      {entityIssues.length > 0 && <IssuesTable issues={entityIssues} auditId={data.id} pages={data.pages} />}
     </div>
   );
 }
@@ -1188,7 +1188,7 @@ function CitationTab({ data }: { data: AuditData }) {
         )}
       </div>
 
-      {citationIssues.length > 0 && <IssuesTable issues={citationIssues} auditId={data.id} />}
+      {citationIssues.length > 0 && <IssuesTable issues={citationIssues} auditId={data.id} pages={data.pages} />}
     </div>
   );
 }
@@ -1243,7 +1243,7 @@ function SemanticTrustTab({ data }: { data: AuditData }) {
         </div>
       </div>
 
-      {trustIssues.length > 0 && <IssuesTable issues={trustIssues} auditId={data.id} />}
+      {trustIssues.length > 0 && <IssuesTable issues={trustIssues} auditId={data.id} pages={data.pages} />}
     </div>
   );
 }
