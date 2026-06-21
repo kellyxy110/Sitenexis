@@ -8,7 +8,7 @@ const PROTECTED_PATHS = ['/dashboard', '/audit', '/api/audit', '/api/audits', '/
 const PUBLIC_PATHS = [
   '/', '/login', '/signup', '/auth', '/reset-password', '/blog',
   '/platform', '/docs', '/pricing', '/about', '/privacy', '/terms', '/changelog', '/status',
-  '/api/health', '/api/webhooks', '/api/quick-audit',
+  '/api/health', '/api/webhooks', '/api/quick-audit', '/api/demo',
 ];
 
 export async function middleware(req: NextRequest): Promise<NextResponse> {
@@ -21,10 +21,15 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
     if (process.env['DEMO_MODE'] === 'true') return NextResponse.next();
   }
 
-  const { pathname } = req.nextUrl;
+  const { pathname, searchParams } = req.nextUrl;
 
   // Skip middleware entirely for static assets and public paths
   if (PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + '/'))) {
+    return NextResponse.next();
+  }
+
+  // Allow demo audit pages through without auth
+  if (pathname.startsWith('/audit/') && searchParams.get('demo') === 'true') {
     return NextResponse.next();
   }
 
