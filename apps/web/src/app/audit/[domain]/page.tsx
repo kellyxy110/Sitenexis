@@ -1943,12 +1943,19 @@ function AuditPageInner() {
   const router = useRouter();
   const domain = decodeURIComponent(params.domain ?? '');
   const auditId = searchParams.get('auditId');
+  const isDemo = searchParams.get('demo') === 'true';
   const [activeTab, setActiveTab] = useState<TabId>('pages');
 
   // ── Main audit query ───────────────────────────────────────────────────────
   const { data, isLoading, error } = useQuery<AuditData>({
-    queryKey: ['audit', domain],
+    queryKey: ['audit', domain, isDemo ? 'demo' : 'live'],
     queryFn: async () => {
+      if (isDemo) {
+        const res = await fetch(`/api/demo/${encodeURIComponent(domain)}`);
+        if (!res.ok) throw new Error('Demo audit not available');
+        const envelope = await res.json() as { state?: string; data?: AuditData } | AuditData;
+        return ('data' in envelope && envelope.data) ? envelope.data : envelope as AuditData;
+      }
       const listRes = await fetch(`/api/audits?pageSize=50`);
       if (!listRes.ok) throw new Error(`Failed to load audits (${listRes.status})`);
       const list = await listRes.json() as { data: AuditData[] };
@@ -1957,8 +1964,6 @@ function AuditPageInner() {
         const anyMatch = list.data.find((a) => a.domain === domain);
         if (!anyMatch) throw new Error('Audit not found');
         if (anyMatch.status === 'failed') throw new Error('Audit failed — please try again.');
-        // Audit exists but is still running/queued — race condition after AuditProgress
-        // navigates. Throw a retriable sentinel so the query keeps polling.
         throw Object.assign(new Error('Audit completing…'), { retriable: true });
       }
       const detail = await fetch(`/api/audit/${match.id}`);
@@ -1966,7 +1971,7 @@ function AuditPageInner() {
       const envelope = await detail.json() as { state?: string; data?: AuditData } | AuditData;
       return ('data' in envelope && envelope.data) ? envelope.data : envelope as AuditData;
     },
-    enabled: !auditId, // if auditId present, show progress first
+    enabled: isDemo || !auditId, // demo mode always enabled; live mode waits for auditId
     staleTime: 60_000,
     // Retry aggressively for in-progress audits (race condition after SSE redirect),
     // conservatively for genuine fetch failures.
@@ -2095,6 +2100,16 @@ function AuditPageInner() {
 
   return (
     <div className="min-h-screen bg-[#050B09]">
+
+      {/* ── Demo banner ────────────────────────────────────────────────────── */}
+      {isDemo && (
+        <div className="border-b border-cyan/20 bg-cyan/[0.04] px-4 py-2.5 text-center">
+          <p className="text-xs text-cyan">
+            <span className="font-semibold">Demo Audit</span> — Sample crawl of <span className="font-semibold">{domain}</span> demonstrating SiteNexis capabilities.{' '}
+            <a href="/dashboard" className="underline hover:text-white">Run your own audit →</a>
+          </p>
+        </div>
+      )}
 
       {/* ── Sticky nav ──────────────────────────────────────────────────────── */}
       <nav className="sticky top-0 z-30 flex items-center justify-between border-b border-white/10 bg-[#050B09]/95 px-4 py-3 backdrop-blur-md sm:px-6">

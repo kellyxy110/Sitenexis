@@ -83,6 +83,7 @@ model Audit {
   userId          String      @map("user_id")
   domain          String
   status          AuditStatus @default(queued)
+  isDemo          Boolean     @default(false) @map("is_demo")
   startedAt       DateTime?   @map("started_at")
   completedAt     DateTime?   @map("completed_at")
   errorMessage    String?     @map("error_message")

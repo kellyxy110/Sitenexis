@@ -107,3 +107,25 @@ export async function countAuditsThisMonth(userId: string): Promise<number> {
     where: { userId, createdAt: { gte: start }, archivedAt: null },
   });
 }
+
+export async function getDemoAudit(domain: string) {
+  return db.audit.findFirst({
+    where: { domain, isDemo: true, status: 'complete', archivedAt: null },
+    include: {
+      pages: { where: { archivedAt: null } },
+      issues: true,
+      scores: true,
+      aiVisibilityScores: true,
+      report: true,
+    },
+    orderBy: { completedAt: 'desc' },
+  });
+}
+
+export async function listDemoAudits() {
+  return db.audit.findMany({
+    where: { isDemo: true, status: 'complete', archivedAt: null },
+    select: { id: true, domain: true, completedAt: true, pageCount: true },
+    orderBy: { domain: 'asc' },
+  });
+}
