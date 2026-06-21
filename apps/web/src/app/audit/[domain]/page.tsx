@@ -2,6 +2,7 @@
 
 import { Suspense } from 'react';
 import { useState, useEffect, useRef, useMemo } from 'react';
+import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { motion, useInView } from 'framer-motion';
@@ -2106,7 +2107,7 @@ function AuditPageInner() {
         <div className="border-b border-cyan/20 bg-cyan/[0.04] px-4 py-2.5 text-center">
           <p className="text-xs text-cyan">
             <span className="font-semibold">Demo Audit</span> — Sample crawl of <span className="font-semibold">{domain}</span> demonstrating SiteNexis capabilities.{' '}
-            <a href="/dashboard" className="underline hover:text-white">Run your own audit →</a>
+            <Link href="/dashboard" className="underline hover:text-white">Run your own audit →</Link>
           </p>
         </div>
       )}
