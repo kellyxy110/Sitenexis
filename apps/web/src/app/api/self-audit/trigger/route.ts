@@ -88,7 +88,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       after(async () => {
         try {
           const { runServerlessAudit } = await import('@/lib/serverless-audit');
-          await runServerlessAudit(audit.id, SELF_AUDIT_DOMAIN, SYSTEM_USER_ID);
+          await runServerlessAudit(audit.id, SELF_AUDIT_DOMAIN, SYSTEM_USER_ID, selfAuditRunId);
         } catch (auditErr) {
           logger.error({ auditId: audit.id, err: auditErr }, 'Self-audit serverless execution failed');
           try {

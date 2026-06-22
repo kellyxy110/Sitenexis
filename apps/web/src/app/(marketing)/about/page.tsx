@@ -46,10 +46,11 @@ const FOUNDER_SCHEMA = {
 export const metadata: Metadata = {
   title: 'About SiteNexis — AI Retrieval & Machine Trust Intelligence',
   description:
-    'SiteNexis is an AI Retrieval and Machine Trust Intelligence platform. We model how AI systems — ChatGPT, Gemini, Perplexity, Claude — retrieve, interpret, trust, and recommend web content across a four-layer intelligence stack.',
+    'SiteNexis models how AI systems retrieve, interpret, trust, and recommend web content. Four intelligence layers, 16 agents.',
+  alternates: { canonical: '/about' },
   openGraph: {
     title: 'About SiteNexis — AI Retrieval & Machine Trust Intelligence',
-    description: 'SiteNexis models how AI systems retrieve, interpret, trust, and recommend web content — across every layer from semantic structure to machine trust formation.',
+    description: 'SiteNexis models how AI systems retrieve, interpret, trust, and recommend web content. Four intelligence layers, 16 agents.',
     url: `${appUrl}/about`,
     siteName: 'SiteNexis',
     type: 'website',

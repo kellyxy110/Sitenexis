@@ -5,7 +5,8 @@ import { isFullyConfigured } from '@/lib/mode';
 export const metadata: Metadata = {
   title: 'SiteNexis Health Score — Live AI Visibility Monitor',
   description:
-    'See how SiteNexis scores on its own platform: AI visibility, entity coverage, citation readiness, schema health, and machine trust — updated on every deployment.',
+    'Live SiteNexis self-audit: AI visibility, entity coverage, citation readiness, schema health, and machine trust scores.',
+  alternates: { canonical: '/platform/health' },
 };
 
 export const revalidate = 300; // ISR: revalidate every 5 minutes

@@ -26,3 +26,4 @@ test-results
 *.log
 
 .vercel
+packages/db/seed-demo.sql

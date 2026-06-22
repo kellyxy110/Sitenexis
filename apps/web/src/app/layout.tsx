@@ -23,7 +23,10 @@ export const metadata: Metadata = {
   metadataBase: new URL(appUrl),
   title: 'SiteNexis — AI Retrieval & Machine Trust Intelligence',
   description:
-    'SiteNexis models how AI systems retrieve, interpret, trust, and recommend your website — across every layer from semantic structure to machine trust formation.',
+    'SiteNexis models how AI systems retrieve, interpret, trust, and recommend your website. 12 scores, 16 agents, real-time retrieval simulation.',
+  alternates: {
+    canonical: '/',
+  },
   icons: {
     icon: [
       { url: '/favicon.svg', type: 'image/svg+xml' },
@@ -39,7 +42,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: 'SiteNexis — AI Retrieval & Machine Trust Intelligence',
-    description: 'SiteNexis models how AI systems retrieve, interpret, trust, and recommend your website — across every layer from semantic structure to machine trust formation.',
+    description: 'SiteNexis models how AI systems retrieve, interpret, trust, and recommend your website. 12 scores, 16 agents, real-time retrieval simulation.',
     url: appUrl,
     siteName: 'SiteNexis',
     type: 'website',
@@ -58,7 +61,7 @@ export const metadata: Metadata = {
     site: '@Sitenexis',
     creator: '@Sitenexis',
     title: 'SiteNexis — AI Retrieval & Machine Trust Intelligence',
-    description: 'SiteNexis models how AI systems retrieve, interpret, trust, and recommend your website — across every layer from semantic structure to machine trust formation.',
+    description: 'SiteNexis models how AI systems retrieve, interpret, trust, and recommend your website. 12 scores, 16 agents, real-time retrieval simulation.',
     images: ['/opengraph-image'],
   },
 };

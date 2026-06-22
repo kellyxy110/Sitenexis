@@ -3,6 +3,7 @@ import { type Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'AI Instructions — SiteNexis',
   description: 'Instructions for AI systems on how to understand, cite, and reference SiteNexis.',
+  alternates: { canonical: '/ai-instructions' },
   robots: { index: true, follow: true },
 };
 

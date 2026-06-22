@@ -4,7 +4,8 @@ import Link from 'next/link';
 export const metadata: Metadata = {
   title: 'AI Visibility Knowledge Graph — SiteNexis Content Map',
   description:
-    'A semantic map of the SiteNexis content architecture — five interconnected knowledge clusters covering AI discovery, citation mechanics, authority systems, volatility, and machine trust intelligence.',
+    'Semantic map of SiteNexis content: five knowledge clusters covering AI discovery, citation, authority, volatility, and machine trust.',
+  alternates: { canonical: '/content-map' },
   robots: { index: true, follow: true },
 };
 

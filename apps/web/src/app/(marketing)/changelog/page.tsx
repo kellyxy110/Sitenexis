@@ -4,6 +4,7 @@ import { MarketingNav } from '@/components/marketing/MarketingNav';
 export const metadata: Metadata = {
   title: 'Changelog — SiteNexis',
   description: 'SiteNexis product changelog — new features, improvements, and fixes.',
+  alternates: { canonical: '/changelog' },
 };
 
 const RELEASES = [

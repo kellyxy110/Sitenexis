@@ -19,7 +19,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://sitenexis.vercel.app'
   return {
     title: `${post.title} — SiteNexis Blog`,
-    description: post.excerpt,
+    description: post.excerpt.length > 155 ? post.excerpt.slice(0, 152) + '...' : post.excerpt,
+    alternates: { canonical: `/blog/${slug}` },
     openGraph: {
       title: `${post.title} — SiteNexis Blog`,
       description: post.excerpt,

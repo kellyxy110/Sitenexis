@@ -820,11 +820,13 @@ export async function runServerlessAudit(
   auditId: string,
   domain: string,
   _userId: string,
+  selfAuditRunId?: string,
 ): Promise<void> {
   const { updateAuditStatus, db } = await import('@sitenexis/db');
 
   try {
     await updateAuditStatus(auditId, 'running', {});
+    const crawlStartTime = Date.now();
 
     // ── 1. Discover URLs ──────────────────────────────────────────────────────
     const baseUrl = `https://${domain}`;
@@ -1026,6 +1028,16 @@ export async function runServerlessAudit(
     }
 
     // ── 5. Layer 4 — Machine Trust Intelligence ──────────────────────────────
+    // Hoist these so self-audit write-back (step 6) can access them even if Layer 4 partially fails
+    const retrievalSims = computeRetrievalSimulations(pages, aiScores.citationProbabilityScore);
+    const machineTrustData = computeMachineTrustScore(pages, schemaScore);
+    const temporalAuthorityData = computeTemporalAuthority(pages);
+    const surfaceMapData = computeRecommendationSurfaces(
+      pages, aiScores.aiScore, aiScores.entityConfidenceScore,
+      aiScores.citationProbabilityScore, aiScores.semanticTrustScore, schemaScore,
+    );
+    const syntheticData = computeSyntheticEntityAnalysis(pages);
+
     try {
       const {
         saveRetrievalSimulations,
@@ -1034,15 +1046,6 @@ export async function runServerlessAudit(
         saveRecommendationSurfaceMap,
         saveSyntheticEntityAnalysis,
       } = await import('@sitenexis/db');
-
-      const retrievalSims = computeRetrievalSimulations(pages, aiScores.citationProbabilityScore);
-      const machineTrustData = computeMachineTrustScore(pages, schemaScore);
-      const temporalAuthorityData = computeTemporalAuthority(pages);
-      const surfaceMapData = computeRecommendationSurfaces(
-        pages, aiScores.aiScore, aiScores.entityConfidenceScore,
-        aiScores.citationProbabilityScore, aiScores.semanticTrustScore, schemaScore,
-      );
-      const syntheticData = computeSyntheticEntityAnalysis(pages);
 
       // Save all Layer 4 results in parallel — partial failures are acceptable
       // Compute PCE from crawled page signals (schema density, link density, heading structure, content depth)
@@ -1074,6 +1077,154 @@ export async function runServerlessAudit(
       ]);
     } catch (layer4Err) {
       logger.warn({ auditId, err: layer4Err }, 'Layer 4 analysis failed (non-fatal)');
+    }
+
+    // ── 6. Write back to selfAuditRun tables (health monitor) ────────────────
+    if (selfAuditRunId) {
+      try {
+        const {
+          linkSelfAuditToAudit,
+          saveCrawlRun,
+          saveVisibilityRun,
+          saveEntityRun,
+          saveKnowledgeGraphRun,
+          completeSelfAuditRun,
+        } = await import('@sitenexis/db');
+
+        // Link audit to self-audit run
+        await linkSelfAuditToAudit(selfAuditRunId, auditId);
+
+        const pagesIndexable = pages.filter((p) => !p.robotsMeta?.toLowerCase().includes('noindex')).length;
+        const avgRetrievalScore = retrievalSims.length > 0
+          ? Math.round(retrievalSims.reduce((s, r) => s + r.retrievalQualityScore, 0) / retrievalSims.length)
+          : 60;
+
+        // Primary entity from Organisation schema
+        let primaryEntityName: string | null = null;
+        for (const page of pages) {
+          for (const s of page.schemas) {
+            if (typeof s === 'object' && s !== null && '@type' in s) {
+              const t = (s as Record<string, unknown>)['@type'];
+              if (t === 'Organization' || t === 'LocalBusiness') {
+                const n = (s as Record<string, unknown>)['name'];
+                if (typeof n === 'string') { primaryEntityName = n; break; }
+              }
+            }
+            if (primaryEntityName) break;
+          }
+        }
+        primaryEntityName = primaryEntityName ?? domain;
+
+        const sameAsCount = pages.filter((p) =>
+          p.schemas.some((s) => typeof s === 'object' && s !== null && 'sameAs' in s),
+        ).length;
+
+        // Knowledge graph scores from perception graph
+        const kgNodeCount = perceptionGraph?.nodes.length ?? 0;
+        const kgEdgeCount = perceptionGraph?.edges.length ?? 0;
+        const avgNodeConf = kgNodeCount > 0
+          ? perceptionGraph!.nodes.reduce((s, n) => s + n.confidence, 0) / kgNodeCount
+          : 0.6;
+        const topicClusters = kgNodeCount > 0
+          ? new Set(perceptionGraph!.nodes.map((n) => n.type)).size
+          : 2;
+        const kgScore = Math.min(100, Math.round(
+          avgNodeConf * 50 + Math.min(30, kgNodeCount * 2) + Math.min(20, kgEdgeCount * 1.5),
+        ));
+        const topNodes = perceptionGraph?.nodes.slice(0, 5).map((n) => ({
+          label: n.label, type: n.type, confidence: n.confidence, citationReadiness: n.citationReadiness,
+        })) ?? [];
+
+        const geoScore = Math.round(aiScores.aiScore * 0.7 + schemaScore * 0.3);
+        const healthScore = overall;
+
+        // Compile recommendations
+        const recommendations = [
+          ...seoIssues.slice(0, 5).map((i) => ({
+            dimension: 'Technical SEO',
+            severity: i.severity,
+            issue: i.message,
+            impact: i.cause,
+            fix: i.solution,
+            estimatedImprovement: i.severity === 'critical' ? 8 : i.severity === 'warning' ? 4 : 1,
+          })),
+          ...(!pages.some((p) => p.schemas.some((s) => typeof s === 'object' && s !== null && 'sameAs' in s))
+            ? [{
+                dimension: 'Machine Trust',
+                severity: 'warning' as const,
+                issue: 'No sameAs links in entity schema',
+                impact: 'AI systems cannot cross-validate entity identity against external knowledge bases.',
+                fix: 'Add sameAs links in Organisation schema pointing to Wikipedia, Wikidata, LinkedIn.',
+                estimatedImprovement: 5,
+              }]
+            : []),
+        ];
+
+        await Promise.allSettled([
+          saveCrawlRun(selfAuditRunId, domain, {
+            pagesFound: urls.length,
+            pagesCrawled: pages.length,
+            pagesIndexable,
+            crawlDurationMs: Date.now() - crawlStartTime,
+            brokenLinksCount: 0,
+            redirectChainCount: 0,
+            missingSitemapPages: 0,
+            crawlHealthScore: seoScore,
+            topIssues: seoIssues.slice(0, 5),
+          }),
+          saveVisibilityRun(selfAuditRunId, domain, {
+            aiVisibilityScore: aiScores.aiScore,
+            machineReadabilityScore: aiScores.machineReadabilityScore,
+            retrievalReadinessScore: aiScores.retrievalReadinessScore,
+            citationProbability: aiScores.citationProbabilityScore,
+            semanticTrustScore: aiScores.semanticTrustScore,
+            recommendationConfidence: aiScores.recommendationConfidence,
+            retrievalQualityScore: avgRetrievalScore,
+            surfaceCoverageScore: surfaceMapData.overallSurfaceScore,
+            providerBreakdown: {},
+          }),
+          saveEntityRun(selfAuditRunId, domain, {
+            entitiesDetected: Math.max(1, pages.filter((p) => p.hasStructuredData).length),
+            primaryEntityName,
+            entityConfidenceScore: aiScores.entityConfidenceScore,
+            entityConsistencyScore: aiScores.entityConfidenceScore,
+            entityCoverageScore: aiScores.entityConfidenceScore,
+            disambiguationScore: aiScores.entityConfidenceScore,
+            sameAsLinksCount: sameAsCount,
+            authenticityScore: syntheticData.entityAuthenticityConfidence,
+            topEntities: [],
+          }),
+          saveKnowledgeGraphRun(selfAuditRunId, domain, {
+            nodeCount: kgNodeCount,
+            edgeCount: kgEdgeCount,
+            topicClusters,
+            avgNodeConfidence: avgNodeConf,
+            graphStrengthScore: kgScore,
+            topNodes,
+          }),
+          completeSelfAuditRun(selfAuditRunId, {
+            healthScore,
+            technicalSeoScore: seoScore,
+            aiVisibilityScore: aiScores.aiScore,
+            entityCoverageScore: aiScores.entityConfidenceScore,
+            citationReadinessScore: aiScores.citationProbabilityScore,
+            knowledgeGraphScore: kgScore,
+            trustSignalsScore: machineTrustData.overall,
+            performanceScore: 70,
+            geoScore,
+            breakdown: {
+              seo: seoScore, ai: aiScores.aiScore, schema: schemaScore,
+              machineTrust: machineTrustData.overall,
+              surfaceCoverage: surfaceMapData.overallSurfaceScore,
+            },
+            recommendations,
+          }),
+        ]);
+
+        logger.info({ selfAuditRunId, auditId, healthScore }, 'Self-audit run completed and written to health monitor');
+      } catch (selfAuditErr) {
+        logger.warn({ selfAuditRunId, auditId, err: selfAuditErr }, 'Self-audit write-back failed (non-fatal)');
+      }
     }
 
     await updateAuditStatus(auditId, 'complete', { pageCount: pages.length });

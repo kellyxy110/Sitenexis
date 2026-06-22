@@ -7,7 +7,8 @@ import { MarketingNav } from '@/components/marketing/MarketingNav';
 export const metadata: Metadata = {
   title: 'Ekeleme David Kelechi — Founder of SiteNexis',
   description:
-    'AI Visibility Researcher, educator, and founder of SiteNexis. Building the intelligence layer that helps brands understand how AI systems retrieve, trust, and recommend their content.',
+    'AI Visibility Researcher and founder of SiteNexis. Building the intelligence layer for AI retrieval and machine trust.',
+  alternates: { canonical: '/founder' },
 };
 
 const FOUNDER_PERSON_SCHEMA = {

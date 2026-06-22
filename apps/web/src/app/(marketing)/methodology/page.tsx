@@ -7,7 +7,8 @@ import { MarketingNav } from '@/components/marketing/MarketingNav';
 export const metadata: Metadata = {
   title: 'SiteNexis Methodology — How We Measure AI Visibility',
   description:
-    'A transparent, layer-by-layer explanation of how SiteNexis measures AI visibility and machine trust. Every score, every formula, every dimension — fully documented.',
+    'How SiteNexis measures AI visibility and machine trust. Every score, formula, and dimension — fully documented.',
+  alternates: { canonical: '/methodology' },
 };
 
 const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://sitenexis.vercel.app';

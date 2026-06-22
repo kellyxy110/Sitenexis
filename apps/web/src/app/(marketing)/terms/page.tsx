@@ -4,6 +4,7 @@ import { MarketingNav } from '@/components/marketing/MarketingNav';
 export const metadata: Metadata = {
   title: 'Terms of Service — SiteNexis',
   description: 'SiteNexis terms of service — the rules governing use of the platform.',
+  alternates: { canonical: '/terms' },
 };
 
 const SECTIONS = [

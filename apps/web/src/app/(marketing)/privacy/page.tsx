@@ -4,6 +4,7 @@ import { MarketingNav } from '@/components/marketing/MarketingNav';
 export const metadata: Metadata = {
   title: 'Privacy Policy — SiteNexis',
   description: 'SiteNexis privacy policy — how we collect, use, and protect your data.',
+  alternates: { canonical: '/privacy' },
 };
 
 const SECTIONS = [
