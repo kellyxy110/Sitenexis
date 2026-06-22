@@ -161,7 +161,7 @@ const PREVIEW_SCORES = [
 
 // ── Proof badges ──────────────────────────────────────────────────────────────
 
-const PROOF_ITEMS = ['16 intelligence agents', '4-layer analysis stack', 'Claude AI powered']
+const PROOF_ITEMS = ['12 intelligence scores', '6-stage retrieval simulation', 'Investigation-grade diagnostics']
 
 // ── Main hero component ───────────────────────────────────────────────────────
 
@@ -356,9 +356,10 @@ export function HeroCinematic({ onSubmit, loading }: HeroCinematicProps) {
               variants={fadeUp}
               className="mt-7 max-w-[520px] text-[17px] leading-[1.72] tracking-[-0.01em] text-white"
             >
-              SiteNexis models how AI systems retrieve, interpret, trust, and
-              cite your content — exposing exactly where machine understanding
-              forms and where it breaks down.
+              Machine Trust Intelligence across 12 scores, 4 layers, and 16
+              autonomous agents. Retrieval simulation, investigation-grade
+              diagnostics, and real-time SERP intelligence — exposing exactly
+              where AI understanding forms and where it breaks down.
             </motion.p>
 
             {/* Input */}

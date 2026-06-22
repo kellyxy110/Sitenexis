@@ -22,7 +22,7 @@ const METHOD_SCHEMA = {
   publisher: { '@id': 'https://sitenexis.com/#organization' },
   url: `${appUrl}/methodology`,
   datePublished: '2025-01-01',
-  dateModified: '2026-06-16',
+  dateModified: '2026-06-22',
   speakable: {
     '@type': 'SpeakableSpecification',
     cssSelector: ['h1', 'h2', '.speakable'],
@@ -236,6 +236,14 @@ const FAQS = [
   {
     q: 'What does "temporal authority requires two audits" mean?',
     a: 'Authority velocity and semantic drift are inherently comparative — they measure change between two states, not the state at any single point. On the first audit, SiteNexis establishes a baseline with velocity: null and status: baseline_established. Subsequent audits compute the delta from that baseline.',
+  },
+  {
+    q: 'What is the Information Gain Engine?',
+    a: 'The Information Gain Engine measures what your content adds beyond what already exists in the top SERP results. It uses real-time SERP data from Serper.dev to perform entity gap analysis, question gap detection, and evidence uniqueness scoring. Content with high information gain has the highest probability of being cited by AI systems seeking novel information.',
+  },
+  {
+    q: 'What is the Investigation Layer?',
+    a: 'The Investigation Layer is a dual-agent architecture (Judge + Detective) that separates scoring from explanation. The Judge produces scores. The Detective explains why scores are what they are — root cause analysis with evidence chains and confidence intervals. This provides investigation-grade diagnostics, not just issue lists.',
   },
 ];
 
@@ -535,6 +543,188 @@ export default function MethodologyPage() {
             A score that hasn&apos;t been computed yet is not a zero. A partial audit is not a failed audit.
             The system expresses what it knows with precision, and nothing more.
           </p>
+        </div>
+      </section>
+
+      {/* ── Mission Control & Audit Progress ── */}
+      <section className="border-t border-white/[0.05] bg-[#0A1628] py-20 px-6">
+        <div className="mx-auto max-w-4xl">
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan/70">Audit Execution</p>
+          <h2 className="mb-4 text-[28px] font-bold text-white">Mission Control: Real-Time Audit Progress</h2>
+          <p className="mb-8 max-w-2xl text-[15px] leading-[1.75] text-slate-400">
+            Every audit is orchestrated by 16 autonomous agents across 6 execution stages.
+            Mission Control provides real-time visibility into each stage via a hexagonal agent wheel,
+            circular progress ring, and particle field animation that visualises agent activity as it happens.
+          </p>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-6">
+              <h3 className="mb-3 text-[14px] font-semibold text-white">6-Stage Agent Wheel</h3>
+              <p className="text-[13px] leading-[1.7] text-slate-400">
+                The hexagonal display shows all 16 agents grouped into six execution phases.
+                Each phase lights up as its agents activate, providing instant visual feedback on audit progress
+                without requiring users to interpret log streams.
+              </p>
+            </div>
+            <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-6">
+              <h3 className="mb-3 text-[14px] font-semibold text-white">Stream Reliability Score (SRS)</h3>
+              <p className="text-[13px] leading-[1.7] text-slate-400">
+                The SRS measures audit execution health in real time using the CIDER framework:
+                Continuity (no dropped events), Integrity (data passes validation), Completion (all stages finish),
+                Error stability (errors do not cascade), and Recovery (failed sub-tasks retry gracefully).
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── SERP Intelligence & Information Gain ── */}
+      <section className="border-t border-white/[0.05] bg-[#07111F] py-20 px-6">
+        <div className="mx-auto max-w-4xl">
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan/70">SERP Intelligence</p>
+          <h2 className="mb-4 text-[28px] font-bold text-white">Information Gain Engine</h2>
+          <p className="mb-8 max-w-2xl text-[15px] leading-[1.75] text-slate-400">
+            AI systems prefer content that adds marginal value beyond what already exists in their training data
+            and retrieval corpus. The Information Gain Engine measures what your content contributes that the
+            current SERP cohort does not — using real-time search data from Serper.dev.
+          </p>
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
+              <h3 className="mb-2 text-[13px] font-semibold text-white">Entity Gap Analysis</h3>
+              <p className="text-[12px] leading-[1.7] text-slate-400">
+                Compares entities present in your content against entities covered by the top SERP results.
+                Identifies entity gaps your content fills that competitors do not.
+              </p>
+            </div>
+            <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
+              <h3 className="mb-2 text-[13px] font-semibold text-white">Question Gap Detection</h3>
+              <p className="text-[12px] leading-[1.7] text-slate-400">
+                Extracts questions answered by SERP competitors and identifies questions your content answers
+                that no competitor addresses — unique retrieval value for AI systems.
+              </p>
+            </div>
+            <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
+              <h3 className="mb-2 text-[13px] font-semibold text-white">Evidence Uniqueness Scoring</h3>
+              <p className="text-[12px] leading-[1.7] text-slate-400">
+                Scores claims and evidence in your content by uniqueness relative to the SERP cohort.
+                High-uniqueness evidence has the highest citation probability in AI-generated responses.
+              </p>
+            </div>
+          </div>
+          <div className="mt-6 rounded-xl border border-amber-500/[0.12] bg-amber-500/[0.04] p-5">
+            <p className="text-[12px] leading-[1.7] text-slate-400">
+              <span className="font-semibold text-amber-400/80">Data source: </span>
+              Real-time SERP data via Serper.dev API. The SERP cohort is collected fresh for each audit,
+              ensuring Information Gain scores reflect the current competitive landscape, not cached historical data.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Retrieval Simulation Deep Dive ── */}
+      <section className="border-t border-white/[0.05] bg-[#0A1628] py-20 px-6">
+        <div className="mx-auto max-w-4xl">
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan/70">Retrieval Simulation</p>
+          <h2 className="mb-4 text-[28px] font-bold text-white">6-Stage Retrieval Pipeline Simulation</h2>
+          <p className="mb-8 max-w-2xl text-[15px] leading-[1.75] text-slate-400">
+            The Retrieval Simulation Engine models the complete decision chain an AI retrieval system makes
+            when processing your content. All simulation is deterministic and algorithmic — no live AI retrieval
+            calls are made. The same content always produces the same simulation result.
+          </p>
+          <div className="space-y-3">
+            {[
+              { stage: '1', name: 'Chunk Extraction', desc: 'Models which chunks would be selected for a given query type. Measures chunk boundary quality and identifies chunks likely to be split mid-thought by fixed-size tokenizers.' },
+              { stage: '2', name: 'Ranking Pressure', desc: 'Models competitive retrieval position under pressure from high-authority sources. Estimates embedding similarity range and identifies chunks that would be consistently outranked.' },
+              { stage: '3', name: 'Summarisation Degradation', desc: 'Models meaning loss when retrieved chunks are compressed into an AI-generated answer. Detects facts likely to be dropped, distorted, or hallucinated under compression.' },
+              { stage: '4', name: 'Context Truncation', desc: 'Models which content falls beyond the retrieval context window for long pages. Identifies critical facts positioned in truncation zones.' },
+              { stage: '5', name: 'Answer Formation', desc: 'Estimates probability that a chunk becomes part of an AI-generated answer. Combines retrieval rank, chunk stability, and summarisation loss factor.' },
+              { stage: '6', name: 'Citation Eligibility', desc: 'Models which retrieved chunks pass the AI system citation eligibility filter. Factors: specificity, authority signal density, factual verifiability.' },
+            ].map(({ stage, name, desc }) => (
+              <div key={stage} className="flex gap-4 rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-cyan/20 bg-cyan/[0.08] text-[11px] font-bold text-cyan">{stage}</div>
+                <div>
+                  <h3 className="text-[13px] font-semibold text-white">{name}</h3>
+                  <p className="mt-1 text-[12px] leading-[1.7] text-slate-400">{desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="mt-6 text-[12px] text-slate-600">
+            Simulation runs on the top 30 pages by PageRank to control compute cost. Parameters are
+            configurable in /config/retrieval-simulation-model.json. Chunk stability requires 3 independent
+            chunking passes with different boundary strategies to measure variance.
+          </p>
+        </div>
+      </section>
+
+      {/* ── Investigation Layer ── */}
+      <section className="border-t border-white/[0.05] bg-[#07111F] py-20 px-6">
+        <div className="mx-auto max-w-4xl">
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan/70">Future Architecture</p>
+          <h2 className="mb-4 text-[28px] font-bold text-white">Investigation Layer: Judge + Detective</h2>
+          <p className="mb-8 max-w-2xl text-[15px] leading-[1.75] text-slate-400">
+            The Investigation Layer introduces a dual-agent architecture that separates scoring from explanation.
+            The Judge (SiteNexis scoring engine) produces scores. The Detective (investigation agents) explains
+            WHY scores are what they are — root cause analysis with evidence and confidence framing.
+          </p>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-6">
+              <div className="mb-4 flex items-center gap-3">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-cyan/20 bg-cyan/[0.08] text-[10px] font-bold text-cyan">J</div>
+                <h3 className="text-[15px] font-semibold text-white">The Judge</h3>
+              </div>
+              <p className="text-[13px] leading-[1.7] text-slate-400">
+                Deterministic scoring engine. Produces 12 intelligence scores from measurable content signals.
+                Every deduction maps to a named Issue. No interpretation — pure measurement.
+              </p>
+            </div>
+            <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-6">
+              <div className="mb-4 flex items-center gap-3">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-teal-500/20 bg-teal-500/[0.08] text-[10px] font-bold text-teal-400">D</div>
+                <h3 className="text-[15px] font-semibold text-white">The Detective</h3>
+              </div>
+              <p className="text-[13px] leading-[1.7] text-slate-400">
+                Investigation agents that explain why scores are what they are. Traces root causes,
+                gathers evidence across pages, and produces investigation-grade diagnostics with confidence
+                intervals — not just what is wrong, but why it is wrong and how certain we are.
+              </p>
+            </div>
+          </div>
+          <div className="mt-6 rounded-xl border border-white/[0.06] bg-white/[0.025] p-5">
+            <p className="text-[12px] leading-[1.7] text-slate-400">
+              <span className="font-semibold text-slate-300">Evidence framework: </span>
+              Every investigation finding includes: root cause identification, evidence chain (which pages and signals
+              contributed), confidence level (how certain the diagnosis is), and actionable fix with expected impact.
+              This is investigation-grade diagnostics — not pattern matching.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Machine Trust as Separate Tier ── */}
+      <section className="border-t border-white/[0.05] bg-[#0A1628] py-20 px-6">
+        <div className="mx-auto max-w-4xl">
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan/70">Architecture Decision</p>
+          <h2 className="mb-4 text-[28px] font-bold text-white">Machine Trust is Not AI Visibility</h2>
+          <p className="mb-8 max-w-2xl text-[15px] leading-[1.75] text-slate-400">
+            A highly visible but low-trust site is a fundamentally different problem from a low-visibility, high-trust one.
+            This is why Machine Trust is scored as a separate tier — not folded into the AI Visibility Score.
+            Trust is formed, maintained, and lost through different mechanisms than visibility.
+          </p>
+          <div className="grid gap-3 md:grid-cols-5">
+            {[
+              { signal: 'Entity Credibility', weight: '30%', desc: 'Same entity described consistently across all pages and schema' },
+              { signal: 'Schema Alignment', weight: '20%', desc: 'Schema claims verifiable from body text, no over-claiming' },
+              { signal: 'External Validation', weight: '25%', desc: 'sameAs links resolve, external sources confirm key attributes' },
+              { signal: 'Contradiction Absence', weight: '15%', desc: 'No conflicting facts across pages, no schema-body conflicts' },
+              { signal: 'Degradation Resistance', weight: '10%', desc: 'Trust signals stable over time, no sudden unexplained changes' },
+            ].map(({ signal, weight, desc }) => (
+              <div key={signal} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+                <p className="text-[11px] font-bold text-teal-400">{weight}</p>
+                <p className="mt-1 text-[12px] font-semibold text-white">{signal}</p>
+                <p className="mt-2 text-[11px] leading-[1.6] text-slate-500">{desc}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
