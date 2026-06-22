@@ -133,13 +133,18 @@ export default function HealthDashboardPage() {
 
   const triggerSelfAudit = useCallback(async () => {
     setTriggering(true);
-    setTriggerMsg(null);
+    setTriggerMsg('Running audit — this takes 60–120 seconds…');
     try {
       const res = await fetch('/api/self-audit/run', { method: 'POST' });
-      const data = await res.json() as { auditId?: string; error?: string; executionMode?: string };
+      const data = await res.json() as { auditId?: string; error?: string; executionMode?: string; status?: string };
       if (res.ok) {
-        setTriggerMsg(`Self-audit started (${data.executionMode ?? 'serverless'})`);
-        setTimeout(() => void refetchLatest(), 5000);
+        if (data.status === 'complete') {
+          setTriggerMsg('Audit complete — loading results…');
+          void refetchLatest();
+        } else {
+          setTriggerMsg(`Self-audit queued (${data.executionMode ?? 'worker'})`);
+          setTimeout(() => void refetchLatest(), 10_000);
+        }
       } else {
         setTriggerMsg(data.error ?? 'Failed to trigger');
       }
@@ -207,7 +212,7 @@ export default function HealthDashboardPage() {
               className="flex items-center gap-2 rounded-lg border border-cyan/30 bg-cyan/10 px-3 py-2 text-sm font-medium text-cyan hover:bg-cyan/20 transition-colors disabled:opacity-50"
             >
               <Play className="h-3.5 w-3.5" />
-              {triggering ? 'Starting...' : 'Run Self-Audit'}
+              {triggering ? 'Auditing… (1–2 min)' : 'Run Self-Audit'}
             </button>
             <button
               onClick={() => void refetchLatest()}

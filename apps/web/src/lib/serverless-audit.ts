@@ -1096,7 +1096,7 @@ export async function runServerlessAudit(
 
         const pagesIndexable = pages.filter((p) => !p.robotsMeta?.toLowerCase().includes('noindex')).length;
         const avgRetrievalScore = retrievalSims.length > 0
-          ? Math.round(retrievalSims.reduce((s, r) => s + r.retrievalQualityScore, 0) / retrievalSims.length)
+          ? Math.round(retrievalSims.reduce((s, r) => s + (r.retrievalQualityScore ?? 0), 0) / retrievalSims.length)
           : 60;
 
         // Primary entity from Organisation schema
