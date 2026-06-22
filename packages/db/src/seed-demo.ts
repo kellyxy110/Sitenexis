@@ -243,6 +243,53 @@ const demos: DemoSite[] = [
       recommendationConfidenceScore: 38,
     },
   },
+  {
+    domain: 'community.genhub.fun',
+    pages: [
+      { url: 'https://community.genhub.fun/', statusCode: 200, title: 'GenHub Community - AI Builder Community', metaDescription: 'Join the GenHub community of AI builders, researchers, and developers. Share projects, collaborate on agents, and learn together.', h1: 'The AI Builder Community', canonicalUrl: 'https://community.genhub.fun/', wordCount: 1750, isIndexable: true, internalLinks: 22, externalLinks: 6, seoScore: 74, aiScore: 68 },
+      { url: 'https://community.genhub.fun/projects', statusCode: 200, title: 'Projects - GenHub Community', metaDescription: 'Browse community AI projects: agents, tools, integrations, and research papers shared by members.', h1: 'Community Projects', canonicalUrl: 'https://community.genhub.fun/projects', wordCount: 2400, isIndexable: true, internalLinks: 45, externalLinks: 12, seoScore: 72, aiScore: 65 },
+      { url: 'https://community.genhub.fun/discussions', statusCode: 200, title: 'Discussions - GenHub Community', metaDescription: 'Technical discussions on AI agents, LLM orchestration, RAG pipelines, and autonomous systems.', h1: 'Discussions', canonicalUrl: 'https://community.genhub.fun/discussions', wordCount: 3200, isIndexable: true, internalLinks: 58, externalLinks: 8, seoScore: 70, aiScore: 62 },
+      { url: 'https://community.genhub.fun/events', statusCode: 200, title: 'Events - GenHub Community', metaDescription: 'Upcoming hackathons, workshops, and meetups for AI builders. Virtual and in-person events worldwide.', h1: 'Community Events', canonicalUrl: 'https://community.genhub.fun/events', wordCount: 920, isIndexable: true, internalLinks: 14, externalLinks: 5, seoScore: 68, aiScore: 58 },
+      { url: 'https://community.genhub.fun/resources', statusCode: 200, title: 'Resources - GenHub Community', metaDescription: 'Curated learning resources: tutorials, documentation, video courses, and starter templates for AI development.', h1: 'Learning Resources', canonicalUrl: 'https://community.genhub.fun/resources', wordCount: 1800, isIndexable: true, internalLinks: 35, externalLinks: 20, seoScore: 76, aiScore: 70 },
+      { url: 'https://community.genhub.fun/about', statusCode: 200, title: 'About GenHub Community', metaDescription: 'GenHub Community launched in 2024 as an open platform for AI builders to collaborate, learn, and ship together.', h1: 'About GenHub', canonicalUrl: 'https://community.genhub.fun/about', wordCount: 680, isIndexable: true, internalLinks: 8, externalLinks: 4, seoScore: 72, aiScore: 66 },
+    ],
+    issues: [
+      { module: 'schema', type: 'missing-organisation-schema', severity: 'critical', message: 'No Organisation schema — "GenHub" entity is undefined to AI systems', recommendation: 'Add Organisation schema with name, url, description, foundingDate (2024), and sameAs links to GitHub and social profiles' },
+      { module: 'ai', type: 'ugc-content-noise', severity: 'warning', message: 'Discussion pages mix high-quality technical content with short replies — poor chunk extraction quality', recommendation: 'Use semantic markup (article vs. comment) to help AI systems identify authoritative answers vs. casual replies' },
+      { module: 'ai', type: 'missing-faq-structure', severity: 'warning', message: 'Resources page has FAQ-like structure but lacks FAQPage schema', recommendation: 'Add FAQPage schema to frequently asked questions section for direct AI extraction' },
+      { module: 'seo', type: 'missing-event-schema', severity: 'warning', message: 'Events page lists upcoming events without Event schema', recommendation: 'Add Event schema with name, startDate, location, and description for each event' },
+      { module: 'citation', type: 'moderate-factual-density', severity: 'info', message: 'Project pages have moderate factual density but lack specific metrics (stars, forks, contributors)', recommendation: 'Add quantified project metrics to increase citation eligibility' },
+      { module: 'links', type: 'external-link-heavy', severity: 'info', message: 'Resources page has 20 external links vs 35 internal — link equity leaking to external sites', recommendation: 'Add nofollow to external resource links or balance with more internal cross-links' },
+      { module: 'performance', type: 'slow-lcp', severity: 'warning', message: 'Projects page LCP is 2.9s due to dynamic content loading', recommendation: 'Server-side render initial project cards and lazy-load pagination' },
+      { module: 'ai', type: 'entity-consistency', severity: 'info', message: 'Entity "GenHub" is described consistently across 5/6 pages', recommendation: 'Ensure events page header also references GenHub entity for full consistency' },
+    ],
+    scores: {
+      overall: 66,
+      seoScore: 72,
+      aiScore: 62,
+      schemaScore: 38,
+      linkGraphScore: 70,
+      performanceScore: 68,
+      breakdown: {
+        seo: { titleOptimisation: 78, metaOptimisation: 72, headingStructure: 76, canonicalisation: 88, crawlability: 70, imageOptimisation: 55 },
+        ai: { entityClarity: 60, conversationalReadiness: 62, aiExtractability: 58, knowledgeGraphStructure: 52 },
+        machineReadability: { renderingFidelity: 75, boilerplateRatio: 62, chunkBoundaryQuality: 68, signalToNoiseRatio: 58, headingHierarchy: 78, readingOrderConsistency: 80, linkAnchorQuality: 65 },
+        entityIntelligence: { entityConfidenceScore: 55, entityConsistencyScore: 62, entityCoverageScore: 58, disambiguationScore: 60 },
+        citationAnalysis: { citationProbabilityScore: 45 },
+        semanticTrust: { score: 56, breakdown: { authorshipTrust: 48, organisationalTrust: 58, contentTrust: 62, structuralTrust: 55 } },
+        performance: { lcp: 2900, cls: 0.07, ttfb: 340 },
+      },
+    },
+    aiVisibility: {
+      aiVisibilityScore: 55,
+      entityConfidenceScore: 55,
+      citationProbabilityScore: 45,
+      machineReadabilityScore: 70,
+      semanticTrustScore: 56,
+      retrievalReadinessScore: 58,
+      recommendationConfidenceScore: 40,
+    },
+  },
 ];
 
 async function seedDemoAudits() {
@@ -255,7 +302,7 @@ async function seedDemoAudits() {
       await db.page.deleteMany({ where: { auditId: existing.id } });
       await db.issue.deleteMany({ where: { auditId: existing.id } });
       await db.auditScore.deleteMany({ where: { auditId: existing.id } });
-      await db.aiVisibilityScore.deleteMany({ where: { auditId: existing.id } });
+      await db.aIVisibilityScore.deleteMany({ where: { auditId: existing.id } });
       await db.audit.delete({ where: { id: existing.id } });
       console.log(`  Deleted existing demo for ${site.domain}`);
     }
@@ -276,7 +323,7 @@ async function seedDemoAudits() {
     // Create pages
     for (const page of site.pages) {
       await db.page.create({
-        data: { auditId: audit.id, ...page },
+        data: { auditId: audit.id, crawledAt: new Date(), ...page },
       });
     }
 
@@ -293,8 +340,19 @@ async function seedDemoAudits() {
     });
 
     // Create AI visibility scores
-    await db.aiVisibilityScore.create({
-      data: { auditId: audit.id, ...site.aiVisibility },
+    await db.aIVisibilityScore.create({
+      data: {
+        auditId: audit.id,
+        aiVisibilityScore: site.aiVisibility.aiVisibilityScore,
+        machineReadabilityScore: site.aiVisibility.machineReadabilityScore,
+        entityConfidenceScore: site.aiVisibility.entityConfidenceScore,
+        retrievalReadinessScore: site.aiVisibility.retrievalReadinessScore,
+        citationProbabilityScore: site.aiVisibility.citationProbabilityScore,
+        semanticTrustScore: site.aiVisibility.semanticTrustScore,
+        recommendationConfidence: site.aiVisibility.recommendationConfidenceScore,
+        providerScores: {},
+        breakdown: {},
+      },
     });
 
     console.log(`  ✓ ${site.domain} — ${site.pages.length} pages, ${site.issues.length} issues`);

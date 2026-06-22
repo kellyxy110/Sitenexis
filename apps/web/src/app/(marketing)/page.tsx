@@ -408,7 +408,7 @@ export default function HomePage() {
                   <a href="/signup" className="btn-primary px-6 py-3 text-sm font-semibold inline-flex items-center gap-2">
                     Start free audit <ArrowRight size={14} />
                   </a>
-                  <a href="#features" className="text-sm text-[#64748B] hover:text-white transition-colors duration-150">
+                  <a href="#features" className="text-sm text-slate-400 hover:text-white transition-colors duration-150">
                     See all modules →
                   </a>
                 </div>
@@ -469,7 +469,7 @@ export default function HomePage() {
             <h2 className="text-[clamp(2rem,4vw,3rem)] font-bold leading-[1.1] tracking-[-0.03em] text-white">
               Four intelligence layers.
               <br />
-              <span className="text-[#64748B] font-normal">All in one scan.</span>
+              <span className="text-slate-400 font-normal">All in one scan.</span>
             </h2>
           </Reveal>
 
@@ -544,7 +544,7 @@ export default function HomePage() {
                   </div>
                   <div>
                     <h3 className="mb-2 text-[15px] font-semibold tracking-tight text-white">{card.label}</h3>
-                    <p className="text-[13px] leading-[1.75] text-[#64748B]">{card.body}</p>
+                    <p className="text-[13px] leading-[1.75] text-slate-400">{card.body}</p>
                   </div>
                   {/* Hover glow accent line */}
                   <div className={`absolute inset-x-0 bottom-0 h-px rounded-b-card bg-gradient-to-r from-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300
@@ -566,7 +566,7 @@ export default function HomePage() {
                     <span className="rounded-pill border border-white/[0.06] bg-white/[0.03] px-2.5 py-1 text-[10px] text-[#475569] uppercase">Pro+</span>
                   </div>
                   <h3 className="text-[17px] font-bold text-white">Retrieval Simulation · Machine Trust · Temporal Authority</h3>
-                  <p className="mt-1.5 text-[14px] text-[#64748B]">Models how AI retrieval systems form, maintain, and decay trust in your content — from chunk extraction to recommendation surface presence.</p>
+                  <p className="mt-1.5 text-[14px] text-[#94A3B8]">Models how AI retrieval systems form, maintain, and decay trust in your content — from chunk extraction to recommendation surface presence.</p>
                 </div>
                 <a href="/signup?plan=pro" className="btn-primary shrink-0 px-6 py-3 text-sm font-semibold inline-flex items-center gap-2 whitespace-nowrap">
                   Unlock Layer 4 <ArrowRight size={14} />
@@ -679,7 +679,7 @@ export default function HomePage() {
             <h2 className="text-[clamp(2rem,4vw,3rem)] font-bold leading-[1.1] tracking-[-0.03em] text-white">
               {"One scan. Twelve scores."}
               <br />
-              <span className="text-[#64748B] font-normal">Complete explainability.</span>
+              <span className="text-slate-400 font-normal">Complete explainability.</span>
             </h2>
           </Reveal>
 
@@ -762,6 +762,69 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ── Live Audit Reports (demo showcase) ─────────────────────────────── */}
+      <section className="border-t border-white/[0.05] bg-[#07111F] py-32 px-6">
+        <div className="mx-auto max-w-6xl">
+          <Reveal className="mb-16 text-center">
+            <p className="mb-5 text-[11px] font-semibold tracking-[0.18em] text-cyan/70 uppercase">Live Audit Reports</p>
+            <h2 className="text-[clamp(2rem,4vw,3rem)] font-bold leading-[1.1] tracking-[-0.03em] text-white">
+              See real results.
+              <br />
+              <span className="text-slate-400 font-normal">Before you run your own.</span>
+            </h2>
+            <p className="mx-auto mt-5 max-w-lg text-[16px] leading-[1.8] text-[#94A3B8]">
+              Explore full audit reports for real domains — every score, every issue, every recommendation — exactly as you will receive them.
+            </p>
+          </Reveal>
+
+          <motion.div
+            className="grid gap-5 md:grid-cols-2 lg:grid-cols-4"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-60px' }}
+            variants={stagger}
+          >
+            {[
+              { domain: 'genshipyard.com', label: 'GenShipyard', desc: 'AI company website', icon: '🚀' },
+              { domain: 'alwajudproperties.com', label: 'Alwajud Properties', desc: 'Real estate portfolio', icon: '🏢' },
+              { domain: 'inforsphere.com', label: 'InforSphere', desc: 'Tech & information', icon: '🌐' },
+              { domain: 'community.genhub.fun', label: 'GenHub Community', desc: 'Community platform', icon: '👥' },
+            ].map((site) => (
+              <motion.div
+                key={site.domain}
+                variants={fadeUp}
+                className="card-glow group relative flex flex-col rounded-card border border-white/[0.06] bg-[#0A1628] p-6 transition-all duration-300 hover:border-cyan/20"
+              >
+                <div className="mb-4 flex items-center gap-3">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] text-lg">
+                    {site.icon}
+                  </span>
+                  <div>
+                    <h3 className="text-[14px] font-semibold text-white">{site.label}</h3>
+                    <p className="text-[11px] text-slate-500">{site.desc}</p>
+                  </div>
+                </div>
+                <p className="mb-5 text-[12px] text-slate-400 leading-relaxed">
+                  Full 12-score audit with entity intelligence, machine trust, retrieval simulation, and fix plan.
+                </p>
+                <Link
+                  href={`/audit/${encodeURIComponent(site.domain)}?demo=true`}
+                  className="mt-auto inline-flex items-center gap-2 rounded-button border border-cyan/20 bg-cyan/[0.07] px-4 py-2.5 text-[13px] font-semibold text-cyan transition-all duration-200 hover:bg-cyan/[0.14] hover:border-cyan/30"
+                >
+                  View full report <ArrowRight size={13} />
+                </Link>
+              </motion.div>
+            ))}
+          </motion.div>
+
+          <Reveal className="mt-8 text-center">
+            <p className="text-[12px] text-slate-500">
+              These are real audits run by SiteNexis — scores, issues, and recommendations are generated from live site data.
+            </p>
+          </Reveal>
+        </div>
+      </section>
+
       {/* ── Score preview ─────────────────────────────────────────────────── */}
       <section className="py-32 px-6 bg-[#07111F]">
         <div className="mx-auto max-w-6xl">
@@ -770,7 +833,7 @@ export default function HomePage() {
             {/* Left — copy */}
             <Reveal>
               <div className="max-w-md">
-                <p className="mb-4 text-[11px] font-medium tracking-[0.14em] text-slate-600 uppercase">
+                <p className="mb-4 text-[11px] font-medium tracking-[0.14em] text-slate-400 uppercase">
                   Intelligence Scoring
                 </p>
                 <h2 className="text-[clamp(2rem,4vw,3rem)] font-bold leading-[1.1] tracking-[-0.03em] text-white">
@@ -854,7 +917,7 @@ export default function HomePage() {
             <h2 className="text-[clamp(2rem,4vw,3rem)] font-bold leading-[1.1] tracking-[-0.03em] text-white">
               How SiteNexis works.
               <br />
-              <span className="text-[#64748B] font-normal">Every step, every agent, every score.</span>
+              <span className="text-slate-400 font-normal">Every step, every agent, every score.</span>
             </h2>
           </Reveal>
 
@@ -913,7 +976,7 @@ export default function HomePage() {
           </div>
 
           <Reveal className="mt-8 text-center">
-            <a href="/methodology" className="inline-flex items-center gap-2 text-sm font-medium text-[#4A6280] hover:text-white transition-colors duration-150">
+            <a href="/methodology" className="inline-flex items-center gap-2 text-sm font-medium text-slate-400 hover:text-white transition-colors duration-150">
               Read the full methodology <ArrowRight size={13} />
             </a>
           </Reveal>
@@ -928,7 +991,7 @@ export default function HomePage() {
             <h2 className="text-[clamp(2rem,4vw,3rem)] font-bold leading-[1.1] tracking-[-0.03em] text-white">
               Start free.
               <br />
-              <span className="text-[#64748B] font-normal">Scale with intelligence.</span>
+              <span className="text-slate-400 font-normal">Scale with intelligence.</span>
             </h2>
           </Reveal>
 
@@ -966,7 +1029,7 @@ export default function HomePage() {
                     <span className="text-[32px] font-bold tracking-tight text-white">{plan.price}</span>
                     {plan.period && <span className="text-sm text-[#475569]">{plan.period}</span>}
                   </p>
-                  <p className="mt-1 text-[12px] text-[#475569]">{plan.desc}</p>
+                  <p className="mt-1 text-[12px] text-slate-400">{plan.desc}</p>
                 </div>
 
                 <ul className="mb-8 flex-1 space-y-3">
@@ -975,7 +1038,7 @@ export default function HomePage() {
                       <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.04]">
                         <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: plan.pro ? '#00C8FF' : '#334155' }} />
                       </span>
-                      <span className="text-[13px] text-[#64748B]">{f}</span>
+                      <span className="text-[13px] text-slate-400">{f}</span>
                     </li>
                   ))}
                 </ul>
@@ -1005,9 +1068,9 @@ export default function HomePage() {
             <h2 className="text-[clamp(2rem,4vw,3rem)] font-bold leading-[1.1] tracking-[-0.03em] text-white">
               Two platforms.
               <br />
-              <span className="text-[#64748B] font-normal">One intelligence suite.</span>
+              <span className="text-slate-400 font-normal">One intelligence suite.</span>
             </h2>
-            <p className="mx-auto mt-5 max-w-xl text-[16px] leading-[1.8] text-[#64748B]">
+            <p className="mx-auto mt-5 max-w-xl text-[16px] leading-[1.8] text-[#94A3B8]">
               SiteNexis models how AI systems retrieve and trust your content.
               AdNexis models what creative drives conversion when they do.
               Together, they cover the full signal-to-conversion pipeline.
@@ -1031,7 +1094,7 @@ export default function HomePage() {
                     </div>
                     <span className="ml-auto rounded-pill border border-cyan/20 bg-cyan/[0.07] px-2.5 py-1 text-[9px] font-semibold uppercase tracking-wide text-cyan">You are here</span>
                   </div>
-                  <p className="mb-6 text-[14px] leading-[1.75] text-[#64748B]">
+                  <p className="mb-6 text-[14px] leading-[1.75] text-[#94A3B8]">
                     Models how AI systems retrieve, interpret, trust, and recommend your website — across all four intelligence layers from crawl structure to machine trust formation.
                   </p>
                   <ul className="space-y-2.5">
@@ -1041,7 +1104,7 @@ export default function HomePage() {
                       'Retrieval Simulation — 6-stage pipeline modeling',
                       'Recommendation Surfaces — AI Overviews, chat, voice, agents',
                     ].map((item) => (
-                      <li key={item} className="flex items-start gap-2.5 text-[13px] text-[#475569]">
+                      <li key={item} className="flex items-start gap-2.5 text-[13px] text-slate-400">
                         <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-cyan/40" />
                         {item}
                       </li>
@@ -1079,7 +1142,7 @@ export default function HomePage() {
                     </div>
                     <span className="ml-auto rounded-pill border border-[#6C3EFF]/20 bg-[#6C3EFF]/[0.07] px-2.5 py-1 text-[9px] font-semibold uppercase tracking-wide text-[#9B77FF]">New</span>
                   </div>
-                  <p className="mb-6 text-[14px] leading-[1.75] text-[#64748B]">
+                  <p className="mb-6 text-[14px] leading-[1.75] text-[#94A3B8]">
                     Deconstructs top-performing ads with AI to extract what makes them convert — then generates platform-specific creative variations in seconds.
                   </p>
                   <ul className="space-y-2.5">
@@ -1089,7 +1152,7 @@ export default function HomePage() {
                       'Swipe Vault — your AI-analysed ad library',
                       'Creative Generation — variations for Meta, TikTok, YouTube',
                     ].map((item) => (
-                      <li key={item} className="flex items-start gap-2.5 text-[13px] text-[#475569]">
+                      <li key={item} className="flex items-start gap-2.5 text-[13px] text-slate-400">
                         <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#6C3EFF]/50" />
                         {item}
                       </li>
@@ -1125,7 +1188,7 @@ export default function HomePage() {
               <br />
               <span className="text-gradient-cyan">actually extract from your site.</span>
             </h2>
-            <p className="mx-auto mt-5 max-w-md text-[16px] leading-relaxed text-[#64748B]">
+            <p className="mx-auto mt-5 max-w-md text-[16px] leading-relaxed text-[#94A3B8]">
               16 agents. 12 intelligence scores. A Global Fix Plan with P0/P1/P2 priorities. One audit — free, no account required.
             </p>
             <div className="mt-10 mx-auto max-w-lg">

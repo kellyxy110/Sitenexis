@@ -56,6 +56,7 @@ function setEngineLibrary(): void {
   ];
 
   const engines = [
+    'query_engine-windows.dll.node',
     'libquery_engine-rhel-openssl-3.0.x.so.node',
     'libquery_engine-rhel-openssl-1.1.x.so.node',
     'libquery_engine-linux-musl-openssl-3.0.x.so.node',
