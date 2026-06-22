@@ -786,10 +786,10 @@ export default function HomePage() {
             variants={stagger}
           >
             {[
-              { domain: 'genshipyard.com', label: 'GenShipyard', desc: 'AI company website', score: 72, img: '/demos/genshipyard.webp' },
-              { domain: 'alwajudproperties.com', label: 'Alwajud Properties', desc: 'Real estate portfolio', score: 58, img: '/demos/alwajudproperties.webp' },
-              { domain: 'inforsphere.com', label: 'InforSphere', desc: 'Enterprise data platform', score: 65, img: '/demos/inforsphere.webp' },
-              { domain: 'community.genhub.fun', label: 'GenHub Community', desc: 'Community platform', score: 44, img: '/demos/communitygenhub.webp' },
+              { domain: 'genshipyard.com', label: 'GenShipyard', desc: 'AI company website', score: 72, img: '/demos/genshipyard.png' },
+              { domain: 'alwajudproperties.com', label: 'Alwajud Properties', desc: 'Real estate portfolio', score: 58, img: '/demos/alwajudproperties.png' },
+              { domain: 'inforsphere.com', label: 'InforSphere', desc: 'Enterprise data platform', score: 65, img: '/demos/inforsphere.png' },
+              { domain: 'community.genhub.fun', label: 'GenHub Community', desc: 'Community platform', score: 44, img: '/demos/communitygenhub.png' },
             ].map((site) => (
               <motion.div
                 key={site.domain}
