@@ -6,6 +6,7 @@ import { isFullyConfigured } from '@/lib/mode';
 import { logger } from '@/lib/logger';
 
 const ADMIN_EMAILS = new Set([
+  'kellyxy110@gmail.com',
   'luchijudith@gmail.com',
   'system@sitenexis.com',
 ]);
@@ -27,7 +28,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
   try {
     const { getSelfAuditRuns } = await import('@sitenexis/db');
-    const runs = await getSelfAuditRuns('sitenexis.com', 100);
+    const runs = await getSelfAuditRuns('sitenexis.vercel.app', 100);
 
     return NextResponse.json({
       runs: runs.map((r) => ({

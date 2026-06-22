@@ -6,7 +6,7 @@ export async function GET(): Promise<NextResponse> {
 
   try {
     const { getLatestSelfAuditRun } = await import('@sitenexis/db');
-    const run = await getLatestSelfAuditRun('sitenexis.com');
+    const run = await getLatestSelfAuditRun('sitenexis.vercel.app');
 
     if (!run) {
       return NextResponse.json({ run: null, message: 'No completed self-audit runs yet' });

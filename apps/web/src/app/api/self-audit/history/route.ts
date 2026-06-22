@@ -14,7 +14,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
   try {
     const { getSelfAuditHistory } = await import('@sitenexis/db');
-    const runs = await getSelfAuditHistory('sitenexis.com', window);
+    const runs = await getSelfAuditHistory('sitenexis.vercel.app', window);
 
     const series = runs.map((r) => ({
       date: r.startedAt.toISOString(),

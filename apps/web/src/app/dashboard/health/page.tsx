@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Activity, RefreshCw, Clock, Globe, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Activity, RefreshCw, Clock, Globe, CheckCircle2, AlertCircle, Play } from 'lucide-react';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { HealthScoreRing } from '@/components/health/HealthScoreRing';
 import { TrendChart } from '@/components/health/TrendChart';
@@ -128,6 +128,28 @@ export default function HealthDashboardPage() {
     staleTime: 120_000,
   });
 
+  const [triggering, setTriggering] = useState(false);
+  const [triggerMsg, setTriggerMsg] = useState<string | null>(null);
+
+  const triggerSelfAudit = useCallback(async () => {
+    setTriggering(true);
+    setTriggerMsg(null);
+    try {
+      const res = await fetch('/api/self-audit/run', { method: 'POST' });
+      const data = await res.json() as { auditId?: string; error?: string; executionMode?: string };
+      if (res.ok) {
+        setTriggerMsg(`Self-audit started (${data.executionMode ?? 'serverless'})`);
+        setTimeout(() => void refetchLatest(), 5000);
+      } else {
+        setTriggerMsg(data.error ?? 'Failed to trigger');
+      }
+    } catch {
+      setTriggerMsg('Network error — could not reach API');
+    } finally {
+      setTriggering(false);
+    }
+  }, [refetchLatest]);
+
   const run = latestData?.run ?? null;
   const score = run?.healthScore ?? null;
   const series = historyData?.series ?? [];
@@ -172,20 +194,33 @@ export default function HealthDashboardPage() {
             </div>
             <p className="text-sm text-[#4A6280]">
               Continuous self-audit of{' '}
-              <a href="https://sitenexis.com" target="_blank" rel="noreferrer" className="text-cyan hover:underline">
-                sitenexis.com
+              <a href="https://sitenexis.vercel.app" target="_blank" rel="noreferrer" className="text-cyan hover:underline">
+                sitenexis.vercel.app
               </a>
               {' '}— the first property monitored by SiteNexis.
             </p>
           </div>
-          <button
-            onClick={() => void refetchLatest()}
-            className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-[#7A9AB4] hover:border-white/20 hover:text-white transition-colors"
-          >
-            <RefreshCw className="h-3.5 w-3.5" />
-            Refresh
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => void triggerSelfAudit()}
+              disabled={triggering}
+              className="flex items-center gap-2 rounded-lg border border-cyan/30 bg-cyan/10 px-3 py-2 text-sm font-medium text-cyan hover:bg-cyan/20 transition-colors disabled:opacity-50"
+            >
+              <Play className="h-3.5 w-3.5" />
+              {triggering ? 'Starting...' : 'Run Self-Audit'}
+            </button>
+            <button
+              onClick={() => void refetchLatest()}
+              className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-[#7A9AB4] hover:border-white/20 hover:text-white transition-colors"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              Refresh
+            </button>
+          </div>
         </div>
+        {triggerMsg && (
+          <p className="mb-4 text-sm text-[#7A9AB4]">{triggerMsg}</p>
+        )}
 
         {/* Hero: Health Score + Status */}
         <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -247,7 +282,7 @@ export default function HealthDashboardPage() {
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-teal-400" />
-                <p className="text-sm font-semibold text-white">sitenexis.com</p>
+                <p className="text-sm font-semibold text-white">sitenexis.vercel.app</p>
               </div>
               {run?.crawlRun && (
                 <p className="mt-1 text-xs text-[#4A6280]">
