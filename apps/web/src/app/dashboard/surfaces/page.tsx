@@ -142,7 +142,15 @@ export default function SurfacesPage() {
           )}
         </div>
 
-        <p className="mb-6 text-[11px] text-[#4A6280] italic">All surface scores are probabilistic estimates based on measurable content signals — not live API queries to AI systems.</p>
+        <div className="mb-6 rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+          <p className="text-xs font-semibold text-[#7A9AB4] mb-1.5">What these scores mean</p>
+          <p className="text-[11px] text-[#4A6280] leading-relaxed">
+            Each score is an <span className="text-[#C8DFE8]">estimated inclusion probability</span> (0–100) — a model of how likely your content is to appear on that AI surface based on measurable signals like schema completeness, entity clarity, factual density, and structural readiness.
+          </p>
+          <p className="mt-2 text-[11px] text-[#4A6280] leading-relaxed">
+            These are <span className="text-[#C8DFE8]">not live queries</span> to Google, ChatGPT, or any other system. No AI is contacted. The scores are computed algorithmically from your content — the same signals AI systems are known to weight. A score of 70+ means your content has strong structural signals for that surface; below 40 means key signals are missing.
+          </p>
+        </div>
 
         {loading && (
           <div className="grid gap-4 sm:grid-cols-2">{[1, 2, 3, 4].map((i) => <div key={i} className="h-48 animate-pulse rounded-xl bg-white/[0.03]" />)}</div>

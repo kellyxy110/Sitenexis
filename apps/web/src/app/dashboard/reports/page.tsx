@@ -78,6 +78,17 @@ export default function ReportsPage() {
     try {
       const res = await fetch(`/api/audit/${auditId}/report`, { method: 'POST' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const disposition = res.headers.get('Content-Disposition') ?? '';
+      const match = disposition.match(/filename="(.+?)"/);
+      a.download = match?.[1] ?? `sitenexis-report-${auditId}.html`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
       setReportState((prev) => ({ ...prev, [auditId]: 'done' }));
     } catch {
       setReportState((prev) => ({ ...prev, [auditId]: 'error' }));
@@ -176,7 +187,7 @@ export default function ReportsPage() {
                       {state === 'generating' ? (
                         <><Loader2 className="h-3 w-3 animate-spin" />Generating…</>
                       ) : state === 'done' ? (
-                        <><Download className="h-3 w-3" />Requested</>
+                        <><Download className="h-3 w-3" />Downloaded</>
                       ) : state === 'error' ? (
                         'Retry'
                       ) : (

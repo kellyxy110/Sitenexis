@@ -1949,7 +1949,7 @@ function AuditPageInner() {
 
   // ── Main audit query ───────────────────────────────────────────────────────
   const { data, isLoading, error } = useQuery<AuditData>({
-    queryKey: ['audit', domain, isDemo ? 'demo' : 'live'],
+    queryKey: ['audit', domain, auditId, isDemo ? 'demo' : 'live'],
     queryFn: async () => {
       if (isDemo) {
         const res = await fetch(`/api/demo/${encodeURIComponent(domain)}`);
@@ -1957,6 +1957,14 @@ function AuditPageInner() {
         const envelope = await res.json() as { state?: string; data?: AuditData } | AuditData;
         return ('data' in envelope && envelope.data) ? envelope.data : envelope as AuditData;
       }
+      if (auditId) {
+        // Direct fetch by ID — used when navigating from dashboard links or after starting a new audit
+        const detail = await fetch(`/api/audit/${auditId}`);
+        if (!detail.ok) throw new Error(`Failed to load audit results (${detail.status})`);
+        const envelope = await detail.json() as { state?: string; data?: AuditData } | AuditData;
+        return ('data' in envelope && envelope.data) ? envelope.data : envelope as AuditData;
+      }
+      // Domain-only navigation: find the latest completed audit for this domain
       const listRes = await fetch(`/api/audits?pageSize=50`);
       if (!listRes.ok) throw new Error(`Failed to load audits (${listRes.status})`);
       const list = await listRes.json() as { data: AuditData[] };
@@ -1972,10 +1980,8 @@ function AuditPageInner() {
       const envelope = await detail.json() as { state?: string; data?: AuditData } | AuditData;
       return ('data' in envelope && envelope.data) ? envelope.data : envelope as AuditData;
     },
-    enabled: isDemo || !auditId, // demo mode always enabled; live mode waits for auditId
+    enabled: true,
     staleTime: 60_000,
-    // Retry aggressively for in-progress audits (race condition after SSE redirect),
-    // conservatively for genuine fetch failures.
     retry: (count, err) => {
       if ((err as Error & { retriable?: boolean }).retriable) return count < 12;
       return count < 2;
@@ -2053,9 +2059,9 @@ function AuditPageInner() {
     retry: false,
   });
 
-  // If audit is still running, show progress UI
-  if (auditId && (!data || data.status === 'running' || data.status === 'queued')) {
-    return <AuditProgress domain={domain} auditId={auditId} />;
+  // Show progress UI only when the audit is genuinely still running
+  if (data?.status === 'running' || data?.status === 'queued') {
+    return <AuditProgress domain={domain} auditId={auditId ?? data.id} />;
   }
 
   if (isLoading) {
