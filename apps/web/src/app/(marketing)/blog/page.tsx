@@ -66,11 +66,11 @@ function PostCard({ post, featured = false }: { post: BlogPost; featured?: boole
               <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: 'currentColor' }} />
               {post.category}
             </span>
-            <span className="flex items-center gap-1.5 text-[11px] text-slate-600">
+            <span className="flex items-center gap-1.5 text-[11px] text-slate-400">
               <Clock size={11} strokeWidth={1.5} />
               {post.readTime} min read
             </span>
-            <span className="text-[11px] text-slate-700">{post.publishedAt}</span>
+            <span className="text-[11px] text-slate-500">{post.publishedAt}</span>
           </div>
 
           {/* Title */}
@@ -83,7 +83,7 @@ function PostCard({ post, featured = false }: { post: BlogPost; featured?: boole
 
           {/* Excerpt */}
           <p className={[
-            'mt-3 leading-[1.75] text-slate-500',
+            'mt-3 leading-[1.75] text-slate-400',
             featured ? 'text-[15px] max-w-xl' : 'text-[13px]',
           ].join(' ')}>
             {post.excerpt}
@@ -92,7 +92,7 @@ function PostCard({ post, featured = false }: { post: BlogPost; featured?: boole
           {/* Tags */}
           <div className="mt-4 flex flex-wrap gap-2">
             {post.tags.slice(0, 3).map(tag => (
-              <span key={tag} className="inline-flex items-center gap-1 rounded-full border border-white/[0.06] bg-white/[0.03] px-2.5 py-1 text-[10px] text-slate-600">
+              <span key={tag} className="inline-flex items-center gap-1 rounded-full border border-white/[0.10] bg-white/[0.03] px-2.5 py-1 text-[10px] text-slate-400">
                 <Tag size={8} strokeWidth={1.5} />
                 {tag}
               </span>
@@ -127,10 +127,10 @@ function CategoryPill({ label, active, onClick }: { label: string; active: boole
     <button
       onClick={onClick}
       className={[
-        'rounded-full px-4 py-2 text-[12px] font-medium tracking-wide transition-all duration-200',
+        'shrink-0 rounded-full px-4 py-2 text-[12px] font-medium tracking-wide transition-all duration-200 whitespace-nowrap',
         active
           ? 'bg-white/[0.08] border border-white/[0.14] text-white'
-          : 'border border-white/[0.05] bg-transparent text-slate-600 hover:border-white/[0.08] hover:text-slate-400',
+          : 'border border-white/[0.12] bg-transparent text-slate-300 hover:border-white/[0.20] hover:text-white',
       ].join(' ')}
     >
       {label}
@@ -196,12 +196,18 @@ export default function BlogPage() {
       </section>
 
       {/* ── Category filter ───────────────────────────────────────────────────── */}
-      <div className="sticky top-[64px] z-40 border-y border-white/[0.05] bg-[#07111F]/95 backdrop-blur-xl px-6 py-4">
-        <div className="mx-auto max-w-7xl flex flex-wrap items-center gap-2">
-          {CATEGORIES.map(cat => (
-            <CategoryPill key={cat} label={cat} active={activeCategory === cat} onClick={() => setActiveCategory(cat)} />
-          ))}
-          <span className="ml-auto text-[11px] text-slate-700">{filtered.length} articles</span>
+      <div className="sticky top-[64px] z-40 border-y border-white/[0.05] bg-[#07111F]/95 backdrop-blur-xl px-6 py-3">
+        <div className="mx-auto max-w-7xl">
+          {/* Article count — own row, never lost inside pill wrap */}
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-[11px] text-slate-400">{filtered.length} articles</span>
+          </div>
+          {/* Pills: single scrollable row on mobile, wraps on md+ */}
+          <div className="flex gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pb-0.5 md:flex-wrap md:overflow-visible">
+            {CATEGORIES.map(cat => (
+              <CategoryPill key={cat} label={cat} active={activeCategory === cat} onClick={() => setActiveCategory(cat)} />
+            ))}
+          </div>
         </div>
       </div>
 
@@ -212,7 +218,7 @@ export default function BlogPage() {
           {/* Featured post */}
           {featured && (
             <div className="mb-8">
-              <p className="mb-4 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-700">Featured</p>
+              <p className="mb-4 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">Featured</p>
               <PostCard post={featured} featured />
             </div>
           )}
@@ -221,7 +227,7 @@ export default function BlogPage() {
           {rest.length > 0 && (
             <>
               {filtered.length > 1 && (
-                <p className="mb-6 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-700">
+                <p className="mb-6 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
                   {activeCategory === 'All' ? 'All Articles' : activeCategory}
                 </p>
               )}
@@ -268,8 +274,8 @@ export default function BlogPage() {
             </div>
             <span className="text-[14px] font-semibold text-white">SiteNexis</span>
           </div>
-          <p className="text-[12px] text-slate-700">© {new Date().getFullYear()} SiteNexis. Built for the machine-first web.</p>
-          <div className="flex items-center gap-6 text-[12px] text-slate-700">
+          <p className="text-[12px] text-slate-400">© {new Date().getFullYear()} SiteNexis. Built for the machine-first web.</p>
+          <div className="flex items-center gap-6 text-[12px] text-slate-400">
             <Link href="/privacy" className="hover:text-slate-400 transition-colors">Privacy</Link>
             <Link href="/terms" className="hover:text-slate-400 transition-colors">Terms</Link>
           </div>

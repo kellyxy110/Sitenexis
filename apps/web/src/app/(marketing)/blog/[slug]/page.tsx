@@ -172,7 +172,7 @@ function RenderBlock({ block, allPosts }: { block: ContentBlock; allPosts: Retur
       if (!posts.length) return null
       return (
         <div className="my-8 rounded-2xl border border-white/[0.06] bg-white/[0.015] p-5">
-          <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-600">
+          <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
             {block.label ?? 'Related Reading'}
           </p>
           <div className="space-y-2">
@@ -206,7 +206,7 @@ function RelatedCard({ post }: { post: ReturnType<typeof getPost> & object }) {
       <h3 className="mt-3 text-[13px] font-semibold leading-[1.4] text-slate-300 transition-colors group-hover:text-white">
         {post.title}
       </h3>
-      <p className="mt-2 flex items-center gap-1.5 text-[11px] text-slate-600">
+      <p className="mt-2 flex items-center gap-1.5 text-[11px] text-slate-400">
         <Clock size={10} strokeWidth={1.5} /> {post.readTime} min · {post.publishedAt}
       </p>
     </Link>
@@ -312,7 +312,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
             {/* Main content */}
             <div>
               {/* Back */}
-              <Link href="/blog" className="mb-8 inline-flex items-center gap-2 text-[12px] text-slate-600 transition-colors hover:text-slate-400">
+              <Link href="/blog" className="mb-8 inline-flex items-center gap-2 text-[12px] text-slate-400 transition-colors hover:text-white">
                 <ArrowLeft size={12} strokeWidth={2} />
                 Back to Blog
               </Link>
@@ -323,10 +323,10 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                   <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: 'currentColor' }} />
                   {post.category}
                 </span>
-                <span className="flex items-center gap-1.5 text-[12px] text-slate-600">
+                <span className="flex items-center gap-1.5 text-[12px] text-slate-400">
                   <Clock size={11} strokeWidth={1.5} /> {post.readTime} min read
                 </span>
-                <span className="text-[12px] text-slate-700">{post.publishedAt}</span>
+                <span className="text-[12px] text-slate-500">{post.publishedAt}</span>
               </div>
 
               {/* Title */}
@@ -360,9 +360,9 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
               <div className="mt-14 border-t border-white/[0.05] pt-8">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div className="flex flex-wrap gap-2">
-                    <span className="text-[11px] text-slate-700 self-center mr-2">Tags:</span>
+                    <span className="text-[11px] text-slate-500 self-center mr-2">Tags:</span>
                     {post.tags.map(tag => (
-                      <span key={tag} className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.06] bg-white/[0.03] px-3 py-1 text-[11px] text-slate-500">
+                      <span key={tag} className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.10] bg-white/[0.03] px-3 py-1 text-[11px] text-slate-400">
                         <Tag size={9} strokeWidth={1.5} /> {tag}
                       </span>
                     ))}
@@ -405,7 +405,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                 {/* Related posts */}
                 {related.length > 0 && (
                   <div>
-                    <p className="mb-4 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-700">Related Articles</p>
+                    <p className="mb-4 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">Related Articles</p>
                     <div className="space-y-3">
                       {related.map(rel => (
                         <RelatedCard key={rel.slug} post={rel} />
@@ -429,8 +429,8 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
             </div>
             <span className="text-[14px] font-semibold text-white">SiteNexis</span>
           </div>
-          <p className="text-[12px] text-slate-700">© {new Date().getFullYear()} SiteNexis. Built for the machine-first web.</p>
-          <div className="flex items-center gap-5 text-[12px] text-slate-700">
+          <p className="text-[12px] text-slate-400">© {new Date().getFullYear()} SiteNexis. Built for the machine-first web.</p>
+          <div className="flex items-center gap-5 text-[12px] text-slate-400">
             <a
               href="https://twitter.com/Sitenexis"
               target="_blank"
