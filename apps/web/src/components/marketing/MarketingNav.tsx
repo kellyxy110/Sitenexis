@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X, ArrowRight, ChevronRight, ChevronDown, ExternalLink } from 'lucide-react'
+import { Menu, X, ArrowRight, ChevronRight, ChevronDown, ExternalLink, Globe, ClipboardPaste, Shield, MessageSquare } from 'lucide-react'
 
 // ── Pentagon logo mark ────────────────────────────────────────────────────────
 
@@ -29,6 +29,41 @@ const NAV_LINKS = [
   { label: 'Methodology', href: '/methodology' },
   { label: 'Pricing',     href: '/pricing'     },
   { label: 'Blog',        href: '/blog'        },
+]
+
+const TOOLS = [
+  {
+    name: 'Machine Trust Score',
+    tagline: 'Free domain MTS · shareable badge',
+    desc: 'The AI-era Domain Authority. Scores any domain across 4 trust dimensions with a shareable badge.',
+    href: '/mts',
+    icon: <Shield size={14} className="text-cyan-400" />,
+    accent: '#00C8FF',
+  },
+  {
+    name: 'Is AI Citing You?',
+    tagline: 'Live citation check',
+    desc: 'Runs real AI queries with web search and checks if your domain appears in the responses.',
+    href: '/tools/citation-check',
+    icon: <MessageSquare size={14} className="text-purple-400" />,
+    accent: '#A855F7',
+  },
+  {
+    name: 'AI Citation Score',
+    tagline: 'Live URL scanner',
+    desc: 'Crawls a live URL and scores how likely AI systems are to cite it.',
+    href: '/tools/quick-check',
+    icon: <Globe size={14} className="text-teal-400" />,
+    accent: '#0BCEBC',
+  },
+  {
+    name: 'AI Readiness Scorer',
+    tagline: 'Paste HTML or text',
+    desc: 'Score pasted content on 9 citation signals — runs entirely in your browser.',
+    href: '/tools/ai-scorer',
+    icon: <ClipboardPaste size={14} className="text-blue-400" />,
+    accent: '#6366F1',
+  },
 ]
 
 const PRODUCTS = [
@@ -76,6 +111,49 @@ const PRODUCTS = [
     ),
   },
 ]
+
+// ── Tools dropdown ────────────────────────────────────────────────────────────
+
+function ToolsDropdown({ open }: { open: boolean }) {
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0, y: -6, scale: 0.97 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -6, scale: 0.97 }}
+          transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+          className="absolute left-1/2 top-full mt-2 w-[300px] -translate-x-1/2 overflow-hidden rounded-2xl border border-white/[0.1] bg-[#0A1628] shadow-[0_16px_48px_rgba(0,0,0,0.7)]"
+        >
+          <div className="p-1.5">
+            {TOOLS.map((t) => (
+              <Link
+                key={t.name}
+                href={t.href}
+                className="group flex items-start gap-3.5 rounded-xl p-3.5 transition-colors duration-150 hover:bg-white/[0.04]"
+              >
+                <div
+                  className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border"
+                  style={{ borderColor: `${t.accent}30`, backgroundColor: `${t.accent}10` }}
+                >
+                  {t.icon}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-semibold text-white">{t.name}</p>
+                  <p className="text-[11px] font-medium mt-0.5" style={{ color: t.accent + 'CC' }}>{t.tagline}</p>
+                  <p className="text-[11px] leading-relaxed text-slate-600 mt-1">{t.desc}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+          <div className="border-t border-white/[0.06] bg-white/[0.01] px-4 py-2.5">
+            <p className="text-[10px] text-slate-700">Free tools · No account required</p>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
+}
 
 // ── Products dropdown ─────────────────────────────────────────────────────────
 
@@ -133,8 +211,11 @@ export function MarketingNav() {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
   const [productsOpen, setProductsOpen] = useState(false)
+  const [toolsOpen, setToolsOpen] = useState(false)
   const [mobileProductsOpen, setMobileProductsOpen] = useState(false)
+  const [mobileToolsOpen, setMobileToolsOpen] = useState(false)
   const productsRef = useRef<HTMLDivElement>(null)
+  const toolsRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => { setOpen(false) }, [pathname])
   useEffect(() => {
@@ -142,7 +223,6 @@ export function MarketingNav() {
     return () => { document.body.style.overflow = '' }
   }, [open])
 
-  // Close products dropdown on outside click
   useEffect(() => {
     if (!productsOpen) return
     const handler = (e: MouseEvent) => {
@@ -152,7 +232,18 @@ export function MarketingNav() {
     return () => document.removeEventListener('mousedown', handler)
   }, [productsOpen])
 
-  const activeLink = NAV_LINKS.find(l => pathname === l.href || pathname.startsWith(l.href + '/'))
+  useEffect(() => {
+    if (!toolsOpen) return
+    const handler = (e: MouseEvent) => {
+      if (!toolsRef.current?.contains(e.target as Node)) setToolsOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [toolsOpen])
+
+  const activeLink =
+    NAV_LINKS.find(l => pathname === l.href || pathname.startsWith(l.href + '/')) ??
+    (pathname.startsWith('/tools') || pathname.startsWith('/mts') ? { label: 'Tools', href: '/tools' } : undefined)
 
   return (
     <>
@@ -197,6 +288,23 @@ export function MarketingNav() {
                   />
                 </button>
                 <ProductsDropdown open={productsOpen} />
+              </div>
+
+              {/* Tools dropdown */}
+              <div ref={toolsRef} className="relative">
+                <button
+                  onClick={() => setToolsOpen(v => !v)}
+                  className={[
+                    'flex items-center gap-1 text-sm transition-colors duration-150',
+                    toolsOpen || pathname.startsWith('/tools') || pathname.startsWith('/mts') ? 'text-white' : 'text-slate-400 hover:text-slate-200',
+                  ].join(' ')}
+                  aria-expanded={toolsOpen}
+                  aria-haspopup="true"
+                >
+                  Tools
+                  <ChevronDown size={13} className={`transition-transform duration-200 ${toolsOpen ? 'rotate-180' : ''}`} />
+                </button>
+                <ToolsDropdown open={toolsOpen} />
               </div>
 
               {NAV_LINKS.map(({ label, href }) => {
@@ -313,6 +421,47 @@ export function MarketingNav() {
                                 <p className="text-[11px]" style={{ color: p.accent + 'AA' }}>{p.tagline}</p>
                               </div>
                             </a>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Tools expandable */}
+                  <button
+                    onClick={() => setMobileToolsOpen(v => !v)}
+                    className="flex w-full items-center justify-between rounded-xl px-4 py-3.5 text-[15px] font-medium text-slate-400 hover:bg-white/[0.04] hover:text-white transition-all"
+                  >
+                    Tools
+                    <ChevronDown size={14} className={`text-slate-600 transition-transform duration-200 ${mobileToolsOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  <AnimatePresence>
+                    {mobileToolsOpen && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="mx-2 mb-2 space-y-1 rounded-xl border border-white/[0.06] bg-white/[0.02] p-2">
+                          {TOOLS.map((t) => (
+                            <Link
+                              key={t.name}
+                              href={t.href}
+                              className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-white/[0.04]"
+                            >
+                              <div
+                                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border"
+                                style={{ borderColor: `${t.accent}30`, backgroundColor: `${t.accent}10` }}
+                              >
+                                {t.icon}
+                              </div>
+                              <div>
+                                <p className="text-[13px] font-semibold text-white">{t.name}</p>
+                                <p className="text-[11px]" style={{ color: t.accent + 'AA' }}>{t.tagline}</p>
+                              </div>
+                            </Link>
                           ))}
                         </div>
                       </motion.div>

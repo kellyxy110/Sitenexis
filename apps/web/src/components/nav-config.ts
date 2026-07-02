@@ -32,6 +32,7 @@ import {
   Fingerprint,
   BookOpen,
   Route,
+  TrendingUp,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -84,6 +85,12 @@ export const NAV_GROUPS: NavGroup[] = [
         href: '/dashboard/sii',
         icon: Layers,
         badge: 'SII',
+      },
+      {
+        id: 'monitoring',
+        label: 'Score Monitoring',
+        href: '/dashboard/monitoring',
+        icon: TrendingUp,
       },
     ],
   },
