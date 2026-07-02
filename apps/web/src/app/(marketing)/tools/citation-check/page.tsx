@@ -167,7 +167,7 @@ export default function CitationCheckPage() {
                         </span>
                         <span className="font-mono text-[11px] text-slate-600">Query {i + 1}</span>
                       </div>
-                      <p className="text-[14px] font-medium text-slate-200">"{q.query}"</p>
+                      <p className="text-[14px] font-medium text-slate-200">&ldquo;{q.query}&rdquo;</p>
                       {q.excerpt && (
                         <p className="mt-2 rounded-lg bg-white/[0.03] px-3 py-2 font-mono text-[11px] leading-relaxed text-slate-400">
                           …{q.excerpt}…
@@ -205,10 +205,10 @@ export default function CitationCheckPage() {
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   {result.citedCount === 0
-                    ? <><h3 className="mb-1 font-semibold text-white">Not being cited? Here's why.</h3>
+                    ? <><h3 className="mb-1 font-semibold text-white">Not being cited? Here&apos;s why.</h3>
                        <p className="text-[12px] leading-relaxed text-slate-400">A full SiteNexis audit identifies exactly which signals are blocking AI citation — entity clarity, retrieval quality, trust formation, and more.</p></>
                     : <><h3 className="mb-1 font-semibold text-white">Being cited — now optimise your coverage.</h3>
-                       <p className="text-[12px] leading-relaxed text-slate-400">See which additional query clusters you're missing and get a prioritised roadmap to expand your AI citation surface.</p></>}
+                       <p className="text-[12px] leading-relaxed text-slate-400">See which additional query clusters you&apos;re missing and get a prioritised roadmap to expand your AI citation surface.</p></>}
                 </div>
                 <div className="flex shrink-0 flex-col gap-2">
                   <Link href={`/mts/${encodeURIComponent(result.domain)}`} className="flex items-center gap-2 rounded-xl bg-white/[0.08] border border-white/[0.12] px-5 py-2.5 text-[13px] font-medium text-slate-200 transition hover:bg-white/[0.12]">
