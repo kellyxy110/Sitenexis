@@ -11,7 +11,7 @@
     }
   },
   "scripts": {
-    "build": "tsc",
+    "build": "echo 'loop-os exports from src — transpiled by Next.js'",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext .ts"
   },
