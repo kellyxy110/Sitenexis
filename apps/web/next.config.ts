@@ -38,7 +38,7 @@ const nextConfig: NextConfig = {
     ],
   },
 
-  transpilePackages: ['@sitenexis/shared'],
+  transpilePackages: ['@sitenexis/shared', '@sitenexis/loop-os'],
   serverExternalPackages: [
     '@prisma/client', 'pino', 'pino-pretty',
     '@sitenexis/db', '@sitenexis/crawler', '@sitenexis/agents', '@sitenexis/analyzers',

@@ -88,16 +88,55 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       });
     }
 
-    // Basic signal extraction (no DOM parser — regex-based for speed)
-    const title = html.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1]?.trim() ?? '';
-    const metaDesc = html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i)?.[1]?.trim() ?? '';
-    const h1s = [...html.matchAll(/<h1[^>]*>([\s\S]*?)<\/h1>/gi)].map((m) => (m[1] ?? '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim());
-    const canonicalHref = html.match(/<link[^>]+rel=["']canonical["'][^>]+href=["']([^"']+)["']/i)?.[1] ?? '';
-    const hasRobotsMeta = /noindex/i.test(html.match(/<meta[^>]+name=["']robots["'][^>]+content=["']([^"']+)["']/i)?.[1] ?? '');
-    const schemaTypes = [...html.matchAll(/"@type"\s*:\s*"([^"]+)"/g)].map((m) => m[1] ?? '');
-    const wordCount = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().split(' ').length;
+    // Strip <script> and <style> content before any text analysis.
+    // Without this, inline JS/CSS inflates word count and triggers false @type matches.
+    const htmlNoScripts = html
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, ' ')
+      .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, ' ');
+
+    // Detect JS-rendered pages: meaningful head signals but near-empty body text
+    const bodyMatch = htmlNoScripts.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+    const bodyText = (bodyMatch?.[1] ?? htmlNoScripts).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    const isLikelyJsRendered =
+      bodyText.split(' ').filter(Boolean).length < 80 &&
+      /id=["'](app|root|__next|nuxt|ember-application)["']/i.test(html);
+
+    const title = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]?.replace(/\s+/g, ' ').trim() ?? '';
+    const metaDesc =
+      html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i)?.[1]?.trim() ??
+      html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']description["']/i)?.[1]?.trim() ??
+      '';
+    const h1s = [...htmlNoScripts.matchAll(/<h1[^>]*>([\s\S]*?)<\/h1>/gi)].map((m) =>
+      (m[1] ?? '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(),
+    );
+    const canonicalHref =
+      html.match(/<link[^>]+rel=["']canonical["'][^>]+href=["']([^"']+)["']/i)?.[1] ??
+      html.match(/<link[^>]+href=["']([^"']+)["'][^>]+rel=["']canonical["']/i)?.[1] ??
+      '';
+    const hasRobotsMeta = /noindex/i.test(
+      html.match(/<meta[^>]+name=["']robots["'][^>]+content=["']([^"']+)["']/i)?.[1] ?? '',
+    );
+
+    // Only extract @type from actual JSON-LD blocks, not from arbitrary JS objects.
+    const jsonLdBlocks = [
+      ...html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi),
+    ];
+    const schemaTypes = jsonLdBlocks.flatMap((block) =>
+      [...(block[1] ?? '').matchAll(/"@type"\s*:\s*"([^"]+)"/g)].map((m) => m[1] ?? ''),
+    );
+
+    const wordCount = bodyText.split(' ').filter(Boolean).length;
 
     const issues: { type: string; severity: string; description: string; recommendation: string }[] = [];
+
+    if (isLikelyJsRendered) {
+      issues.push({
+        type: 'js_rendered',
+        severity: 'warning',
+        description: 'Page appears to be client-side rendered — the initial HTML is nearly empty. AI crawlers and this scan see only the shell, not the actual content.',
+        recommendation: 'Enable server-side rendering (SSR) or static generation (SSG) so content is in the initial HTML response.',
+      });
+    }
 
     if (!title) {
       issues.push({ type: 'missing_title', severity: 'critical', description: 'Page has no <title> tag', recommendation: 'Add a descriptive title tag (50–60 characters)' });
@@ -123,8 +162,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       issues.push({ type: 'noindex', severity: 'critical', description: 'Page has noindex directive — invisible to search engines and AI crawlers', recommendation: 'Remove noindex if this page should be indexed' });
     }
 
-    if (canonicalHref && canonicalHref !== url && canonicalHref !== finalUrl) {
-      issues.push({ type: 'canonical_mismatch', severity: 'info', description: `Canonical points to a different URL: ${canonicalHref}`, recommendation: 'Verify canonical URL is intentional' });
+    if (canonicalHref) {
+      const normalise = (u: string) => u.replace(/\/$/, '').toLowerCase();
+      if (normalise(canonicalHref) !== normalise(url) && normalise(canonicalHref) !== normalise(finalUrl)) {
+        issues.push({ type: 'canonical_mismatch', severity: 'info', description: `Canonical points to a different URL: ${canonicalHref}`, recommendation: 'Verify canonical URL is intentional — if this is a redirect target, update the canonical to match the final URL.' });
+      }
     }
 
     if (wordCount < 300) {

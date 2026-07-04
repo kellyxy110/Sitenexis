@@ -1227,6 +1227,45 @@ export async function runServerlessAudit(
       }
     }
 
+    // ── 7. StateEngine write-back (LoopOS V4.5) ──────────────────────────────
+    // Append a score snapshot to SiteState and record the open issue set.
+    // Non-fatal — never blocks audit completion.
+    try {
+      const { appendScoreSnapshot, recordIssueSet } = await import('@sitenexis/loop-os');
+      const snapshot = {
+        auditId,
+        capturedAt: new Date().toISOString(),
+        overall,
+        aiVisibilityScore: aiScores.aiScore,
+        citationProbabilityScore: aiScores.citationProbabilityScore,
+        semanticTrustScore: aiScores.semanticTrustScore,
+        entityConfidenceScore: aiScores.entityConfidenceScore,
+        retrievalReadinessScore: aiScores.retrievalReadinessScore,
+        machineReadabilityScore: aiScores.machineReadabilityScore,
+        seoScore,
+        schemaScore,
+        performanceScore: 70,
+        retrievalQualityScore: retrievalSims.length > 0
+          ? Math.round(retrievalSims.reduce((s, r) => s + (r.retrievalQualityScore ?? 0), 0) / retrievalSims.length)
+          : null,
+        machineTrustScore: machineTrustData.overall,
+        authorityVelocityScore: temporalAuthorityData.authorityVelocityScore ?? null,
+        recommendationSurfaceScore: surfaceMapData.overallSurfaceScore,
+        entityAuthenticityScore: syntheticData.entityAuthenticityConfidence,
+      };
+      const openIssueIds = seoIssues.map((i) => `${auditId}:${i.type}`);
+      const openIssueTypes = Object.fromEntries(
+        seoIssues.map((i) => [`${auditId}:${i.type}`, { type: i.type, severity: i.severity, module: 'seo' }]),
+      );
+      await Promise.allSettled([
+        appendScoreSnapshot(domain, snapshot),
+        recordIssueSet(domain, auditId, openIssueIds, openIssueTypes),
+      ]);
+      logger.info({ auditId, domain }, 'LoopOS StateEngine updated');
+    } catch (loopErr) {
+      logger.warn({ auditId, domain, err: loopErr }, 'LoopOS StateEngine write failed (non-fatal)');
+    }
+
     await updateAuditStatus(auditId, 'complete', { pageCount: pages.length });
     logger.info({ auditId, domain, pages: pages.length, overall }, 'Serverless audit complete');
 

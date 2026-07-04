@@ -1183,6 +1183,67 @@ model ScoreDelta {
   @@map("score_deltas")
 }
 
+// ─── LoopOS V4.5 — State Engine ──────────────────────────────────────────────
+//
+// SiteState: one record per domain. Upserted after every complete audit.
+// In V4.5 this is write-only — loops read it in V5.
+// MemoryRecord: append-only event log. Never deleted. Consumed by loops in V5.
+
+model SiteState {
+  id                   String   @id @default(cuid())
+  domain               String   @unique
+  lastAuditId          String?  @map("last_audit_id")
+  lastAuditCompletedAt DateTime? @map("last_audit_completed_at")
+
+  // Capped at 50 most recent snapshots (older entries pruned in-place at upsert)
+  scoreHistory    Json @default("[]") @map("score_history")
+
+  // Active / resolved issue IDs from most recent audit
+  openIssues      String[] @map("open_issues")
+  resolvedIssues  String[] @map("resolved_issues")
+
+  // Fixes confirmed to have worked vs. failed
+  knownFixes      Json @default("[]") @map("known_fixes")
+  failedFixes     Json @default("[]") @map("failed_fixes")
+
+  // Most recent LoopCheckpoint per loop type (LoopType → LoopCheckpoint JSON)
+  loopCheckpoints Json @default("[]") @map("loop_checkpoints")
+
+  // LoopType → ISO 8601 timestamp of last run
+  lastLoopRunAt   Json @default("{}") @map("last_loop_run_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt      @map("updated_at")
+
+  memoryRecords MemoryRecord[]
+
+  @@index([domain])
+  @@map("site_states")
+}
+
+model MemoryRecord {
+  id          String  @id @default(cuid())
+  domain      String
+  siteStateId String  @map("site_state_id")
+
+  // score_snapshot | fix_applied | fix_verified | loop_checkpoint |
+  // issue_resolved | issue_opened | competitive_signal
+  recordType  String  @map("record_type")
+
+  payload     Json
+  auditId     String? @map("audit_id")
+  loopRunId   String? @map("loop_run_id")   // null in V4.5
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  siteState SiteState @relation(fields: [siteStateId], references: [id])
+
+  @@index([domain, createdAt])
+  @@index([siteStateId])
+  @@index([recordType])
+  @@map("memory_records")
+}
+
 model CompetitiveSetMember {
   id      String @id @default(cuid())
   auditId String @map("audit_id")

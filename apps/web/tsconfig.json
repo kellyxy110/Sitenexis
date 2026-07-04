@@ -17,6 +17,9 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "@sitenexis/loop-os": [
+        "../../packages/loop-os/src/index.ts"
       ]
     },
     "incremental": true,
