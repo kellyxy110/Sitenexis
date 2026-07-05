@@ -1,6 +1,7 @@
 import type { RegenerationResult, AdAnalyzerOptions } from './types.js';
 import { SYSTEM_REGENERATOR, buildRegeneratorPrompt } from './prompts.js';
 import { callOpenRouter, isOpenRouterConfigured, OR_MODELS } from '../ai/openrouter.js';
+import { makeAnthropicAdapter, makeGroqAdapter } from '@sitenexis/adapters';
 
 function parseJson<T>(text: string): T {
   const cleaned = text.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
@@ -38,50 +39,31 @@ async function callAI(
     } catch { /* fall through */ }
   }
 
-  // Claude fallback (explicit key)
+  // Anthropic fallback (explicit key)
   if (opts.anthropicApiKey) {
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': opts.anthropicApiKey,
-          'anthropic-version': '2023-06-01',
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 3000,
-          temperature: 0.7,
-          system: systemPrompt,
-          messages: [{ role: 'user', content: userPrompt }],
-        }),
+      const output = await makeAnthropicAdapter(opts.anthropicApiKey).complete({
+        systemPrompt,
+        userPrompt,
+        model: 'claude-sonnet-4-6',
+        maxTokens: 3000,
+        temperature: 0.7,
       });
-      if (res.ok) {
-        const data = (await res.json()) as { content: Array<{ type: string; text: string }> };
-        return data.content[0]?.text ?? '{}';
-      }
+      return output.content;
     } catch { /* fall through to groq */ }
   }
 
   // Groq last resort
   if (opts.groqApiKey) {
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${opts.groqApiKey}` },
-      body: JSON.stringify({
-        model: 'llama-3.1-70b-versatile',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-        temperature: 0.7,
-        max_tokens: 3000,
-        response_format: { type: 'json_object' },
-      }),
+    const output = await makeGroqAdapter(opts.groqApiKey).complete({
+      systemPrompt,
+      userPrompt,
+      model: 'llama-3.1-70b-versatile',
+      maxTokens: 3000,
+      temperature: 0.7,
+      jsonMode: true,
     });
-    if (!res.ok) throw new Error(`Groq error ${res.status}`);
-    const data = (await res.json()) as { choices: Array<{ message: { content: string } }> };
-    return data.choices[0]?.message?.content ?? '{}';
+    return output.content;
   }
 
   throw new Error('No AI provider configured — set OPENROUTER_API_KEY, ANTHROPIC_API_KEY, or GROQ_API_KEY');

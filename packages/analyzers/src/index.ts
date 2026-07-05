@@ -132,6 +132,12 @@ export type { ScoutEngineInput } from './intent/engine';
 export { buildFixPlan } from './fix-plan/engine';
 export type { FixPlanInput, SubReportIssues, IssueRecord } from './fix-plan/engine';
 
+// ─── Enhanced Report (v2) ─────────────────────────────────────────────────────
+export { buildEnhancedReport } from './enhanced-report';
+export { enrichSEOIssues, detectSchemaGapIssues, detectContentGapIssues } from './enhanced-report';
+export { extractOrgSignals, generateOrganizationSchema, generateFAQSchema, generateBreadcrumbSchema } from './enhanced-report';
+export { generateMetaDescription, generateCanonicalTag, generateOGTags } from './enhanced-report';
+
 export async function runAllAnalyzers(
   auditId: string,
   pages: CrawledPage[],

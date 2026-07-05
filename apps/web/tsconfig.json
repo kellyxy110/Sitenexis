@@ -20,6 +20,9 @@
       ],
       "@sitenexis/loop-os": [
         "../../packages/loop-os/src/index.ts"
+      ],
+      "@sitenexis/adapters": [
+        "../../packages/adapters/src/index.ts"
       ]
     },
     "incremental": true,

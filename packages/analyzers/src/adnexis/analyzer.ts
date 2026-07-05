@@ -10,6 +10,7 @@ import {
   buildHookGeneratorPrompt,
 } from './prompts.js';
 import { callOpenRouter, isOpenRouterConfigured, OR_MODELS } from '../ai/openrouter.js';
+import { makeGroqAdapter, makeAnthropicAdapter } from '@sitenexis/adapters';
 
 function parseJson<T>(text: string): T {
   const cleaned = text.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
@@ -38,59 +39,6 @@ async function tryOpenRouter<T>(
   }
 }
 
-async function callGroq(
-  systemPrompt: string,
-  userPrompt: string,
-  apiKey: string,
-  temperature = 0.2,
-  maxTokens = 1500,
-): Promise<string> {
-  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-    body: JSON.stringify({
-      model: 'llama-3.1-70b-versatile',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
-      ],
-      temperature,
-      max_tokens: maxTokens,
-      response_format: { type: 'json_object' },
-    }),
-  });
-  if (!res.ok) throw new Error(`Groq error ${res.status}`);
-  const data = (await res.json()) as { choices: Array<{ message: { content: string } }> };
-  return data.choices[0]?.message?.content ?? '{}';
-}
-
-async function callAnthropic(
-  systemPrompt: string,
-  userPrompt: string,
-  apiKey: string,
-  temperature = 0.2,
-  maxTokens = 1500,
-): Promise<string> {
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
-      max_tokens: maxTokens,
-      temperature,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userPrompt }],
-    }),
-  });
-  if (!res.ok) throw new Error(`Anthropic error ${res.status}`);
-  const data = (await res.json()) as { content: Array<{ type: string; text: string }> };
-  return data.content[0]?.text ?? '{}';
-}
-
 /**
  * AI call with full routing chain:
  *   1. Hermes 3 405B (OpenRouter) — best structured JSON + function calling
@@ -114,18 +62,33 @@ async function callAI(
   );
   if (hermesResult) return JSON.stringify(hermesResult);
 
-  // Path 2: Claude (explicit key)
+  // Path 2: Anthropic (explicit key)
   if (opts.anthropicApiKey) {
     try {
-      return await callAnthropic(systemPrompt, userPrompt, opts.anthropicApiKey, temperature, maxTokens);
+      const output = await makeAnthropicAdapter(opts.anthropicApiKey).complete({
+        systemPrompt,
+        userPrompt,
+        model: 'claude-sonnet-4-6',
+        maxTokens,
+        temperature,
+      });
+      return output.content;
     } catch {
       if (!opts.groqApiKey) throw new Error('All AI providers failed');
     }
   }
 
-  // Path 3: Groq
+  // Path 3: Groq (explicit key)
   if (opts.groqApiKey) {
-    return await callGroq(systemPrompt, userPrompt, opts.groqApiKey, temperature, maxTokens);
+    const output = await makeGroqAdapter(opts.groqApiKey).complete({
+      systemPrompt,
+      userPrompt,
+      model: 'llama-3.1-70b-versatile',
+      maxTokens,
+      temperature,
+      jsonMode: true,
+    });
+    return output.content;
   }
 
   throw new Error('No AI provider configured — set OPENROUTER_API_KEY or GROQ_API_KEY');

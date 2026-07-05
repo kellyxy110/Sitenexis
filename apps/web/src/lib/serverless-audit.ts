@@ -6,6 +6,8 @@
  */
 
 import { logger } from '@/lib/logger';
+import { getGroqAdapter, getFetchExtractionAdapter } from '@sitenexis/adapters';
+import type { CrawledPage } from '@sitenexis/shared';
 import type {
   RetrievalSimulationResult,
   MachineTrustScore,
@@ -14,165 +16,29 @@ import type {
   SyntheticEntityAnalysis,
 } from '@sitenexis/shared';
 
-// ── HTML extraction helpers ───────────────────────────────────────────────────
+// ParsedPage is now CrawledPage — use the canonical type throughout.
+// Convenience accessors map CrawledPage fields to the old ParsedPage names.
 
-interface ParsedPage {
-  url: string;
-  statusCode: number;
-  title: string | null;
-  metaDescription: string | null;
-  h1: string | null;
-  canonical: string | null;
-  robotsMeta: string | null;
-  schemas: unknown[];
-  bodyText: string;
-  wordCount: number;
-  headings: { level: number; text: string }[];
-  internalLinks: string[];
-  externalLinks: string[];
-  hasStructuredData: boolean;
-  schemaTypes: string[];
-  responseTimeMs: number;
-}
+type ParsedPage = CrawledPage & {
+  /** @deprecated use canonicalUrl */ canonical: string | null;
+  /** @deprecated use robotsDirectives[0] */ robotsMeta: string | null;
+  /** @deprecated use schemaMarkup */ schemas: unknown[];
+  /** guaranteed non-optional in this module */ schemaTypes: string[];
+  /** guaranteed non-optional in this module */ hasStructuredData: boolean;
+};
 
-function stripTags(html: string): string {
-  return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-}
-
-function parseHtml(html: string, baseUrl: string): Omit<ParsedPage, 'url' | 'statusCode' | 'responseTimeMs'> {
-  // Title
-  const title = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]?.trim().replace(/\s+/g, ' ') ?? null;
-
-  // Meta description
-  const metaDescription =
-    html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']*)/i)?.[1] ??
-    html.match(/<meta[^>]+content=["']([^"']*)[^>]+name=["']description["']/i)?.[1] ??
-    null;
-
-  // H1
-  const h1Raw = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i)?.[1] ?? null;
-  const h1 = h1Raw ? stripTags(h1Raw).slice(0, 200) : null;
-
-  // Canonical
-  const canonical =
-    html.match(/<link[^>]+rel=["']canonical["'][^>]+href=["']([^"']+)/i)?.[1] ??
-    html.match(/<link[^>]+href=["']([^"']+)[^>]+rel=["']canonical["']/i)?.[1] ??
-    null;
-
-  // Robots meta
-  const robotsMeta =
-    html.match(/<meta[^>]+name=["']robots["'][^>]+content=["']([^"']+)/i)?.[1] ??
-    html.match(/<meta[^>]+content=["']([^"']+)[^>]+name=["']robots["']/i)?.[1] ??
-    null;
-
-  // JSON-LD schemas
-  const schemaMatches = [...html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)];
-  const schemas = schemaMatches
-    .map((m) => { try { return JSON.parse(m[1]!) as unknown; } catch { return null; } })
-    .filter(Boolean);
-
-  const schemaTypes = schemas
-    .map((s) => {
-      if (typeof s === 'object' && s !== null && '@type' in s) return String((s as Record<string, unknown>)['@type']);
-      return null;
-    })
-    .filter((t): t is string => t !== null);
-
-  // Headings H2-H6
-  const headings: { level: number; text: string }[] = [];
-  for (const m of html.matchAll(/<h([2-6])[^>]*>([\s\S]*?)<\/h\1>/gi)) {
-    headings.push({ level: parseInt(m[1]!), text: stripTags(m[2]!).slice(0, 150) });
-  }
-
-  // Body text (remove scripts, styles, then strip tags)
-  let bodyHtml = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i)?.[1] ?? html;
-  bodyHtml = bodyHtml
-    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-    .replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, '')
-    .replace(/<header[^>]*>[\s\S]*?<\/header>/gi, '')
-    .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, '');
-  const bodyText = stripTags(bodyHtml).slice(0, 50_000);
-  const wordCount = bodyText.split(/\s+/).filter(Boolean).length;
-
-  // Links
-  const origin = new URL(baseUrl).origin;
-  const allHrefs = [...html.matchAll(/href=["']([^"'#?\s]+)/gi)].map((m) => m[1]!);
-  const internalLinks: string[] = [];
-  const externalLinks: string[] = [];
-
-  for (const href of allHrefs) {
-    try {
-      const abs = new URL(href, baseUrl).href;
-      if (abs.startsWith(origin)) {
-        if (!internalLinks.includes(abs) && abs !== baseUrl) internalLinks.push(abs);
-      } else if (href.startsWith('http')) {
-        if (!externalLinks.includes(abs)) externalLinks.push(abs);
-      }
-    } catch { /* skip malformed */ }
-  }
-
+function toParsedPage(page: CrawledPage): ParsedPage {
   return {
-    title,
-    metaDescription,
-    h1,
-    canonical,
-    robotsMeta,
-    schemas,
-    schemaTypes,
-    bodyText,
-    wordCount,
-    headings,
-    internalLinks: internalLinks.slice(0, 200),
-    externalLinks: externalLinks.slice(0, 50),
-    hasStructuredData: schemas.length > 0,
+    ...page,
+    canonical: page.canonicalUrl,
+    robotsMeta: page.robotsDirectives[0] ?? null,
+    schemas: page.schemaMarkup,
+    schemaTypes: page.schemaTypes ?? [],
+    hasStructuredData: page.hasStructuredData ?? page.schemaMarkup.length > 0,
   };
 }
 
-// ── Fetch helpers ─────────────────────────────────────────────────────────────
-
-const FETCH_TIMEOUT_MS = 12_000;
 const MAX_PAGES = 50;
-
-async function fetchPage(url: string): Promise<{ html: string; statusCode: number; ms: number } | null> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-  const t = Date.now();
-  try {
-    const res = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        'User-Agent': 'SiteNexis-Audit/1.0 (+https://sitenexis.com/bot)',
-        'Accept': 'text/html,application/xhtml+xml',
-        'Accept-Language': 'en-US,en;q=0.9',
-      },
-      redirect: 'follow',
-    });
-    const html = await res.text();
-    return { html, statusCode: res.status, ms: Date.now() - t };
-  } catch {
-    return null;
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-async function fetchSitemapUrls(domain: string): Promise<string[]> {
-  const base = `https://${domain}`;
-  const candidates = [`${base}/sitemap.xml`, `${base}/sitemap_index.xml`, `${base}/sitemap/sitemap.xml`];
-
-  for (const url of candidates) {
-    try {
-      const result = await fetchPage(url);
-      if (!result || result.statusCode !== 200) continue;
-      const urls = [...result.html.matchAll(/<loc>(.*?)<\/loc>/gi)]
-        .map((m) => m[1]!.trim())
-        .filter((u) => u.startsWith('http') && new URL(u).hostname === domain);
-      if (urls.length > 0) return urls.slice(0, MAX_PAGES);
-    } catch { /* try next */ }
-  }
-  return [];
-}
 
 // ── SEO analysis ──────────────────────────────────────────────────────────────
 
@@ -339,8 +205,8 @@ interface GroqAIScores {
 }
 
 async function callGroqAnalysis(pages: ParsedPage[], domain: string): Promise<GroqAIScores | null> {
-  const key = process.env['GROQ_API_KEY'];
-  if (!key || key.includes('placeholder') || key.length < 10) return null;
+  const adapter = getGroqAdapter();
+  if (!adapter.isConfigured()) return null;
 
   const siteData = {
     domain,
@@ -357,7 +223,7 @@ async function callGroqAnalysis(pages: ParsedPage[], domain: string): Promise<Gr
     })),
   };
 
-  const prompt = `Analyze this website for AI retrievability and machine trust. Return scores based strictly on the content signals provided.
+  const userPrompt = `Analyze this website for AI retrievability and machine trust. Return scores based strictly on the content signals provided.
 
 ${JSON.stringify(siteData, null, 2)}
 
@@ -375,34 +241,17 @@ Return a JSON object with these exact numeric keys (all 0-100 integers):
 Be specific and differentiated. Do not cluster scores around 50. Return ONLY valid JSON.`;
 
   try {
-    const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${key}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        temperature: 0.1,
-        max_tokens: 256,
-        response_format: { type: 'json_object' },
-        messages: [
-          { role: 'system', content: 'You are an AI visibility analysis engine. Return ONLY valid JSON.' },
-          { role: 'user', content: prompt },
-        ],
-      }),
-      signal: AbortSignal.timeout(25_000),
+    const output = await adapter.complete({
+      systemPrompt: 'You are an AI visibility analysis engine. Return ONLY valid JSON.',
+      userPrompt,
+      model: 'llama-3.3-70b-versatile',
+      maxTokens: 256,
+      temperature: 0.1,
+      jsonMode: true,
     });
 
-    if (!resp.ok) return null;
+    const parsed = JSON.parse(output.content) as Partial<GroqAIScores>;
 
-    const data = await resp.json() as { choices?: [{ message?: { content?: string } }] };
-    const content = data.choices?.[0]?.message?.content;
-    if (!content) return null;
-
-    const parsed = JSON.parse(content) as Partial<GroqAIScores>;
-
-    // Validate all required keys are present numbers
     const keys: (keyof GroqAIScores)[] = [
       'machineReadabilityScore', 'entityConfidenceScore', 'retrievalReadinessScore',
       'citationProbabilityScore', 'semanticTrustScore', 'recommendationConfidence', 'aiVisibilityScore',
@@ -411,7 +260,6 @@ Be specific and differentiated. Do not cluster scores around 50. Return ONLY val
       if (typeof parsed[k] !== 'number') return null;
     }
 
-    // Clamp all scores to 0–100
     return {
       machineReadabilityScore: Math.min(100, Math.max(0, Math.round(parsed.machineReadabilityScore!))),
       entityConfidenceScore: Math.min(100, Math.max(0, Math.round(parsed.entityConfidenceScore!))),
@@ -734,8 +582,8 @@ interface RawPerceptionGraph {
 }
 
 async function callGroqPerceptionGraph(pages: ParsedPage[], domain: string): Promise<RawPerceptionGraph | null> {
-  const key = process.env['GROQ_API_KEY'];
-  if (!key || key.includes('placeholder') || key.length < 10) return null;
+  const adapter = getGroqAdapter();
+  if (!adapter.isConfigured()) return null;
 
   const siteData = {
     domain,
@@ -746,7 +594,7 @@ async function callGroqPerceptionGraph(pages: ParsedPage[], domain: string): Pro
     })),
   };
 
-  const prompt = `Extract the AI Perception Graph for this website as an AI retrieval system would perceive it.
+  const userPrompt = `Extract the AI Perception Graph for this website as an AI retrieval system would perceive it.
 
 ${JSON.stringify(siteData, null, 2)}
 
@@ -761,26 +609,16 @@ Include 6-12 nodes and 5-10 edges. All confidence/strength values are 0-1 floats
 Return ONLY valid JSON.`;
 
   try {
-    const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile', temperature: 0.2, max_tokens: 1024,
-        response_format: { type: 'json_object' },
-        messages: [
-          { role: 'system', content: 'You are an AI entity graph extraction engine. Return ONLY valid JSON.' },
-          { role: 'user', content: prompt },
-        ],
-      }),
-      signal: AbortSignal.timeout(20_000),
+    const output = await adapter.complete({
+      systemPrompt: 'You are an AI entity graph extraction engine. Return ONLY valid JSON.',
+      userPrompt,
+      model: 'llama-3.3-70b-versatile',
+      maxTokens: 1024,
+      temperature: 0.2,
+      jsonMode: true,
     });
 
-    if (!resp.ok) return null;
-    const data = await resp.json() as { choices?: [{ message?: { content?: string } }] };
-    const content = data.choices?.[0]?.message?.content;
-    if (!content) return null;
-
-    const parsed = JSON.parse(content) as Partial<RawPerceptionGraph>;
+    const parsed = JSON.parse(output.content) as Partial<RawPerceptionGraph>;
     if (!Array.isArray(parsed.nodes) || !Array.isArray(parsed.edges)) return null;
 
     const validNodeTypes = new Set(['entity', 'topic', 'claim', 'page']);
@@ -828,53 +666,28 @@ export async function runServerlessAudit(
     await updateAuditStatus(auditId, 'running', {});
     const crawlStartTime = Date.now();
 
-    // ── 1. Discover URLs ──────────────────────────────────────────────────────
-    const baseUrl = `https://${domain}`;
-    let urls: string[] = [baseUrl];
+    // ── 1 + 2. Crawl pages via FetchExtractionAdapter ─────────────────────────
+    const extractor = getFetchExtractionAdapter();
+    const crawledRaw = await extractor.crawlDomain(domain, {
+      maxPages: MAX_PAGES,
+      concurrency: 4,
+      timeoutMs: 12_000,
+      ctx: { auditId, domain },
+      onPage: () => {
+        // fire-and-forget progress update; ignore errors
+        void updateAuditStatus(auditId, 'running', {}).catch(() => undefined);
+      },
+    });
 
-    const sitemapUrls = await fetchSitemapUrls(domain);
-    if (sitemapUrls.length > 0) {
-      urls = [baseUrl, ...sitemapUrls.filter((u) => u !== baseUrl)].slice(0, MAX_PAGES);
-    }
-
-    // ── 2. Crawl pages ────────────────────────────────────────────────────────
-    const pages: ParsedPage[] = [];
-
-    // Always fetch homepage first
-    const homeResult = await fetchPage(baseUrl);
-    if (!homeResult || homeResult.statusCode >= 400) {
-      await updateAuditStatus(auditId, 'failed', { errorMessage: `Homepage returned ${homeResult?.statusCode ?? 'timeout'} — cannot crawl ${domain}` });
+    if (crawledRaw.length === 0 || crawledRaw[0]!.statusCode >= 400) {
+      const code = crawledRaw[0]?.statusCode ?? 'timeout';
+      await updateAuditStatus(auditId, 'failed', { errorMessage: `Homepage returned ${code} — cannot crawl ${domain}` });
       return;
     }
 
-    const homeParsed = parseHtml(homeResult.html, baseUrl);
-    pages.push({ url: baseUrl, statusCode: homeResult.statusCode, responseTimeMs: homeResult.ms, ...homeParsed });
-
-    // Collect additional URLs from homepage if sitemap didn't give us any
-    if (sitemapUrls.length === 0) {
-      const discovered = homeParsed.internalLinks
-        .filter((u) => {
-          try { const p = new URL(u).pathname; return p !== '/' && !p.match(/\.(jpg|png|gif|svg|pdf|css|js|ico|woff)$/i); }
-          catch { return false; }
-        })
-        .slice(0, MAX_PAGES - 1);
-      urls = [baseUrl, ...discovered];
-    }
-
-    // Fetch remaining pages with concurrency limit of 4
-    const remaining = urls.slice(1);
-    for (let i = 0; i < remaining.length; i += 4) {
-      const batch = remaining.slice(i, i + 4);
-      const results = await Promise.all(batch.map((u) => fetchPage(u)));
-      for (let j = 0; j < batch.length; j++) {
-        const result = results[j];
-        if (result && result.statusCode < 400) {
-          pages.push({ url: batch[j]!, statusCode: result.statusCode, responseTimeMs: result.ms, ...parseHtml(result.html, batch[j]!) });
-        }
-      }
-      // Update page count as we crawl
-      await updateAuditStatus(auditId, 'running', { pageCount: pages.length });
-    }
+    const pages: ParsedPage[] = crawledRaw.map(toParsedPage);
+    const urls = pages.map((p) => p.url);
+    await updateAuditStatus(auditId, 'running', { pageCount: pages.length });
 
     // ── 3. Analyse ────────────────────────────────────────────────────────────
     const { score: seoScore, issues: seoIssues } = analyseSEO(pages);

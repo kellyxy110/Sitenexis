@@ -1,25 +1,24 @@
-import OpenAI from 'openai';
+// OpenRouter multi-model router for @sitenexis/analyzers.
+// No provider SDK imported here — delegates to @sitenexis/adapters OpenRouterAdapter.
+// Rate limiting and per-model key lookup live here (business config, not infra).
+
+import { getOpenRouterAdapter } from '@sitenexis/adapters';
+import { parseAIResponse } from './prompts';
 
 // ─── Model registry ───────────────────────────────────────────────────────────
 
 export const OR_MODELS = {
-  // 405B full finetune — best structured JSON output + function calling
   HERMES:   'nousresearch/hermes-3-llama-3.1-405b:free',
-  // 284B MoE, 1M context, reasoning modes (high/xhigh) — whole-site analysis
   DEEPSEEK: 'deepseek/deepseek-v4-flash:free',
-  // 31B multimodal (text + image), 256K context, thinking mode — visual analysis
   GEMMA:    'google/gemma-4-31b-it:free',
-  // 80B MoE, ultra-long context, deterministic — RAG simulation + throughput
   QWEN:     'qwen/qwen3-next-80b-a3b-instruct:free',
-  // Long-horizon coding + UI/UX generation + agent swarm — code + landing pages
   KIMI:     'moonshotai/kimi-k2.6:free',
-  // 70B multilingual (8 languages) — non-English site analysis
   LLAMA:    'meta-llama/llama-3.3-70b-instruct:free',
 } as const;
 
 export type OpenRouterModel = (typeof OR_MODELS)[keyof typeof OR_MODELS];
 
-// ─── Per-model API key lookup ────────────────────────────────────────────────
+// ─── Per-model API key lookup ─────────────────────────────────────────────────
 
 function getKeyForModel(model: OpenRouterModel): string {
   const keyMap: Record<OpenRouterModel, string> = {
@@ -34,29 +33,10 @@ function getKeyForModel(model: OpenRouterModel): string {
 }
 
 export function isOpenRouterConfigured(model: OpenRouterModel): boolean {
-  const key = getKeyForModel(model);
-  return key.length > 10;
+  return getKeyForModel(model).length > 10;
 }
 
-// ─── Client factory ───────────────────────────────────────────────────────────
-
-const _clients = new Map<string, OpenAI>();
-
-function getClient(apiKey: string): OpenAI {
-  if (!_clients.has(apiKey)) {
-    _clients.set(apiKey, new OpenAI({
-      apiKey,
-      baseURL: 'https://openrouter.ai/api/v1',
-      defaultHeaders: {
-        'HTTP-Referer': 'https://sitenexis.com',
-        'X-Title': 'SiteNexis AI Intelligence Platform',
-      },
-    }));
-  }
-  return _clients.get(apiKey)!;
-}
-
-// ─── Rate limiter — conservative 10 RPM per model for free tier ──────────────
+// ─── Rate limiter — 10 RPM per model for free tier ───────────────────────────
 
 class ModelRateLimiter {
   private readonly limiters = new Map<OpenRouterModel, { tokens: number; lastRefill: number }>();
@@ -84,7 +64,7 @@ class ModelRateLimiter {
 
 const rateLimiter = new ModelRateLimiter();
 
-// ─── Text completion ──────────────────────────────────────────────────────────
+// ─── Options ──────────────────────────────────────────────────────────────────
 
 export interface OpenRouterOptions {
   temperature?: number;
@@ -92,6 +72,8 @@ export interface OpenRouterOptions {
   jsonMode?: boolean;
   reasoning?: 'high' | 'xhigh';
 }
+
+// ─── Text completion ──────────────────────────────────────────────────────────
 
 export async function callOpenRouter<T>(
   model: OpenRouterModel,
@@ -104,40 +86,24 @@ export async function callOpenRouter<T>(
 
   await rateLimiter.acquire(model);
 
-  const client = getClient(apiKey);
-
-  const messages: OpenAI.ChatCompletionMessageParam[] = [
-    { role: 'system', content: systemPrompt },
-    { role: 'user', content: userPrompt },
-  ];
-
-  // DeepSeek reasoning mode — passed via model suffix or extra body
-  const modelId = opts.reasoning
-    ? `${model}` // OpenRouter accepts reasoning via extra_body for DeepSeek
-    : model;
-
-  const body: OpenAI.ChatCompletionCreateParamsNonStreaming = {
-    model: modelId,
-    messages,
+  const output = await getOpenRouterAdapter(model, apiKey).complete({
+    systemPrompt,
+    userPrompt,
+    model,
     temperature: opts.temperature ?? 0.1,
-    max_tokens: opts.maxTokens ?? 2048,
-    ...(opts.jsonMode ? { response_format: { type: 'json_object' as const } } : {}),
-  };
+    maxTokens: opts.maxTokens ?? 2_048,
+    ...(opts.jsonMode !== undefined ? { jsonMode: opts.jsonMode } : {}),
+  });
 
-  const response = await client.chat.completions.create(body);
-  const content = response.choices[0]?.message?.content;
-  if (!content) throw new Error(`OpenRouter returned empty content for model ${model}`);
-
-  // Parse JSON if jsonMode or if content looks like JSON
-  if (opts.jsonMode || content.trimStart().startsWith('{') || content.trimStart().startsWith('[')) {
-    const cleaned = content.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
-    return JSON.parse(cleaned) as T;
+  // Normalise JSON output — strip any code fences the model may have added
+  if (opts.jsonMode || output.content.trimStart().startsWith('{') || output.content.trimStart().startsWith('[')) {
+    return parseAIResponse<T>(output.content);
   }
 
-  return content as unknown as T;
+  return output.content as unknown as T;
 }
 
-// ─── Vision completion (multimodal — Gemma 4 or Kimi K2.6) ───────────────────
+// ─── Vision completion ────────────────────────────────────────────────────────
 
 export async function callOpenRouterVision<T>(
   model: typeof OR_MODELS.GEMMA | typeof OR_MODELS.KIMI,
@@ -151,36 +117,19 @@ export async function callOpenRouterVision<T>(
 
   await rateLimiter.acquire(model);
 
-  const client = getClient(apiKey);
-
-  const imageContent = imageBase64OrUrl.startsWith('http')
-    ? { type: 'image_url' as const, image_url: { url: imageBase64OrUrl } }
-    : { type: 'image_url' as const, image_url: { url: `data:image/png;base64,${imageBase64OrUrl}` } };
-
-  const response = await client.chat.completions.create({
+  const output = await getOpenRouterAdapter(model, apiKey).complete({
+    systemPrompt,
+    userPrompt: textPrompt,
     model,
-    messages: [
-      { role: 'system', content: systemPrompt },
-      {
-        role: 'user',
-        content: [
-          imageContent,
-          { type: 'text', text: textPrompt },
-        ],
-      },
-    ],
     temperature: opts.temperature ?? 0.1,
-    max_tokens: opts.maxTokens ?? 2048,
-    ...(opts.jsonMode ? { response_format: { type: 'json_object' as const } } : {}),
+    maxTokens: opts.maxTokens ?? 2_048,
+    imageUrl: imageBase64OrUrl,
+    ...(opts.jsonMode !== undefined ? { jsonMode: opts.jsonMode } : {}),
   });
 
-  const content = response.choices[0]?.message?.content;
-  if (!content) throw new Error(`OpenRouter vision returned empty content for model ${model}`);
-
-  if (opts.jsonMode || content.trimStart().startsWith('{')) {
-    const cleaned = content.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
-    return JSON.parse(cleaned) as T;
+  if (opts.jsonMode || output.content.trimStart().startsWith('{')) {
+    return parseAIResponse<T>(output.content);
   }
 
-  return content as unknown as T;
+  return output.content as unknown as T;
 }

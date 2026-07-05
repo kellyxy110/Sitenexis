@@ -3,7 +3,7 @@ export const maxDuration = 45;
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import OpenAI from 'openai';
+import { getOpenAIAdapter } from '@sitenexis/adapters';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
 import { logger } from '@/lib/logger';
 
@@ -31,7 +31,6 @@ export type CitationQuery = {
 // ── Query generation from homepage ────────────────────────────────────────────
 
 async function deriveQueries(domain: string): Promise<string[]> {
-  // Fetch homepage to extract topic context
   try {
     const res = await fetch(`https://${domain}`, {
       signal: AbortSignal.timeout(8_000),
@@ -45,7 +44,6 @@ async function deriveQueries(domain: string): Promise<string[]> {
     const context = [title, h1, metaDesc].filter(Boolean).join(' ');
     if (!context) return fallbackQueries(domain);
 
-    // Generate 4 representative queries based on page content
     return [
       `what is ${domain.replace(/^www\./, '')}`,
       title ? `who makes ${title.split(' ').slice(0, 4).join(' ')}` : `${domain} services`,
@@ -83,8 +81,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const { domain } = parsed.data;
   const cleanDomain = domain.replace(/^https?:\/\//i, '').replace(/\/.*$/, '').toLowerCase();
 
-  const apiKey = process.env['OPENAI_API_KEY'];
-  if (!apiKey) {
+  const openai = getOpenAIAdapter();
+  if (!openai.isConfigured()) {
     return NextResponse.json({
       domain: cleanDomain, queriesRun: 0, citedCount: 0, citationRate: 0,
       queries: [], topTopics: [],
@@ -94,37 +92,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     } satisfies CitationCheckResult);
   }
 
-  const client = new OpenAI({ apiKey });
   const queries = await deriveQueries(cleanDomain);
   const results: CitationQuery[] = [];
 
   for (const query of queries) {
     try {
-      const response = await client.responses.create({
-        model: 'gpt-4o-search-preview',
-        tools: [{ type: 'web_search_preview' as const }],
-        input: query,
-      });
-
-      // Extract text content and URL citations from response output
-      let text = '';
-      const citedUrls: string[] = [];
-
-      for (const item of response.output) {
-        if (item.type === 'message') {
-          for (const block of item.content) {
-            if (block.type === 'output_text') {
-              text += block.text;
-              // Extract URL annotations
-              for (const ann of block.annotations ?? []) {
-                if (ann.type === 'url_citation' && ann.url) {
-                  citedUrls.push(ann.url);
-                }
-              }
-            }
-          }
-        }
-      }
+      const searchOutput = await openai.webSearch(query, 'gpt-4o-search-preview');
+      const { content: text, citations: citedUrls } = searchOutput;
 
       const domainCited = citedUrls.some((u) => {
         try { return new URL(u).hostname.includes(cleanDomain.replace(/^www\./, '')); } catch { return false; }

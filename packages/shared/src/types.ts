@@ -50,6 +50,12 @@ export interface CrawledPage {
   internalLinkRefs?: LinkRef[];
   /** Per-page external link metadata aggregated by the extractor layer */
   externalLinkMeta?: ExternalLinkMeta;
+  /** Derived convenience field: @type values from schemaMarkup */
+  schemaTypes?: string[];
+  /** Derived convenience field: true if schemaMarkup is non-empty */
+  hasStructuredData?: boolean;
+  /** Open Graph metadata */
+  openGraph?: { title?: string; description?: string; image?: string; type?: string };
 }
 
 export interface CrawlResult {

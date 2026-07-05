@@ -1,8 +1,14 @@
-import OpenAI from 'openai';
+// Primary AI inference entry point for all analyzer modules.
+// No provider SDK is imported here — all calls go through @sitenexis/adapters.
+//
+// Routing strategy:
+//   1. OpenRouter Hermes 3 405B — best structured JSON, used via routeTask()
+//   2. Groq llama-3.3-70b-versatile — fast fallback, always available
+
+import { getGroqAdapter } from '@sitenexis/adapters';
 import { AI_SYSTEM_PROMPT, parseAIResponse } from './prompts';
 import { routeTask, isAnyOpenRouterAvailable } from './model-router';
 
-// Legacy constant — Groq remains the fast fallback path
 export const AI_MODEL = 'llama-3.3-70b-versatile';
 /** @deprecated Use AI_MODEL */
 export const CLAUDE_MODEL = AI_MODEL;
@@ -49,55 +55,36 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-let _groqClient: OpenAI | null = null;
-
-function getGroqClient(): OpenAI {
-  if (!_groqClient) {
-    _groqClient = new OpenAI({
-      apiKey: process.env['GROQ_API_KEY'] ?? '',
-      baseURL: 'https://api.groq.com/openai/v1',
-    });
-  }
-  return _groqClient;
-}
-
 async function callGroqDirect<T>(userPrompt: string, systemPrompt: string): Promise<T> {
   await groqRateLimiter.acquire();
-  const client = getGroqClient();
-  const response = await client.chat.completions.create({
+  const output = await getGroqAdapter().complete({
+    systemPrompt,
+    userPrompt,
     model: AI_MODEL,
-    max_tokens: GROQ_MAX_TOKENS,
+    maxTokens: GROQ_MAX_TOKENS,
     temperature: TEMPERATURE,
-    response_format: { type: 'json_object' },
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userPrompt },
-    ],
+    jsonMode: true,
   });
-  const content = response.choices[0]?.message?.content;
-  if (!content) throw new Error(`Groq API returned empty content for model ${AI_MODEL}`);
-  return parseAIResponse<T>(content);
+  return parseAIResponse<T>(output.content);
 }
 
 /**
  * Primary AI scoring function.
- *
  * Routing strategy:
- *   1. Hermes 3 405B (OpenRouter) — best structured JSON, agentic, 405B quality
+ *   1. OpenRouter Hermes 3 405B — best structured JSON at 405B scale
  *   2. Groq llama-3.3-70b-versatile — fast fallback, always available
  *
- * The caller never needs to know which model ran — the interface is identical.
+ * The caller never needs to know which model ran.
  */
 export async function callAI<T>(
   userPrompt: string,
   systemPrompt: string = AI_SYSTEM_PROMPT,
 ): Promise<T> {
-  // Try Hermes 3 first — superior structured output at 405B scale
   if (isAnyOpenRouterAvailable()) {
     try {
       const result = await routeTask<T>('structured_scoring', systemPrompt, userPrompt, {
         jsonMode: true,
-        maxTokens: 2048,
+        maxTokens: 2_048,
         temperature: TEMPERATURE,
       });
       if (result !== null) return result;
@@ -106,7 +93,6 @@ export async function callAI<T>(
     }
   }
 
-  // Groq fallback — always available, near-deterministic, low latency
   return callGroqDirect<T>(userPrompt, systemPrompt);
 }
 

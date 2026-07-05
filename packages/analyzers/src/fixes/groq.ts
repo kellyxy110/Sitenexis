@@ -1,6 +1,6 @@
 import type { IssueContext, GeneratedFix, FixLanguage } from './types.js';
-
-const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
+import { makeGroqAdapter } from '@sitenexis/adapters';
+import { parseAIResponse } from '../ai/prompts.js';
 
 const SYSTEM_PROMPT = `You are a senior web developer and AI visibility expert.
 Given a website issue, produce a concise fix that is ready to paste into code.
@@ -39,49 +39,41 @@ function isValidFixLanguage(lang: unknown): lang is FixLanguage {
   return lang === 'json-ld' || lang === 'html' || lang === 'typescript' || lang === 'text';
 }
 
+type FixResponse = {
+  problem: string;
+  solution: string;
+  fixCode: string;
+  fixLanguage: string;
+  expectedImpact: string;
+  effort: string;
+};
+
 export async function generateFixWithGroq(
   ctx: IssueContext,
   apiKey: string,
 ): Promise<GeneratedFix> {
-  const response = await fetch(GROQ_API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: 'llama-3.1-8b-instant',
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: buildPrompt(ctx) },
-      ],
-      temperature: 0.2,
-      max_tokens: 800,
-      response_format: { type: 'json_object' },
-    }),
+  const output = await makeGroqAdapter(apiKey).complete({
+    systemPrompt: SYSTEM_PROMPT,
+    userPrompt: buildPrompt(ctx),
+    model: 'llama-3.1-8b-instant',
+    maxTokens: 800,
+    temperature: 0.2,
+    jsonMode: true,
   });
 
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`Groq API error ${response.status}: ${text}`);
-  }
-
-  const body = await response.json() as {
-    choices: Array<{ message: { content: string } }>;
-  };
-
-  const content = body.choices[0]?.message?.content;
-  if (!content) throw new Error('Empty Groq response');
-
-  const parsed = JSON.parse(content) as Record<string, unknown>;
+  const parsed = parseAIResponse<FixResponse>(output.content);
 
   return {
     problem: String(parsed.problem ?? ''),
     solution: String(parsed.solution ?? ''),
     fixCode: String(parsed.fixCode ?? ''),
     fixLanguage: isValidFixLanguage(parsed.fixLanguage) ? parsed.fixLanguage : 'text',
-    expectedImpact: (['high', 'medium', 'low'] as const).includes(parsed.expectedImpact as 'high') ? parsed.expectedImpact as 'high' | 'medium' | 'low' : 'medium',
-    effort: (['low', 'medium', 'high'] as const).includes(parsed.effort as 'low') ? parsed.effort as 'low' | 'medium' | 'high' : 'medium',
+    expectedImpact: (['high', 'medium', 'low'] as const).includes(parsed.expectedImpact as 'high')
+      ? (parsed.expectedImpact as 'high' | 'medium' | 'low')
+      : 'medium',
+    effort: (['low', 'medium', 'high'] as const).includes(parsed.effort as 'low')
+      ? (parsed.effort as 'low' | 'medium' | 'high')
+      : 'medium',
     source: 'llm',
   };
 }

@@ -1,33 +1,21 @@
-import OpenAI from 'openai';
+// Fast Groq path — llama-3.1-8b-instant for high-throughput extraction tasks.
+// No provider SDK imported here — delegates to @sitenexis/adapters GroqAdapter.
+
+import { getGroqFastAdapter } from '@sitenexis/adapters';
 import { parseAIResponse } from './prompts';
 
-// llama-3.1-8b-instant: low-latency, purpose-fit for structured extraction tasks.
-// Not used for reasoning, scoring, or trust modeling — those stay with Claude.
 export const GROQ_MODEL = 'llama-3.1-8b-instant';
 
 const GROQ_MAX_TOKENS = 1_024;
-const GROQ_TEMPERATURE = 0.1; // Near-deterministic — extraction not generation
+const GROQ_TEMPERATURE = 0.1;
 
 const GROQ_SYSTEM_PROMPT =
   'You are a fast structured extraction engine. ' +
   'Identify and classify named entities exactly as instructed. ' +
   'Return ONLY valid JSON. No explanation. No markdown. No commentary.';
 
-let _groqClient: OpenAI | null = null;
-
-function getGroqClient(): OpenAI {
-  if (!_groqClient) {
-    _groqClient = new OpenAI({
-      apiKey: process.env['GROQ_API_KEY'] ?? '',
-      baseURL: 'https://api.groq.com/openai/v1',
-    });
-  }
-  return _groqClient;
-}
-
 /**
  * Returns true only when GROQ_API_KEY is present and non-placeholder.
- * Used to decide whether to attempt the Groq extraction stage.
  */
 export function isGroqConfigured(): boolean {
   const key = process.env['GROQ_API_KEY'] ?? '';
@@ -35,28 +23,18 @@ export function isGroqConfigured(): boolean {
 }
 
 /**
- * Call Groq with a user prompt and parse the JSON response.
- * Uses the OpenAI-compatible Groq endpoint — no new SDK required.
+ * Call Groq with llama-3.1-8b-instant and parse the JSON response.
+ * Used for Stage 1 entity extraction — fast, cheap, high-throughput.
  *
- * @throws Error if the API returns empty content or the response is not valid JSON.
+ * @throws Error if the API returns empty content or non-JSON.
  */
 export async function callGroq<T>(userPrompt: string): Promise<T> {
-  const client = getGroqClient();
-
-  const response = await client.chat.completions.create({
+  const output = await getGroqFastAdapter().complete({
+    systemPrompt: GROQ_SYSTEM_PROMPT,
+    userPrompt,
     model: GROQ_MODEL,
-    max_tokens: GROQ_MAX_TOKENS,
+    maxTokens: GROQ_MAX_TOKENS,
     temperature: GROQ_TEMPERATURE,
-    messages: [
-      { role: 'system', content: GROQ_SYSTEM_PROMPT },
-      { role: 'user', content: userPrompt },
-    ],
   });
-
-  const content = response.choices[0]?.message?.content;
-  if (!content) {
-    throw new Error(`Groq API returned empty content for model ${GROQ_MODEL}`);
-  }
-
-  return parseAIResponse<T>(content);
+  return parseAIResponse<T>(output.content);
 }

@@ -12,6 +12,10 @@
     "./crawler": {
       "types": "./dist/crawler.d.ts",
       "default": "./dist/crawler.js"
+    },
+    "./puppeteer-adapter": {
+      "types": "./dist/puppeteer.adapter.d.ts",
+      "default": "./dist/puppeteer.adapter.js"
     }
   },
   "scripts": {
@@ -26,6 +30,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@sitenexis/adapters": "workspace:*",
     "@sitenexis/shared": "workspace:*",
     "bullmq": "^5.12.12",
     "cheerio": "^1.0.0",

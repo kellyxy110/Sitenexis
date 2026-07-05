@@ -1,4 +1,5 @@
 import { callOpenRouter, isOpenRouterConfigured, OR_MODELS } from '../ai/openrouter.js';
+import { makeGroqAdapter } from '@sitenexis/adapters';
 import type { AdAnalyzerOptions } from './types.js';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -127,26 +128,18 @@ export async function generateLandingPage(
 
   // Groq last resort
   if (opts.groqApiKey) {
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${opts.groqApiKey}` },
-      body: JSON.stringify({
+    try {
+      const output = await makeGroqAdapter(opts.groqApiKey).complete({
+        systemPrompt: SYSTEM,
+        userPrompt: prompt,
         model: 'llama-3.1-70b-versatile',
-        messages: [
-          { role: 'system', content: SYSTEM },
-          { role: 'user', content: prompt },
-        ],
+        maxTokens: 3000,
         temperature: 0.6,
-        max_tokens: 3000,
-        response_format: { type: 'json_object' },
-      }),
-    });
-    if (res.ok) {
-      const data = (await res.json()) as { choices: Array<{ message: { content: string } }> };
-      const content = data.choices[0]?.message?.content ?? '{}';
-      const parsed = JSON.parse(content) as LandingPageResult;
+        jsonMode: true,
+      });
+      const parsed = JSON.parse(output.content) as LandingPageResult;
       return { ...parsed, generatedBy: 'groq' };
-    }
+    } catch { /* fall through to skeleton */ }
   }
 
   // Fallback: minimal structural skeleton
