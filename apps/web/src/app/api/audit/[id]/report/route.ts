@@ -56,6 +56,7 @@ function generateReportHTML(
   scores: Record<string, number | null>,
   aiScores: Record<string, number | null>,
   issues: Array<{ severity: string; message: string; recommendation: string }>,
+  sseScores?: Record<string, number | null>,
 ): string {
   const date = createdAt.toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' });
   const overall = scores['overall'] ?? null;
@@ -77,6 +78,14 @@ function generateReportHTML(
     ['Semantic Trust', aiScores['semanticTrustScore'] ?? null],
     ['Recommendation Confidence', aiScores['recommendationConfidence'] ?? null],
   ];
+
+  const tier3: [string, number | null][] = sseScores ? [
+    ['GEO Score',           sseScores['geoScore'] ?? null],
+    ['SNS Master Score',    sseScores['snsMasterScore'] ?? null],
+    ['Topical Authority',   sseScores['topicalAuthorityScore'] ?? null],
+    ['Semantic Density',    sseScores['semanticDensityScore'] ?? null],
+    ['AI Crawlability',     sseScores['aiCrawlabilityScore'] ?? null],
+  ] : [];
 
   const critical = issues.filter((i) => i.severity === 'critical').slice(0, 12);
   const warnings = issues.filter((i) => i.severity === 'warning').slice(0, 12);
@@ -129,6 +138,8 @@ function generateReportHTML(
   <div class="section-label">Tier 2 — AI Visibility</div>
   <div class="score-grid">${tier2.map(([l, v]) => card(l, v)).join('')}</div>
 
+  ${tier3.length > 0 ? `<div class="section-label">Tier 3 — Machine Trust Signals</div><div class="score-grid">${tier3.map(([l, v]) => card(l, v)).join('')}</div>` : ''}
+
   ${critical.length > 0 ? `<div class="section-label" style="margin-top:8px">Critical Issues (${critical.length})</div>${issueTable(critical)}` : ''}
   ${warnings.length > 0 ? `<div class="section-label">Warnings (${warnings.length})</div>${issueTable(warnings)}` : ''}
   ${!hasIssues ? '<div class="section-label">Issues</div><p style="color:#4a6280;font-style:italic;padding:12px 0">No issues detected in this audit.</p>' : ''}
@@ -158,13 +169,14 @@ export async function POST(req: NextRequest, { params }: Params): Promise<NextRe
   }
 
   try {
-    const { getAuditWithResults, getAuditScores, getAIVisibilityScore, getIssuesByAudit } = await import('@sitenexis/db');
+    const { getAuditWithResults, getAuditScores, getAIVisibilityScore, getIssuesByAudit, getSseScore } = await import('@sitenexis/db');
 
-    const [audit, scores, aiScores, issues] = await Promise.all([
+    const [audit, scores, aiScores, issues, sse] = await Promise.all([
       getAuditWithResults(id),
       getAuditScores(id),
       getAIVisibilityScore(id),
       getIssuesByAudit(id),
+      getSseScore(id).catch(() => null),
     ]);
 
     if (!audit) return NextResponse.json({ error: 'Not found' }, { status: 404 });
@@ -185,12 +197,21 @@ export async function POST(req: NextRequest, { params }: Params): Promise<NextRe
       recommendationConfidence: aiScores?.recommendationConfidence ?? null,
     };
 
+    const sseRecord: Record<string, number | null> | undefined = sse ? {
+      geoScore:            sse.geoScore,
+      snsMasterScore:      sse.snsMasterScore,
+      topicalAuthorityScore: sse.topicalAuthorityScore,
+      semanticDensityScore:  sse.semanticDensityScore,
+      aiCrawlabilityScore:   sse.aiCrawlabilityScore,
+    } : undefined;
+
     const html = generateReportHTML(
       auditTyped.domain,
       auditTyped.createdAt,
       scoresRecord,
       aiScoresRecord,
       issues.map((i) => ({ severity: i.severity, message: i.message, recommendation: i.recommendation })),
+      sseRecord,
     );
 
     const filename = `sitenexis-report-${auditTyped.domain.replace(/[^a-z0-9.-]/gi, '-')}-${new Date().toISOString().slice(0, 10)}.html`;

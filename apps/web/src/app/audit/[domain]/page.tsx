@@ -277,7 +277,9 @@ function ScoreGauge({ label, score }: { label: string; score: number | null }) {
           />
         </svg>
         <div className="relative text-center">
-          <span className="block text-lg sm:text-2xl font-bold text-white tabular-nums">{count}</span>
+          <span className="block text-lg sm:text-2xl font-bold tabular-nums" style={{ color: score == null ? '#4A6280' : '#fff' }}>
+            {score == null ? '—' : count}
+          </span>
           {score != null && (
             <span className="block text-[9px] sm:text-[10px] font-medium" style={{ color }}>
               {scoreLabel(score)}

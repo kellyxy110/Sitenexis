@@ -1,4 +1,5 @@
 import { callOpenRouter, callOpenRouterVision, isOpenRouterConfigured, OR_MODELS } from './openrouter';
+import { callBynara, isBynaraConfigured, BYNARA_MODELS } from './bynara-client';
 import type { OpenRouterOptions } from './openrouter';
 
 // ─── Task type registry ───────────────────────────────────────────────────────
@@ -131,17 +132,57 @@ export async function routeVisionTask<T>(
   }
 }
 
+/**
+ * Route a text task to the best available provider, with Bynara (mistral-large) as
+ * a second-tier fallback when no OpenRouter model is configured for the task.
+ * Callers that already fall back to Groq can remain unchanged — Bynara is tried
+ * before Groq when both OpenRouter and the Groq path return null.
+ *
+ * Usage: same signature as routeTask; returns null when all providers unavailable.
+ */
+export async function routeTaskWithBynara<T>(
+  task: AITaskType,
+  systemPrompt: string,
+  userPrompt: string,
+  opts: OpenRouterOptions = {},
+): Promise<T | null> {
+  // 1. Try OpenRouter
+  const orResult = await routeTask<T>(task, systemPrompt, userPrompt, opts);
+  if (orResult !== null) return orResult;
+
+  // 2. Fall back to Bynara (mistral-large)
+  if (!isBynaraConfigured()) return null;
+  try {
+    const bynaraOpts: import('./bynara-client').BynaraOptions = {};
+    if (opts.temperature !== undefined) bynaraOpts.temperature = opts.temperature;
+    if (opts.maxTokens   !== undefined) bynaraOpts.maxTokens   = opts.maxTokens;
+    if (opts.jsonMode    !== undefined) bynaraOpts.jsonMode    = opts.jsonMode;
+    return await callBynara<T>(BYNARA_MODELS.MISTRAL_LARGE, systemPrompt, userPrompt, bynaraOpts);
+  } catch (err) {
+    console.error(`[model-router] Bynara fallback failed for ${task}:`, err instanceof Error ? err.message : String(err));
+    return null;
+  }
+}
+
 /** Check whether any OpenRouter model is available (at least one key is set) */
 export function isAnyOpenRouterAvailable(): boolean {
   return Object.values(OR_MODELS).some((m) => isOpenRouterConfigured(m));
 }
 
-/** Get a report of which models are configured */
-export function getModelAvailability(): Record<string, boolean> {
-  return Object.fromEntries(
-    Object.entries(OR_MODELS).map(([name, model]) => [name, isOpenRouterConfigured(model)])
-  );
+/** Check whether any AI provider is available (OpenRouter, Bynara, or Groq) */
+export function isAnyProviderAvailable(): boolean {
+  return isAnyOpenRouterAvailable() || isBynaraConfigured();
 }
 
-export { OR_MODELS, isOpenRouterConfigured };
+/** Get a report of which models and providers are configured */
+export function getModelAvailability(): Record<string, boolean> {
+  return {
+    ...Object.fromEntries(
+      Object.entries(OR_MODELS).map(([name, model]) => [name, isOpenRouterConfigured(model)])
+    ),
+    bynara_mistral_large: isBynaraConfigured(),
+  };
+}
+
+export { OR_MODELS, isOpenRouterConfigured, isBynaraConfigured, BYNARA_MODELS };
 export type { OpenRouterOptions };

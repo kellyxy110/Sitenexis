@@ -652,6 +652,102 @@ Return ONLY valid JSON.`;
   }
 }
 
+// ── SSE Score Helpers ─────────────────────────────────────────────────────────
+// Topical Authority, Semantic Density, AI Crawlability — inline pure functions.
+// These mirror the authoritative implementations in @sitenexis/analyzers exactly.
+
+const SSE_STOP_WORDS = new Set([
+  'with', 'your', 'that', 'this', 'from', 'have', 'more', 'will', 'been',
+  'what', 'when', 'how', 'why', 'the', 'and', 'for', 'not', 'you', 'all',
+  'can', 'her', 'was', 'one', 'our', 'out', 'are', 'which', 'their', 'there',
+  'about', 'into', 'than', 'then', 'some', 'also', 'over', 'each', 'does',
+  'most', 'other', 'make', 'like', 'time', 'just', 'know', 'take', 'people',
+]);
+
+function computeTopicalAuthoritySSE(pages: ParsedPage[]) {
+  if (pages.length === 0) return { score: 0, breakdown: { depth: 0, breadth: 0, interlinking: 0, freshness: 0 } };
+  const avgWordCount = pages.reduce((s, p) => s + p.wordCount, 0) / pages.length;
+  const avgHeadingDepth = pages.reduce((s, p) => {
+    const maxLevel = p.headings.length > 0 ? Math.max(...p.headings.map((h) => h.level)) : 1;
+    return s + maxLevel;
+  }, 0) / pages.length;
+  const depth = Math.round(Math.min(60, (avgWordCount / 1500) * 60) + Math.min(40, ((avgHeadingDepth - 1) / 2) * 40));
+  const topicSet = new Set<string>();
+  for (const page of pages) {
+    for (const heading of page.headings) {
+      if (heading.level <= 2) {
+        heading.text.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/)
+          .filter((w) => w.length > 3 && !SSE_STOP_WORDS.has(w))
+          .forEach((w) => topicSet.add(w));
+      }
+    }
+  }
+  const breadth = Math.round(Math.min(100, (topicSet.size / 20) * 100));
+  const avgInternalLinks = pages.reduce((s, p) => s + p.internalLinks.length, 0) / pages.length;
+  const interlinking = Math.round(Math.min(100, (avgInternalLinks / 5) * 100));
+  const freshPages = pages.filter((p) => {
+    const schemaStr = JSON.stringify(p.schemas).toLowerCase();
+    return schemaStr.includes('datemodified') || schemaStr.includes('datepublished');
+  }).length;
+  const freshness = Math.round((freshPages / pages.length) * 100);
+  const score = Math.round(depth * 0.4 + breadth * 0.3 + interlinking * 0.2 + freshness * 0.1);
+  return { score, breakdown: { depth, breadth, interlinking, freshness } };
+}
+
+const SD_MONTH_PAT = /\b(january|february|march|april|may|june|july|august|september|october|november|december)\b/i;
+
+function computeSemanticDensitySSE(pages: ParsedPage[]) {
+  const totalWords = pages.reduce((s, p) => s + p.wordCount, 0);
+  // Estimate entity count: named entities from schema + proper nouns in headings
+  const entityNames = new Set<string>();
+  for (const page of pages) {
+    for (const schema of page.schemas) {
+      if (typeof schema === 'object' && schema !== null) {
+        const name = (schema as Record<string, unknown>)['name'];
+        if (typeof name === 'string' && name.length > 2) entityNames.add(name.toLowerCase().trim());
+      }
+    }
+    for (const h of page.headings) {
+      h.text.split(/\s+/)
+        .filter((w) => w.length > 2 && /^[A-Z]/.test(w) && !SSE_STOP_WORDS.has(w.toLowerCase()))
+        .forEach((w) => entityNames.add(w.toLowerCase()));
+    }
+  }
+  const entityCount = Math.max(1, entityNames.size);
+  let factCount = 0;
+  for (const page of pages) {
+    for (const sentence of page.bodyText.split(/[.!?]+/).filter((s) => s.trim().length > 10)) {
+      if (/\d+/.test(sentence) || SD_MONTH_PAT.test(sentence)) factCount++;
+    }
+  }
+  if (totalWords === 0) return { score: 0, rawDensity: 0, breakdown: { entityCount, factCount, totalWords } };
+  const rawDensity = ((entityCount + factCount) / totalWords) * 1000;
+  const score = Math.round(Math.min(100, (rawDensity / 25) * 100));
+  return { score, rawDensity: Math.round(rawDensity * 100) / 100, breakdown: { entityCount, factCount, totalWords } };
+}
+
+function computeAiCrawlabilitySSE(pages: ParsedPage[], seoIssues: { type: string }[]) {
+  if (pages.length === 0) return { score: 0, breakdown: { robots: 0, sitemap: 0, renderability: 0, indexability: 0 } };
+  const BLOCK_DIRS = ['noindex', 'noimageindex', 'none'];
+  const AI_BLOCK_DIRS = ['noai', 'noimageai', 'aigooglegoog', 'gptbot'];
+  let robotsPenalty = 0;
+  for (const page of pages) {
+    const dirs = (page.robotsMeta ?? '').toLowerCase();
+    if (BLOCK_DIRS.some((b) => dirs.includes(b))) robotsPenalty += 5;
+    if (AI_BLOCK_DIRS.some((b) => dirs.includes(b))) robotsPenalty += 10;
+  }
+  const robots = Math.max(0, 100 - Math.min(100, robotsPenalty));
+  const missingSitemap = seoIssues.some((i) => i.type === 'missing_sitemap');
+  const missingRobotsTxt = seoIssues.some((i) => i.type === 'missing_robots_txt');
+  const sitemap = missingSitemap ? (missingRobotsTxt ? 20 : 50) : missingRobotsTxt ? 70 : 100;
+  const renderableCount = pages.filter((p) => p.statusCode === 200 && p.wordCount > 50).length;
+  const renderability = Math.round((renderableCount / pages.length) * 100);
+  const noindexCount = pages.filter((p) => (p.robotsMeta ?? '').toLowerCase().includes('noindex')).length;
+  const indexability = Math.round(((pages.length - noindexCount) / pages.length) * 100);
+  const score = Math.round(robots * 0.30 + sitemap * 0.25 + renderability * 0.20 + indexability * 0.25);
+  return { score, breakdown: { robots, sitemap, renderability, indexability } };
+}
+
 // ── Main export ───────────────────────────────────────────────────────────────
 
 export async function runServerlessAudit(
@@ -710,6 +806,21 @@ export async function runServerlessAudit(
     };
 
     const overall = Math.round(seoScore * 0.25 + aiScores.aiScore * 0.40 + schemaScore * 0.15 + 60 * 0.20);
+
+    // ── SSE scores (Topical Authority, Semantic Density, AI Crawlability, GEO, SNS) ──
+    // These are computed from real crawl data — never saved by the full BullMQ pipeline
+    // because that path uses infrastructure-agent.ts. The serverless path must save them here.
+    const taResult = computeTopicalAuthoritySSE(pages);
+    const sdResult = computeSemanticDensitySSE(pages);
+    const aciResult = computeAiCrawlabilitySSE(pages, seoIssues);
+    const sseGeoScore = Math.round(
+      aiScores.citationProbabilityScore * 0.25 +
+      aiScores.retrievalReadinessScore * 0.20 +
+      aiScores.semanticTrustScore * 0.20 +
+      taResult.score * 0.15 +
+      aiScores.machineReadabilityScore * 0.10 +
+      aiScores.entityConfidenceScore * 0.10,
+    );
 
     // ── 4. Save to DB ─────────────────────────────────────────────────────────
 
@@ -822,6 +933,52 @@ export async function runServerlessAudit(
         recommendationConfidence: aiScores.recommendationConfidence,
       },
     });
+
+    // Save SSE scores — Topical Authority, Semantic Density, AI Crawlability, GEO, SNS
+    try {
+      const { saveSseScore } = await import('@sitenexis/db');
+      const kgScoreForSNS = perceptionGraph ? Math.min(100, Math.round(
+        (perceptionGraph.nodes.reduce((s, n) => s + n.confidence, 0) / Math.max(1, perceptionGraph.nodes.length)) * 50 +
+        Math.min(30, perceptionGraph.nodes.length * 2) +
+        Math.min(20, perceptionGraph.edges.length * 1.5),
+      )) : 50;
+      const snsMasterScore = Math.round(
+        aiScores.aiScore * 0.15 +
+        sseGeoScore * 0.15 +
+        aiScores.retrievalReadinessScore * 0.10 +
+        aiScores.entityConfidenceScore * 0.10 +
+        aiScores.citationProbabilityScore * 0.10 +
+        aiScores.semanticTrustScore * 0.10 +
+        taResult.score * 0.10 +
+        kgScoreForSNS * 0.05 +
+        aciResult.score * 0.05 +
+        schemaScore * 0.10,
+      );
+      const snsLabel = snsMasterScore >= 80 ? 'Dominant' : snsMasterScore >= 60 ? 'Strong' : snsMasterScore >= 40 ? 'Developing' : 'Weak';
+      await saveSseScore(auditId, {
+        topicalAuthorityScore: taResult.score,
+        taDepth: taResult.breakdown.depth,
+        taBreadth: taResult.breakdown.breadth,
+        taInterlinking: taResult.breakdown.interlinking,
+        taFreshness: taResult.breakdown.freshness,
+        semanticDensityScore: sdResult.score,
+        sdsRawDensity: sdResult.rawDensity,
+        sdsEntityCount: sdResult.breakdown.entityCount,
+        sdsFactCount: sdResult.breakdown.factCount,
+        sdsRelationshipCount: 0,
+        sdsTotalWords: sdResult.breakdown.totalWords,
+        aiCrawlabilityScore: aciResult.score,
+        aciRobots: aciResult.breakdown.robots,
+        aciSitemap: aciResult.breakdown.sitemap,
+        aciRenderability: aciResult.breakdown.renderability,
+        aciIndexability: aciResult.breakdown.indexability,
+        geoScore: sseGeoScore,
+        snsMasterScore,
+        snsLabel,
+      });
+    } catch (sseErr) {
+      logger.warn({ auditId, err: sseErr }, 'SSE score save failed (non-fatal)');
+    }
 
     // Save SEO issues
     if (seoIssues.length > 0) {
