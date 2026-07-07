@@ -110,6 +110,9 @@ const INTEL_CARDS = [
   { label: 'Synthetic Entity',       sub: 'Layer 4' },
   { label: 'Perception Graph',       sub: 'Layer 3' },
   { label: 'Authority Velocity',     sub: 'Layer 4' },
+  { label: 'Web Extraction',         sub: 'Crawl4AI' },
+  { label: 'Competitive Intel',      sub: 'Scrapy' },
+  { label: 'Decision Roadmap',       sub: 'v4' },
 ];
 
 const SCORES_PREVIEW = [
@@ -343,7 +346,7 @@ export default function HomePage() {
       {
         '@type': 'Question',
         name: 'What is SiteNexis?',
-        acceptedAnswer: { '@type': 'Answer', text: 'SiteNexis is an AI Retrieval and Machine Trust Intelligence platform. It runs 16 autonomous agents across four dependency layers to model how AI systems retrieve, interpret, trust, and recommend web content — producing twelve intelligence scores, a Global Fix Plan, and a full PDF report in a single scan.' },
+        acceptedAnswer: { '@type': 'Answer', text: 'SiteNexis is an AI Retrieval and Machine Trust Intelligence platform. It runs 16 autonomous agents across four dependency layers to model how AI systems retrieve, interpret, trust, and recommend web content — producing twelve intelligence scores, a Global Fix Plan, and a full PDF report in a single scan. Web extraction is powered by Crawl4AI; competitive intelligence by Scrapy. All external providers are accessed through a capability-first adapter architecture.' },
       },
       {
         '@type': 'Question',

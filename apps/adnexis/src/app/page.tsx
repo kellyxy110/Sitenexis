@@ -5,11 +5,11 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'AdNexis — AI Ad Creative Intelligence Platform',
-  description: 'Deconstruct winning ad creatives with AI. Analyze hooks, emotions, funnel stage, and CTA patterns. Generate high-converting ad variations in seconds.',
+  description: 'Deconstruct winning ad creatives with AI. Analyze hooks, emotions, funnel stage, and CTA patterns. Edit images, generate LTX-2.3 videos, and produce high-converting variations in seconds.',
   alternates: { canonical: 'https://adnexis-eight.vercel.app' },
   openGraph: {
     title: 'AdNexis — AI Ad Creative Intelligence',
-    description: 'Analyze winning ads. Understand what makes them convert. Generate better creatives powered by AI.',
+    description: 'Analyze winning ads. Edit images, generate videos. Produce high-converting creatives powered by AI.',
     url: 'https://adnexis-eight.vercel.app',
     siteName: 'AdNexis',
     type: 'website',
@@ -23,7 +23,7 @@ const jsonLd = {
   name: 'AdNexis',
   applicationCategory: 'BusinessApplication',
   operatingSystem: 'Web',
-  description: 'AI-powered ad creative intelligence platform. Deconstruct winning ads, analyze hook types, emotional stacks, funnel stages, and generate high-converting variations.',
+  description: 'AI-powered ad creative intelligence platform. Deconstruct winning ads, analyze hook types, emotional stacks, funnel stages, generate high-converting variations, edit images with Qwen AI, and generate short-form videos with LTX-2.3.',
   url: 'https://adnexis-eight.vercel.app',
   offers: {
     '@type': 'Offer',
@@ -39,6 +39,9 @@ const jsonLd = {
     'Performance scoring across 6 dimensions',
     'Ad variation generator',
     'Swipe vault with search and filter',
+    'AI image editing and inpainting via Qwen',
+    'LTX-2.3 short-form video generation',
+    'Capability-first creative adapter registry',
   ],
   creator: {
     '@type': 'Organization',
@@ -78,6 +81,16 @@ const FEATURES = [
     title: 'Hook Generator',
     description: 'Generate 10 hooks for any offer, audience, and platform combination. Built on patterns from thousands of high-performing ads across every major niche.',
   },
+  {
+    icon: '🖼️',
+    title: 'AI Image Editing',
+    description: 'Edit, retouch, and inpaint ad creatives with instruction-based AI. Swap backgrounds, adjust product placement, or iterate on visual compositions — without touching a design tool.',
+  },
+  {
+    icon: '🎬',
+    title: 'LTX-2.3 Video Generation',
+    description: 'Generate short-form ad videos from text prompts or image references using Lightricks LTX-2.3. Supports image-to-video workflows so you can animate existing ad statics directly.',
+  },
 ];
 
 const FAQS = [
@@ -100,6 +113,14 @@ const FAQS = [
   {
     q: 'Who is AdNexis for?',
     a: 'AdNexis is built for media buyers, performance marketers, creative directors, copywriters, and growth teams who need to move faster than intuition allows — decoding what works in competitor ads and generating their own high-converting creatives at scale.',
+  },
+  {
+    q: 'Can AdNexis edit existing ad images?',
+    a: 'Yes. AdNexis includes AI image editing powered by Qwen Image Edit (Phr00t/Qwen-Image-Edit-Rapid-AIO). Give it an instruction — swap the background, adjust the product placement, change the color palette — and the model applies the edit directly. Supports optional masking for targeted inpainting.',
+  },
+  {
+    q: 'Does AdNexis generate video ads?',
+    a: 'AdNexis supports short-form video generation via Lightricks LTX-2.3, a primary-tier video model with image-to-video capability. Generate videos from text prompts or animate an existing ad static directly. Supports up to 257 frames at 24fps with guidance scale control.',
   },
 ];
 
@@ -166,10 +187,10 @@ export default async function HomePage() {
         <section className="border-y border-[#2A2A4A] bg-[#16162A] px-6 py-10">
           <div className="mx-auto max-w-4xl grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             {[
-              { value: '6', label: 'AI models powering analysis' },
+              { value: '12', label: 'AI creative providers' },
               { value: '6', label: 'Performance dimensions scored' },
               { value: '10+', label: 'Hook archetypes classified' },
-              { value: '4', label: 'Platforms supported' },
+              { value: '4', label: 'Creative output types' },
             ].map((s) => (
               <div key={s.label}>
                 <div className="text-3xl font-bold text-[#6C3EFF] mb-1">{s.value}</div>
@@ -208,7 +229,7 @@ export default async function HomePage() {
               {[
                 { step: '01', title: 'Add an ad to your Vault', description: 'Paste the ad transcript, select the platform, add the source URL. AdNexis accepts any text-based ad creative.' },
                 { step: '02', title: 'AI analyzes the creative', description: 'Our AI pipeline extracts the hook type, emotional stack, funnel stage, CTA pattern, and target audience. You get a full performance score in seconds.' },
-                { step: '03', title: 'Generate variations', description: 'Select any analyzed ad and generate multiple high-converting variations. Control tone, platform, and localization. Export directly.' },
+                { step: '03', title: 'Generate, edit, or animate', description: 'Generate copy variations, edit images with Qwen AI (inpainting, background swap, product adjustment), or animate a static with LTX-2.3 video generation — all from the same interface.' },
                 { step: '04', title: 'Build your creative intelligence', description: 'As your vault grows, patterns emerge. See which hook types perform best in your niche. Identify what emotional architectures your audience responds to.' },
               ].map((s) => (
                 <div key={s.step} className="flex gap-6">

@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(appUrl),
   title: 'SiteNexis — AI Retrieval & Machine Trust Intelligence',
   description:
-    'SiteNexis models how AI systems retrieve, interpret, trust, and recommend your website. 12 scores, 16 agents, real-time retrieval simulation.',
+    'SiteNexis models how AI systems retrieve, interpret, trust, and recommend your website. 12 scores, 16 agents, Crawl4AI web extraction, Scrapy competitive intelligence, real-time retrieval simulation.',
   alternates: {
     canonical: '/',
   },
@@ -42,7 +42,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: 'SiteNexis — AI Retrieval & Machine Trust Intelligence',
-    description: 'SiteNexis models how AI systems retrieve, interpret, trust, and recommend your website. 12 scores, 16 agents, real-time retrieval simulation.',
+    description: 'SiteNexis models how AI systems retrieve, interpret, trust, and recommend your website. 12 scores, 16 agents, Crawl4AI web extraction, Scrapy competitive intelligence, real-time retrieval simulation.',
     url: appUrl,
     siteName: 'SiteNexis',
     type: 'website',
@@ -61,7 +61,7 @@ export const metadata: Metadata = {
     site: '@Sitenexis',
     creator: '@Sitenexis',
     title: 'SiteNexis — AI Retrieval & Machine Trust Intelligence',
-    description: 'SiteNexis models how AI systems retrieve, interpret, trust, and recommend your website. 12 scores, 16 agents, real-time retrieval simulation.',
+    description: 'SiteNexis models how AI systems retrieve, interpret, trust, and recommend your website. 12 scores, 16 agents, Crawl4AI web extraction, Scrapy competitive intelligence, real-time retrieval simulation.',
     images: ['/opengraph-image'],
   },
 };
@@ -129,6 +129,8 @@ const SITE_SCHEMA = {
         'Entity SEO',
         'AI Visibility Engineering',
         'Large Language Models',
+        'Capability-First Architecture',
+        'Web Extraction Engineering',
         'Next.js',
         'TypeScript',
       ],
@@ -167,7 +169,7 @@ const SITE_SCHEMA = {
       url: appUrl,
       description:
         'SiteNexis audits any domain across 12 dimensions using 16 intelligence agents. It produces AI Visibility scores, Machine Trust scores, Retrieval Simulation results, Temporal Authority analysis, Recommendation Surface maps, and Synthetic Entity detection — giving publishers a complete model of how AI systems perceive and recommend their content.',
-      keywords: 'AI visibility, machine trust, entity SEO, AI retrieval simulation, ChatGPT visibility, Gemini optimization, AI Overviews, retrieval-augmented generation',
+      keywords: 'AI visibility, machine trust, entity SEO, AI retrieval simulation, ChatGPT visibility, Gemini optimization, AI Overviews, retrieval-augmented generation, Crawl4AI web extraction, Scrapy competitive intelligence, capability-first architecture',
       screenshot: `${appUrl}/opengraph-image`,
       offers: {
         '@type': 'AggregateOffer',
@@ -193,6 +195,11 @@ const SITE_SCHEMA = {
         'AI Perception Graph',
         'Semantic Trust Scoring',
         'Schema Completeness Analysis',
+        'Crawl4AI Web Extraction',
+        'Scrapy Competitive Intelligence',
+        'Decision Roadmap Orchestrator',
+        'Competitive Reality Simulation',
+        'Capability-First Adapter Architecture',
       ],
     },
     // ── FAQ (drives AI Overviews + ChatGPT direct-answer retrieval) ───────────
