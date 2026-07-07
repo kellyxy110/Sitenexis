@@ -52,6 +52,12 @@ const envSchema = z.object({
   RESEND_API_KEY: z.string().default(''),
   RESEND_FROM_EMAIL: z.string().default('SiteNexis <noreply@sitenexis.com>'),
 
+  // Crawl4AI — Python extraction microservice (primary web extraction provider when set)
+  CRAWL4AI_URL: z.string().default(''),
+
+  // Scrapy — Python competitive intelligence microservice (competitive analysis when set)
+  SCRAPY_SERVICE_URL: z.string().default(''),
+
   // Self-audit system — must be explicitly set; no default to avoid predictable secrets in prod
   SELF_AUDIT_SECRET: z.string().min(16).default('dev-self-audit-secret-change-in-prod'),
   VERCEL_DEPLOY_WEBHOOK_SECRET: z.string().min(16).default('dev-vercel-webhook-secret-change-in-prod'),

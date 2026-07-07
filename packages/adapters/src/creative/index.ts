@@ -32,6 +32,7 @@ export { ImageGenerationRegistry, ImageGenerationError, imageRegistry } from './
 export type { VideoGenerationInput, VideoModelConstraints, VideoGenerationAdapter } from './video/interface';
 export { HuggingFaceVideoBase } from './video/huggingface.base';
 export { CogVideoX5bAdapter, getCogVideoX5bAdapter } from './video/cogvideox.adapter';
+export { Ltx23Adapter, getLtx23Adapter } from './video/ltx.adapter';
 export { Wan14BAdapter, getWan14BAdapter } from './video/wan.adapter';
 export { VideoGenerationRegistry, VideoGenerationError, videoRegistry } from './video/registry';
 
@@ -60,6 +61,11 @@ export type {
 } from './optimization/interface';
 export { PLATFORM_PROFILES } from './optimization/interface';
 
+// ── Image editing ─────────────────────────────────────────────────────────────
+export type { ImageEditingInput, ImageEditingConstraints, ImageEditingAdapter } from './image-editing/interface';
+export { QwenImageEditAdapter, getQwenImageEditAdapter } from './image-editing/qwen-image-edit.adapter';
+export { ImageEditingRegistry, ImageEditingError, imageEditingRegistry } from './image-editing/registry';
+
 // ── Benchmark ─────────────────────────────────────────────────────────────────
 export type {
   ImageBenchmarkResult,
@@ -69,6 +75,27 @@ export type {
   ProviderSummary,
 } from './benchmark';
 export { CreativeBenchmarkRunner } from './benchmark';
+
+// ── Creative benchmark stubs (evaluation-only, not production) ────────────────
+export type {
+  AdNexisCreativeBriefInput,
+  AdNexisCreativeBriefOutput,
+  LongFormCreativeBriefAdapter,
+  CreativeAgentPlanInput,
+  CreativeAgentPlanOutput,
+  CreativeAgentPlanningAdapter,
+  CreativeRoutingInput,
+  CreativeRoutingDecision,
+  FastCreativeRoutingAdapter,
+} from './creative-benchmark-stubs';
+export {
+  PagestormCreativeBriefStub,
+  GemmaCreativeAgentStub,
+  OpenPanguCreativeRoutingStub,
+  getPagestormCreativeBriefStub,
+  getGemmaCreativeAgentStub,
+  getOpenPanguCreativeRoutingStub,
+} from './creative-benchmark-stubs';
 
 // ── Top-level registry ────────────────────────────────────────────────────────
 export { CreativeCapabilityRegistry, creativeRegistry } from './registry';
