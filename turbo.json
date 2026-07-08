@@ -5,7 +5,7 @@
     "build": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**", "generated/**"],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"],
       "env": [
         "PRISMA_QUERY_ENGINE_LIBRARY",
         "NODE_ENV",
