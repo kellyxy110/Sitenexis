@@ -1,15 +1,29 @@
 import { z } from 'zod';
 
+const isProd = process.env['NODE_ENV'] === 'production';
+
+// In production: require a real value. In dev/test: fall back to a placeholder
+// so local development works without all secrets configured.
+const prodRequired = (placeholder: string) =>
+  isProd ? z.string().min(1, `Required in production`) : z.string().default(placeholder);
+
+// Secrets that must never have a guessable default in any environment.
+// In prod: required. In dev: still warn-level but allow a local fallback.
+const secret = (minLen = 16) =>
+  isProd
+    ? z.string().min(minLen, `Must be at least ${minLen} characters in production`)
+    : z.string().min(minLen).default('dev-secret-change-before-deploying-to-production');
+
 const envSchema = z.object({
-  DATABASE_URL: z.string().default('postgresql://placeholder:placeholder@localhost:5432/placeholder'),
-  DIRECT_URL: z.string().default('postgresql://placeholder:placeholder@localhost:5432/placeholder'),
+  DATABASE_URL: prodRequired('postgresql://placeholder:placeholder@localhost:5432/placeholder'),
+  DIRECT_URL: prodRequired('postgresql://placeholder:placeholder@localhost:5432/placeholder'),
 
-  SUPABASE_URL: z.string().default('https://placeholder.supabase.co'),
-  SUPABASE_ANON_KEY: z.string().default('placeholder'),
-  SUPABASE_SERVICE_ROLE_KEY: z.string().default('placeholder'),
+  SUPABASE_URL: prodRequired('https://placeholder.supabase.co'),
+  SUPABASE_ANON_KEY: prodRequired('placeholder'),
+  SUPABASE_SERVICE_ROLE_KEY: prodRequired('placeholder'),
 
-  NEXT_PUBLIC_SUPABASE_URL: z.string().default('https://placeholder.supabase.co'),
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().default('placeholder'),
+  NEXT_PUBLIC_SUPABASE_URL: prodRequired('https://placeholder.supabase.co'),
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: prodRequired('placeholder'),
 
   GROQ_API_KEY: z.string().default(''),
   OPENAI_API_KEY: z.string().optional(),
@@ -35,13 +49,19 @@ const envSchema = z.object({
   REDIS_URL: z.string().default('redis://localhost:6379'),
 
   S3_BUCKET_NAME: z.string().default('sitenexis-reports'),
-  S3_ACCESS_KEY_ID: z.string().default('placeholder'),
-  S3_SECRET_ACCESS_KEY: z.string().default('placeholder'),
-  S3_ENDPOINT: z.string().default('https://placeholder.r2.cloudflarestorage.com'),
+  S3_ACCESS_KEY_ID: z.string().default(''),
+  S3_SECRET_ACCESS_KEY: z.string().default(''),
+  S3_ENDPOINT: z.string().default(''),
 
-  STRIPE_SECRET_KEY: z.string().default('sk_test_placeholder'),
-  STRIPE_WEBHOOK_SECRET: z.string().default('whsec_placeholder'),
+  STRIPE_SECRET_KEY: prodRequired('sk_test_placeholder'),
+  STRIPE_WEBHOOK_SECRET: prodRequired('whsec_placeholder'),
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().default('pk_test_placeholder'),
+
+  // Stripe price IDs — map each plan to its Stripe price ID from the dashboard
+  STRIPE_PRICE_STARTER: z.string().default(''),
+  STRIPE_PRICE_PRO: z.string().default(''),
+  STRIPE_PRICE_AGENCY: z.string().default(''),
+  STRIPE_PRICE_ENTERPRISE: z.string().default(''),
 
   NEXT_PUBLIC_APP_URL: z.string().default('http://localhost:3000'),
 
@@ -58,9 +78,9 @@ const envSchema = z.object({
   // Scrapy — Python competitive intelligence microservice (competitive analysis when set)
   SCRAPY_SERVICE_URL: z.string().default(''),
 
-  // Self-audit system — must be explicitly set; no default to avoid predictable secrets in prod
-  SELF_AUDIT_SECRET: z.string().min(16).default('dev-self-audit-secret-change-in-prod'),
-  VERCEL_DEPLOY_WEBHOOK_SECRET: z.string().min(16).default('dev-vercel-webhook-secret-change-in-prod'),
+  // Self-audit + deploy webhook — must be strong random secrets in production
+  SELF_AUDIT_SECRET: secret(16),
+  VERCEL_DEPLOY_WEBHOOK_SECRET: secret(16),
 });
 
 export const env = envSchema.parse(process.env);

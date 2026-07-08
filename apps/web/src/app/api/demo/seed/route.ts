@@ -149,8 +149,9 @@ const demos = [
 ];
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  const seedKey = process.env['SEED_DEMO_KEY'];
   const authHeader = req.headers.get('x-seed-key');
-  if (authHeader !== process.env['SEED_DEMO_KEY'] && authHeader !== 'sitenexis-seed-2026') {
+  if (!seedKey || authHeader !== seedKey) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

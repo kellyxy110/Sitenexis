@@ -8,8 +8,13 @@ export function createServer(): express.Application {
   const app = express();
 
   app.use(express.json({ limit: '1mb' }));
+  const allowedOrigins = process.env['ALLOWED_ORIGINS']
+    ?.split(',').map((o) => o.trim()).filter(Boolean);
   app.use(cors({
-    origin: process.env['ALLOWED_ORIGINS']?.split(',') ?? '*',
+    // Default to deny-all when ALLOWED_ORIGINS is not set.
+    // Production: set ALLOWED_ORIGINS=https://sitenexis.com
+    // Dev: set ALLOWED_ORIGINS=http://localhost:3000
+    origin: allowedOrigins && allowedOrigins.length > 0 ? allowedOrigins : false,
     methods: ['GET', 'POST'],
   }));
 

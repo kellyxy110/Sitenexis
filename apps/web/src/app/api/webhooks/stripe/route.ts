@@ -7,10 +7,25 @@ import { env } from '@/lib/env';
 
 const stripe = new Stripe(env.STRIPE_SECRET_KEY ?? '');
 
-const PRICE_TO_PLAN: Record<string, Plan> = {
-  // Populate with actual Stripe price IDs from dashboard
-  // e.g. 'price_xxx': 'starter',
-};
+// Price IDs are set via environment variables in Vercel:
+//   STRIPE_PRICE_STARTER, STRIPE_PRICE_PRO, STRIPE_PRICE_AGENCY, STRIPE_PRICE_ENTERPRISE
+// Copy each price ID from your Stripe dashboard → Products → [Plan] → Prices.
+// A missing or empty price ID is skipped rather than silently mapping to 'free'.
+function buildPriceToPlan(): Record<string, Plan> {
+  const map: Record<string, Plan> = {};
+  const entries: Array<[string, Plan]> = [
+    [env.STRIPE_PRICE_STARTER,    'starter'],
+    [env.STRIPE_PRICE_PRO,        'pro'],
+    [env.STRIPE_PRICE_AGENCY,     'agency'],
+    [env.STRIPE_PRICE_ENTERPRISE, 'enterprise'],
+  ];
+  for (const [priceId, plan] of entries) {
+    if (priceId) map[priceId] = plan;
+  }
+  return map;
+}
+
+const PRICE_TO_PLAN = buildPriceToPlan();
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const body = await req.text();
@@ -32,7 +47,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       case 'customer.subscription.updated': {
         const sub = event.data.object as Stripe.Subscription;
         const priceId = sub.items.data[0]?.price.id ?? '';
-        const plan = PRICE_TO_PLAN[priceId] ?? 'free';
+        const plan = PRICE_TO_PLAN[priceId];
+        if (!plan) {
+          logger.warn({ priceId, type: event.type }, 'Stripe price ID not mapped — set STRIPE_PRICE_* env vars. Skipping plan update.');
+          break;
+        }
         const customerId = typeof sub.customer === 'string' ? sub.customer : sub.customer.id;
 
         const customer = await stripe.customers.retrieve(customerId);
