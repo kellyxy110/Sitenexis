@@ -264,6 +264,42 @@
 }
 .card-glow-border:hover::after { opacity: 1; }
 
+/* ── Light Theme ──────────────────────────────────────────────────────────── */
+[data-theme="light"] body {
+  background: #EBF4FC;
+  color: #0A1628;
+}
+
+/* Sidebar + deep backgrounds */
+[data-theme="light"] .bg-deepspace { background-color: #FFFFFF !important; }
+[data-theme="light"] .bg-midnight  { background-color: #EBF4FC !important; }
+[data-theme="light"] .bg-surface-dark { background-color: #F2F7FC !important; }
+
+/* Transparent white fills → transparent dark fills */
+[data-theme="light"] .bg-white\/\[0\.02\] { background-color: rgba(10,22,40,0.03) !important; }
+[data-theme="light"] .bg-white\/\[0\.03\] { background-color: rgba(10,22,40,0.04) !important; }
+[data-theme="light"] .bg-white\/\[0\.04\] { background-color: rgba(10,22,40,0.05) !important; }
+[data-theme="light"] .bg-white\/5        { background-color: rgba(10,22,40,0.05) !important; }
+[data-theme="light"] .bg-white\/10       { background-color: rgba(10,22,40,0.08) !important; }
+
+/* Borders */
+[data-theme="light"] .border-white\/\[0\.06\] { border-color: rgba(10,22,40,0.10) !important; }
+[data-theme="light"] .border-white\/\[0\.12\] { border-color: rgba(10,22,40,0.16) !important; }
+
+/* Text */
+[data-theme="light"] .text-white        { color: #0A1628 !important; }
+[data-theme="light"] .text-\[#C8DFE8\]  { color: #1A3A5C !important; }
+[data-theme="light"] .text-\[#7A9AB4\]  { color: #3A5C7A !important; }
+[data-theme="light"] .text-\[#4A6280\]  { color: #4A6280 !important; }
+[data-theme="light"] .text-\[#3A5568\]  { color: #3A5568 !important; }
+
+/* Nav hover states */
+[data-theme="light"] .hover\:bg-white\/5:hover  { background-color: rgba(10,22,40,0.06) !important; }
+[data-theme="light"] .hover\:text-white:hover   { color: #0A1628 !important; }
+
+/* Sidebar border separator */
+[data-theme="light"] .border-white\/\[0\.04\] { border-color: rgba(10,22,40,0.07) !important; }
+
 /* ── Utilities ────────────────────────────────────────────────────────────── */
 @layer utilities {
   .text-balance { text-wrap: balance; }

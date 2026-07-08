@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
-import { PanelLeftClose, PanelLeftOpen, X, Menu } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { PanelLeftClose, PanelLeftOpen, X, Menu, Sun, Moon } from 'lucide-react';
 import { NAV_GROUPS } from '@/components/nav-config';
 import { NavItem } from '@/components/ui/NavItem';
 
@@ -159,11 +159,46 @@ function SidebarInner({
         ))}
       </nav>
 
-      {/* User footer */}
-      <div className="mt-4">
+      {/* Theme toggle + user footer */}
+      <div className="mt-4 space-y-2">
+        <ThemeToggle collapsed={collapsed} />
         <UserFooter userName={userName} plan={plan} collapsed={collapsed} />
       </div>
     </aside>
+  );
+}
+
+function ThemeToggle({ collapsed }: { collapsed: boolean }) {
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+
+  useEffect(() => {
+    const saved = (localStorage.getItem('sn-theme') ?? 'dark') as 'dark' | 'light';
+    setTheme(saved);
+  }, []);
+
+  function toggle() {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+    localStorage.setItem('sn-theme', next);
+    document.documentElement.setAttribute('data-theme', next);
+  }
+
+  return (
+    <button
+      onClick={toggle}
+      title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+      className={[
+        'flex items-center gap-2 rounded-md p-1.5 text-[#4A6280] transition-colors hover:bg-white/5 hover:text-white',
+        collapsed ? 'justify-center w-full' : 'w-full px-2',
+      ].join(' ')}
+    >
+      {theme === 'dark'
+        ? <Sun className="h-3.5 w-3.5 shrink-0" />
+        : <Moon className="h-3.5 w-3.5 shrink-0" />}
+      {!collapsed && (
+        <span className="text-xs">{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
+      )}
+    </button>
   );
 }
 

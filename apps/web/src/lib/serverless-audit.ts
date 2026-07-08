@@ -377,7 +377,6 @@ function computeRetrievalSimulations(
     const hc = page.headings.length;
     const hasSchema = page.hasStructuredData;
     const hasFAQ = page.schemaTypes.includes('FAQPage') || page.schemaTypes.includes('HowTo');
-
     const expectedChunks = Math.max(1, Math.ceil(wc / 400));
     const chunkStabilityIndex = Math.min(0.97, Math.max(0.15,
       0.30 + Math.min(0.40, (hc / expectedChunks) * 0.40) + (wc > 300 ? 0.15 : 0) + (hasSchema ? 0.12 : 0),
@@ -403,15 +402,80 @@ function computeRetrievalSimulations(
       (citationEligibilityScore / 100) * 25,
     );
 
+    const hasH1 = Boolean(page.h1);
+    const hasMeta = Boolean(page.metaDescription);
+    const hasCanonical = Boolean(page.canonical);
+    const isNoindex = page.robotsMeta?.toLowerCase().includes('noindex') ?? false;
+    const extLinks = page.externalLinks.length;
+    const headingDensity = hc / expectedChunks;
+
     const retrievalFailureReasons: RetrievalSimulationResult['retrievalFailureReasons'] = [];
-    if (wc < 200) {
-      retrievalFailureReasons.push({ stage: 'chunk_extraction', description: 'Page has too few words to form a stable chunk', severity: 'warning', affectedChunks: [], recommendation: 'Expand content to at least 300 words to improve chunk stability.' });
+
+    // 1. Content volume
+    if (wc < 100) {
+      retrievalFailureReasons.push({ stage: 'chunk_extraction', description: `Critically thin content (${wc} words) — insufficient for chunk formation`, severity: 'critical', affectedChunks: [], recommendation: 'This page needs at least 300 words before AI extractors can form a stable semantic chunk.' });
+    } else if (wc < 300) {
+      retrievalFailureReasons.push({ stage: 'chunk_extraction', description: `Thin content (${wc} words) — marginal chunk stability`, severity: 'warning', affectedChunks: [], recommendation: 'Expand to at least 300 words. AI chunkers cannot form reliable semantic units from very short pages.' });
     }
+
+    // 2. Heading structure
+    if (hc === 0 && wc > 200) {
+      retrievalFailureReasons.push({ stage: 'chunk_extraction', description: `No headings — ${wc} words with no semantic boundaries for chunk splitting`, severity: 'critical', affectedChunks: [], recommendation: 'Add H2/H3 headings every 200–400 words. AI extractors use heading tags as primary chunk boundary signals.' });
+    } else if (headingDensity < 0.3 && wc > 600 && hc < 3) {
+      retrievalFailureReasons.push({ stage: 'chunk_extraction', description: `Low heading density — only ${hc} heading${hc !== 1 ? 's' : ''} across ${wc} words`, severity: 'warning', affectedChunks: [], recommendation: 'Add more H2/H3 subheadings. Without them a single tokenizer pass will produce unstable, oversized chunks.' });
+    }
+
+    // 3. H1 topic anchor
+    if (!hasH1) {
+      retrievalFailureReasons.push({ stage: 'summarisation', description: 'No H1 tag — AI summarisation has no primary topic anchor', severity: 'warning', affectedChunks: [], recommendation: 'Add a single H1 clearly naming the page topic. It is the primary signal AI systems use to classify content for retrieval.' });
+    }
+
+    // 4. Title
+    if (!page.title) {
+      retrievalFailureReasons.push({ stage: 'summarisation', description: 'Missing <title> — AI systems cannot anchor this page to a query topic', severity: 'critical', affectedChunks: [], recommendation: 'Add a 50–60 character title containing the primary keyword and entity name.' });
+    } else if (page.title.length < 15) {
+      retrievalFailureReasons.push({ stage: 'summarisation', description: `Very short title "${page.title.slice(0, 30)}" — insufficient topic signal for AI classification`, severity: 'warning', affectedChunks: [], recommendation: 'Expand the title to 40–60 characters, clearly describing the entity and page purpose.' });
+    }
+
+    // 5. Title / H1 alignment
+    if (page.title && page.h1) {
+      const titleWords = new Set(page.title.toLowerCase().split(/\W+/).filter((w) => w.length > 3));
+      const h1Sig = page.h1.toLowerCase().split(/\W+/).filter((w) => w.length > 3);
+      const overlap = h1Sig.filter((w) => titleWords.has(w)).length;
+      if (overlap === 0 && h1Sig.length > 1) {
+        retrievalFailureReasons.push({ stage: 'summarisation', description: 'Title and H1 share no key terms — AI systems receive conflicting topic signals', severity: 'info', affectedChunks: [], recommendation: 'Align the <title> and H1 so they share at least 2–3 key terms. Misaligned signals reduce retrieval confidence.' });
+      }
+    }
+
+    // 6. Meta description
+    if (!hasMeta) {
+      retrievalFailureReasons.push({ stage: 'ranking_pressure', description: 'Missing meta description — reduces ranking signal strength in competitive retrieval', severity: 'info', affectedChunks: [], recommendation: 'Write a 120–155 character meta description. AI ranking systems use it when scoring content under query pressure.' });
+    }
+
+    // 7. Canonical
+    if (!hasCanonical) {
+      retrievalFailureReasons.push({ stage: 'ranking_pressure', description: 'No canonical URL declared — duplicate content risk fragments retrieval authority', severity: 'warning', affectedChunks: [], recommendation: 'Add <link rel="canonical"> to consolidate ranking signals to a single authoritative URL.' });
+    }
+
+    // 8. noindex
+    if (isNoindex) {
+      retrievalFailureReasons.push({ stage: 'ranking_pressure', description: 'noindex directive present — this page is excluded from AI crawler indexing', severity: 'critical', affectedChunks: [], recommendation: 'Remove the noindex directive if this page should appear in AI retrieval results.' });
+    }
+
+    // 9. Schema / citation eligibility
     if (!hasSchema) {
-      retrievalFailureReasons.push({ stage: 'citation_filter', description: 'No structured data — page lacks authority signals for citation eligibility', severity: 'warning', affectedChunks: [], recommendation: 'Add JSON-LD schema markup (Article, Organization, or FAQPage).' });
+      const pageLabel = page.title ? `"${page.title.slice(0, 40)}"` : 'this page';
+      retrievalFailureReasons.push({ stage: 'citation_filter', description: `No structured data on ${pageLabel} — AI citation systems cannot verify authority signals`, severity: 'warning', affectedChunks: [], recommendation: 'Add appropriate JSON-LD schema: Article for blog posts, Organization + WebSite for the homepage, FAQPage for Q&A content.' });
     }
+
+    // 10. External link isolation
+    if (extLinks === 0 && wc > 400) {
+      retrievalFailureReasons.push({ stage: 'citation_filter', description: 'No outbound links to external sources — content appears self-referential to AI evaluators', severity: 'info', affectedChunks: [], recommendation: 'Link to 2–3 authoritative external sources. External references increase citation eligibility and trust signal depth.' });
+    }
+
+    // 11. Truncation zone
     if (wc > 3000) {
-      retrievalFailureReasons.push({ stage: 'truncation', description: `Page is ${wc} words — content past the context window may be ignored`, severity: 'info', affectedChunks: [], recommendation: 'Place key facts and entity definitions in the first 1500 words.' });
+      retrievalFailureReasons.push({ stage: 'truncation', description: `Page is ${wc} words — approximately ${wc - 2000} words may fall outside the AI context window`, severity: 'info', affectedChunks: [], recommendation: 'Front-load key entity definitions and factual claims in the first 1500 words. Use headings to signal critical content early.' });
     }
 
     return {
@@ -423,7 +487,7 @@ function computeRetrievalSimulations(
       summarisationLossScore,
       citationEligibilityScore,
       retrievalFailureReasons,
-      truncationZoneWarnings: wc > 2000 ? [`Content beyond ~2000 words (≈${wc - 2000} words) may fall outside the retrieval context window.`] : [],
+      truncationZoneWarnings: wc > 2000 ? [`Content beyond ~2000 words (≈${wc - 2000} words on this page) may fall outside the retrieval context window.`] : [],
       fragileClaimsCount: page.headings.filter((h) => /\d|percent|%|founded|launched|vs\.|compared/i.test(h.text)).length,
     };
   });
@@ -450,9 +514,39 @@ function computeMachineTrustScore(pages: ParsedPage[], schemaScore: number): Mac
   const overall = Math.min(100, Math.round(entityCredibilityScore * 0.35 + schemaTrustAlignmentScore * 0.25 + externalValidationScore * 0.30 + trustDegradationResistance * 0.10));
 
   const trustIssues: MachineTrustScore['trustIssues'] = [];
-  if (!hasOrgSchema) trustIssues.push({ type: 'missing_entity_schema', severity: 'critical', entity: homepage?.title ?? 'Primary Entity', description: 'No Organisation schema detected — AI systems cannot verify the primary entity identity.', recommendation: 'Add an Organisation schema block to the homepage with name, url, description, and sameAs links.' });
-  if (!hasSameAs) trustIssues.push({ type: 'missing_same_as', severity: 'warning', entity: homepage?.title ?? 'Primary Entity', description: 'No sameAs links detected — AI systems cannot cross-validate against external knowledge bases.', recommendation: 'Add sameAs links pointing to Wikipedia, Wikidata, LinkedIn, or Crunchbase.' });
-  if (authorityLinks.length === 0) trustIssues.push({ type: 'no_external_validation', severity: 'warning', entity: 'Site', description: 'No links to authoritative external sources detected — trust signals are self-referential.', recommendation: 'Link to authoritative sources to strengthen external trust signals.' });
+
+  if (!hasOrgSchema) {
+    trustIssues.push({ type: 'missing_entity_schema', severity: 'critical', entity: homepage?.title ?? 'Primary Entity', description: 'No Organisation schema on the homepage — AI systems cannot verify the primary entity\'s identity or attributes.', recommendation: 'Add a JSON-LD Organization block to the homepage with: name, url, description, foundingDate, and sameAs links to Wikipedia/LinkedIn.' });
+  }
+
+  if (!hasSameAs) {
+    trustIssues.push({ type: 'missing_same_as', severity: 'warning', entity: homepage?.title ?? 'Primary Entity', description: 'No sameAs links detected — AI systems cannot cross-validate entity identity against external knowledge bases.', recommendation: 'Add sameAs links in Organisation schema pointing to Wikipedia, Wikidata, LinkedIn, or Crunchbase to enable external identity validation.' });
+  }
+
+  if (authorityLinks.length === 0) {
+    trustIssues.push({ type: 'no_external_validation', severity: 'warning', entity: 'Site', description: 'No links to authoritative external sources detected — all trust signals are self-referential.', recommendation: 'Link to authoritative sources (Wikipedia, government sites, academic publications) on relevant pages to create verifiable trust pathways.' });
+  }
+
+  const articlePages = pages.filter((p) => p.schemaTypes.some((t) => ['Article', 'BlogPosting', 'NewsArticle'].includes(t)));
+  const unstructuredContentPages = pages.filter((p) => p.wordCount > 500 && !p.hasStructuredData);
+  if (unstructuredContentPages.length >= Math.ceil(pages.length * 0.3) && unstructuredContentPages.length > 0) {
+    trustIssues.push({ type: 'unstructured_content_pages', severity: 'warning', entity: 'Content pages', description: `${unstructuredContentPages.length} content-rich pages lack any schema markup — AI systems cannot categorise or validate their authority.`, recommendation: `Add Article or BlogPosting schema to substantive content pages. Start with the ${Math.min(3, unstructuredContentPages.length)} highest-traffic pages first.` });
+  }
+
+  const pagesWithDateSchema = pages.filter((p) => p.schemas.some((s) => { const o = s as Record<string, unknown>; return Boolean(o['datePublished'] ?? o['dateModified']); }));
+  if (articlePages.length > 2 && pagesWithDateSchema.length < articlePages.length * 0.5) {
+    trustIssues.push({ type: 'missing_date_signals', severity: 'warning', entity: 'Article pages', description: `${articlePages.length - pagesWithDateSchema.length} article pages lack datePublished/dateModified schema — AI systems apply accelerated trust decay to undated content.`, recommendation: 'Add datePublished and dateModified to all Article and BlogPosting schema blocks to signal content freshness and maintain AI trust.' });
+  }
+
+  const homepageSchemaTypes = homepage?.schemaTypes ?? [];
+  if (!homepageSchemaTypes.includes('WebSite')) {
+    trustIssues.push({ type: 'missing_website_schema', severity: 'info', entity: 'Homepage', description: 'No WebSite schema on the homepage — AI systems lack a canonical entry point definition for the domain.', recommendation: 'Add WebSite schema to the homepage with name, url, and optionally a SearchAction if the site has search functionality.' });
+  }
+
+  const schemaPageRatio = pages.filter((p) => p.hasStructuredData).length / Math.max(1, pages.length);
+  if (schemaPageRatio < 0.2 && pages.length > 5) {
+    trustIssues.push({ type: 'low_schema_coverage', severity: 'warning', entity: 'Site-wide', description: `Only ${Math.round(schemaPageRatio * 100)}% of pages have schema markup — sparse coverage limits site-wide trust signal density.`, recommendation: 'Extend schema markup to at least 60% of pages. Prioritise pages with the highest word count and most internal inbound links.' });
+  }
 
   return { overall, entityCredibilityScore, schemaTrustAlignmentScore, externalValidationScore, contradictionAbsenceScore: null, trustDegradationResistance, crossSourceValidationIndex, trustIssues, degradationSignals: [] };
 }
@@ -520,8 +614,23 @@ function computeRecommendationSurfaces(
 
   const toStatus = (p: number): RecommendationSurfaceMap['surfaces']['aiOverviews']['status'] => p >= 65 ? 'visible' : p >= 40 ? 'partial' : 'absent';
   const coverageGaps: RecommendationSurfaceMap['coverageGaps'] = [];
-  if (aiOverviewsProb < 40) coverageGaps.push({ surface: 'AI Overviews', missedOpportunity: 'Featured in search-integrated AI responses', requiredSignals: ['FAQPage schema', 'schema completeness > 60', 'citation probability > 60'], estimatedImpact: 'high' });
-  if (voiceProb < 40) coverageGaps.push({ surface: 'Voice retrieval', missedOpportunity: 'Voice assistant answers', requiredSignals: ['speakable schema', 'FAQPage schema', 'concise direct answers'], estimatedImpact: 'medium' });
+  if (aiOverviewsProb < 40) {
+    coverageGaps.push({ surface: 'AI Overviews', missedOpportunity: 'Featured in search-integrated AI responses (Google SGE, Bing Copilot)', requiredSignals: ['FAQPage schema', 'schema completeness > 60', 'citation probability > 60', 'featured snippet eligibility'], estimatedImpact: 'high' });
+  } else if (aiOverviewsProb < 65) {
+    coverageGaps.push({ surface: 'AI Overviews', missedOpportunity: 'Partial visibility — not yet qualifying for featured position', requiredSignals: ['HowTo schema', 'schema completeness > 70', 'FAQPage with 5+ entries', 'E-E-A-T signals'], estimatedImpact: 'medium' });
+  }
+  if (voiceProb < 40) {
+    coverageGaps.push({ surface: 'Voice retrieval', missedOpportunity: 'Voice assistant answers (Siri, Alexa, Google Assistant)', requiredSignals: ['speakable schema', 'FAQPage schema', 'concise direct answers under 30 words', 'LocalBusiness schema if applicable'], estimatedImpact: 'medium' });
+  }
+  if (chatProb < 45) {
+    coverageGaps.push({ surface: 'Chat recommendation', missedOpportunity: 'LLM assistant unprompted recommendations (ChatGPT, Claude, Gemini)', requiredSignals: ['entity confidence > 60', 'semantic trust > 60', 'topical authority depth', 'factual density'], estimatedImpact: 'high' });
+  }
+  if (agentProb < 35) {
+    coverageGaps.push({ surface: 'Autonomous agent discovery', missedOpportunity: 'Programmatic entity and capability discovery by AI agents', requiredSignals: ['comprehensive entity schema', 'sameAs links', '/.well-known/ discovery endpoints', 'robots.txt agent allowances'], estimatedImpact: 'low' });
+  }
+  if (!hasSpeakableSchema && voiceProb < 70) {
+    coverageGaps.push({ surface: 'Voice retrieval', missedOpportunity: 'speakable schema not declared on any page', requiredSignals: ['speakable schema on Q&A or FAQ pages', 'concise direct-answer markup for voice extraction'], estimatedImpact: 'medium' });
+  }
 
   const missingChannels: string[] = [];
   if (voiceProb < 40) missingChannels.push('Voice assistant retrieval');

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import { Providers } from '@/components/Providers';
+import { ThemeProvider } from '@/components/ThemeProvider';
 
 const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://sitenexis.vercel.app';
 
@@ -254,8 +255,10 @@ const SITE_SCHEMA = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
+    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
       <head>
+        {/* Theme flash prevention — runs synchronously before paint */}
+        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem('sn-theme')||'dark';document.documentElement.setAttribute('data-theme',t);}catch(e){}})();` }} />
         {/* Google Analytics GA4 — must be in <head> for Search Console verification */}
         <script async src="https://www.googletagmanager.com/gtag/js?id=G-YQJFVH9VJ7" />
         <script
@@ -269,7 +272,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(SITE_SCHEMA) }}
         />
-        <Providers>{children}</Providers>
+        <ThemeProvider>
+          <Providers>{children}</Providers>
+        </ThemeProvider>
       </body>
     </html>
   );

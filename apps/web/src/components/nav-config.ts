@@ -67,6 +67,13 @@ export const NAV_GROUPS: NavGroup[] = [
         matchExact: true,
       },
       {
+        id: 'narrative',
+        label: 'Intelligence Report',
+        href: '/dashboard/narrative-report',
+        icon: BookOpen,
+        badge: 'AI',
+      },
+      {
         id: 'health',
         label: 'SiteNexis Health',
         href: '/dashboard/health',
@@ -151,7 +158,6 @@ export const NAV_GROUPS: NavGroup[] = [
       { id: 'schema',     label: 'Schema Generator',   href: '/dashboard/schema',           icon: FileJson },
       { id: 'fix-plan',   label: 'Fix Plan',            href: '/dashboard/fix-plan',         icon: ListChecks, badge: 'NEW' },
       { id: 'roadmap',    label: 'Decision Roadmap',    href: '/dashboard/roadmap',          icon: Route, badge: 'v4' },
-      { id: 'narrative',  label: 'Narrative Report',    href: '/dashboard/narrative-report',  icon: BookOpen },
       { id: 'issues',     label: 'Issues Center',       href: '/dashboard/issues',           icon: AlertTriangle },
       { id: 'reports',    label: 'Reports',              href: '/dashboard/reports',          icon: FileText },
     ],

@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   Brain, ExternalLink, Network, ScanSearch, Quote,
-  ShieldCheck, ArrowRight, TrendingUp,
+  ShieldCheck, ArrowRight, TrendingUp, BookOpen,
 } from 'lucide-react';
 
 interface AIVisData {
@@ -154,6 +154,23 @@ export default function OverviewPage() {
                 </Link>
               ))}
             </div>
+
+            {/* Intelligence Report CTA */}
+            <Link
+              href="/dashboard/narrative-report"
+              className="group flex items-center justify-between rounded-xl border border-cyan/20 bg-cyan/[0.04] p-5 transition-all hover:border-cyan/40 hover:bg-cyan/[0.07]"
+            >
+              <div className="flex items-center gap-4">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-cyan/10 border border-cyan/20">
+                  <BookOpen className="h-5 w-5 text-cyan" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-white">AI Intelligence Report</p>
+                  <p className="text-xs text-[#4A6280]">Grok-style prose executive summary — scores, narrative, strengths, and competitive trajectory</p>
+                </div>
+              </div>
+              <ArrowRight className="h-4 w-4 shrink-0 text-cyan opacity-60 group-hover:opacity-100 transition-opacity" />
+            </Link>
 
             {/* Provider scores */}
             {data.providerScores && Object.keys(data.providerScores).length > 0 && (
