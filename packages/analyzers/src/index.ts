@@ -29,8 +29,9 @@ export {
   entityDetectionPrompt,
   contradictionDetectionPrompt,
   hybridAuditReportPrompt,
+  executiveSummaryPrompt,
 } from './ai/prompts';
-export type { HybridAuditContext } from './ai/prompts';
+export type { HybridAuditContext, ExecutiveSummaryOutput, ExecutiveSummarySection } from './ai/prompts';
 export { analyzeMachineReadability } from './machine-readability/engine';
 export { analyzeEntityIntelligence } from './entity/engine';
 export { analyzeCitationProbability } from './citation/engine';

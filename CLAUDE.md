@@ -2142,6 +2142,7 @@ The competitive position dashboard replaces the score-first paradigm with a mark
 | GET | `/api/audit/[id]/competitive-position/tradeoffs` | Required | Tradeoff matrix for top competing action pairs |
 | GET | `/api/audit/[id]/competitive-position/uncertainty` | Required | Full uncertainty decomposition, all clusters |
 | POST | `/api/audit/[id]/competitive-position/context` | Required | Enrich simulation with competitor domains or query cluster context |
+| GET | `/api/audit/[id]/executive-summary` | Required | Grok-style prose executive summary — 6 named sections, X.X/10 scores, strengths/issues, composite verdict (24h Redis cache) |
 
 ---
 

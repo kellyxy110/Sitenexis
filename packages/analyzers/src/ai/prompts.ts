@@ -554,6 +554,123 @@ Return VALID JSON ONLY. No explanation. No markdown.
 }`;
 }
 
+// ─── Prompt 9: Executive Summary (Grok-style editorial narrative) ─────────────
+
+/**
+ * Generates a prose executive summary in the style of a professional AI auditor
+ * report — 6 named sections with X.X/10 scores, strengths/issues bullets,
+ * 2–3 sentence editorial narratives, a composite score, and a benchmark statement.
+ *
+ * Token budget: ~2000 input, ~1800 output.
+ * Cache key pattern: `exec-summary:${auditId}:v1.0`
+ */
+
+export interface ExecutiveSummarySection {
+  name: string;
+  score: number;
+  score_label: string;
+  strengths: string[];
+  issues: string[];
+  narrative: string;
+}
+
+export interface ExecutiveSummaryOutput {
+  domain: string;
+  audit_date: string;
+  overall_verdict: string;
+  composite_score: number;
+  composite_label: string;
+  sections: ExecutiveSummarySection[];
+  top_recommendations: string[];
+  benchmark_statement: string;
+  trajectory: string;
+}
+
+const MAX_EXEC_SUMMARY_CHARS = 8_000;
+
+export function executiveSummaryPrompt(context: HybridAuditContext): string {
+  const ctx = truncateWithWarning(
+    JSON.stringify(context, null, 2),
+    MAX_EXEC_SUMMARY_CHARS,
+    `executiveSummaryPrompt domain="${context.domain}"`,
+  );
+
+  return `You are a senior AI and SEO auditor writing a professional narrative assessment for a client.
+Your tone is authoritative, direct, and constructive — like a high-end consulting report.
+You synthesize the audit data provided into readable prose. You never invent data.
+If a score is missing, use "insufficient data" in the narrative.
+Return ONLY valid JSON. No explanation. No markdown.
+
+AUDIT DATA:
+${ctx}
+
+---
+
+## TASK
+
+Write an executive summary assessment with exactly 6 sections:
+
+1. Web Health (Technical & Performance)
+   Map to: technicalSeo score + any performance/crawl issues
+
+2. AI & Machine Readability
+   Map to: semanticStructure (machine readability) + retrieval simulation data if present
+
+3. SEO & Schema
+   Map to: technicalSeo score + schema completeness + internal linking + top SEO issues
+
+4. Topical Authority & Entity Intelligence
+   Map to: entityClarity + entity summary + citation readiness score + semantic trust
+
+5. AI Visibility & Citation Potential
+   Map to: aiVisibility score + surfaceSummary + citationReadiness score
+
+6. Machine Trust
+   Map to: machineTrust score + trustSummary + temporal/updateFrequency if present
+
+For composite_score: compute a weighted average across the 6 section scores.
+  Weights: Web Health 15%, AI Readability 20%, SEO 15%, Topical Authority 20%, AI Visibility 20%, Machine Trust 10%.
+  Round to one decimal place.
+
+For composite_label: use one of — "Excellent" (9.0+), "Strong" (7.5–8.9), "Good" (6.0–7.4), "Fair" (4.0–5.9), "Poor" (<4.0).
+
+For each section score (0.0–10.0): convert from 0–100 by dividing by 10, then round to one decimal.
+  Use score_label: "Excellent" (9.0+), "Strong" (7.5+), "Good" (6.0+), "Fair" (4.0+), "Poor" (<4.0).
+
+For strengths: 2–4 short bullet strings, each under 15 words. Only genuine strengths from the data.
+For issues: 1–3 short bullet strings, each under 15 words. Only real issues from the data.
+For narrative: 2–3 sentences of professional editorial prose. Specific to this domain. No generic filler.
+
+For top_recommendations: 3–5 plain-English action sentences. Prioritize by expected impact.
+For benchmark_statement: 1 sentence comparing this site to typical SaaS/content sites in its category.
+For trajectory: 1 sentence describing momentum (growing/stable/declining) and primary driver.
+
+---
+
+Return this exact JSON structure:
+
+{
+  "domain": string,
+  "audit_date": "ISO date string",
+  "overall_verdict": "2 sentence opening assessment of the site overall",
+  "composite_score": number,
+  "composite_label": string,
+  "sections": [
+    {
+      "name": string,
+      "score": number,
+      "score_label": string,
+      "strengths": [string],
+      "issues": [string],
+      "narrative": string
+    }
+  ],
+  "top_recommendations": [string],
+  "benchmark_statement": string,
+  "trajectory": string
+}`;
+}
+
 // ─── parseAIResponse<T> ───────────────────────────────────────────────────────
 
 /**
