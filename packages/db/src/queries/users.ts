@@ -26,3 +26,11 @@ export async function updateUserPlan(id: string, plan: Plan): Promise<void> {
 export async function updateStripeCustomerId(id: string, customerId: string): Promise<void> {
   await db.user.update({ where: { id }, data: { stripeCustomerId: customerId } });
 }
+
+export async function createUserWithPassword(email: string, passwordHash: string): Promise<User> {
+  return db.user.upsert({
+    where: { email },
+    create: { email, passwordHash },
+    update: { passwordHash },
+  });
+}

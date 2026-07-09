@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
-import { createSupabaseBrowserClient } from '@/lib/supabase/client';
+import { signIn } from 'next-auth/react';
 
 function GoogleIcon() {
   return (
@@ -19,22 +19,17 @@ function GoogleIcon() {
 
 export default function SignupPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
+  const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [error, setError]       = useState('');
+  const [loading, setLoading]   = useState(false);
   const [oauthLoading, setOauthLoading] = useState(false);
 
   async function handleGoogleSignup() {
     setOauthLoading(true);
     setError('');
     try {
-      const supabase = createSupabaseBrowserClient();
-      const { error: oauthError } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: { redirectTo: `${window.location.origin}/api/auth/callback` },
-      });
-      if (oauthError) throw oauthError;
+      await signIn('google', { callbackUrl: '/dashboard' });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Google sign-up failed');
       setOauthLoading(false);
@@ -46,21 +41,33 @@ export default function SignupPage() {
     setLoading(true);
     setError('');
 
-    const supabase = createSupabaseBrowserClient();
-    const { error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { emailRedirectTo: `${window.location.origin}/api/auth/callback` },
-    });
+    try {
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = (await res.json()) as { error?: string };
 
-    if (authError) {
-      setError(authError.message);
+      if (!res.ok) {
+        setError(data.error ?? 'Could not create account. Please try again.');
+        setLoading(false);
+        return;
+      }
+
+      // Auto sign-in after account creation
+      const result = await signIn('credentials', { email, password, redirect: false });
+      if (result?.error) {
+        // Account created but sign-in failed — redirect to login
+        router.push('/login?message=account_created');
+      } else {
+        router.push('/dashboard');
+        router.refresh();
+      }
+    } catch {
+      setError('Something went wrong. Please try again.');
       setLoading(false);
-      return;
     }
-
-    router.push('/dashboard');
-    router.refresh();
   }
 
   return (

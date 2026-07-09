@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { auth } from '@/auth';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -126,11 +126,10 @@ const FAQS = [
 
 export default async function HomePage() {
   try {
-    const supabase = await createSupabaseServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) redirect('/dashboard');
+    const session = await auth();
+    if (session?.user) redirect('/dashboard');
   } catch {
-    // Supabase not configured — show landing page
+    // Not authenticated — show landing page
   }
 
   return (

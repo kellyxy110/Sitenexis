@@ -21,8 +21,8 @@
     "@sitenexis/analyzers": "workspace:*",
     "@sitenexis/db": "workspace:*",
     "@sitenexis/shared": "workspace:*",
-    "@supabase/ssr": "^0.5.1",
-    "@supabase/supabase-js": "^2.45.3",
+    "bcryptjs": "^2.4.3",
+    "next-auth": "^5.0.0-beta.28",
     "@tanstack/react-query": "^5.55.4",
     "@tanstack/react-table": "^8.20.5",
     "class-variance-authority": "^0.7.0",
@@ -40,6 +40,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^22.5.4",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",

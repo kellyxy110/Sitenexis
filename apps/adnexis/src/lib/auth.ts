@@ -1,15 +1,10 @@
-import { type NextRequest, NextResponse } from 'next/server';
-import { createSupabaseServerClient } from './supabase/server';
+import { auth } from '@/auth';
+import { NextResponse } from 'next/server';
 
-export async function requireAuth(_req: NextRequest): Promise<{ id: string; email: string }> {
-  const supabase = await createSupabaseServerClient();
-  const { data: { user }, error } = await supabase.auth.getUser();
-
-  if (error || !user) {
-    throw new AuthError('Unauthorized');
-  }
-
-  return { id: user.id, email: user.email ?? '' };
+export async function requireAuth(_req?: unknown): Promise<{ id: string; email: string }> {
+  const session = await auth();
+  if (!session?.user?.id) throw new AuthError('Unauthorized');
+  return { id: session.user.id, email: session.user.email ?? '' };
 }
 
 export class AuthError extends Error {

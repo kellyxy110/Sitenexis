@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { auth } from '@/auth';
 import { getAdStats, getScoreTrend } from '@sitenexis/db';
 import { LayoutDashboard, Zap, TrendingUp, BookOpen } from 'lucide-react';
 import Link from 'next/link';
@@ -59,9 +59,8 @@ function TrendSkeleton() {
 export default async function DashboardPage() {
   let userId = 'demo';
   try {
-    const supabase = await createSupabaseServerClient();
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user) userId = session.user.id;
+    const session = await auth();
+    if (session?.user?.id) userId = session.user.id;
   } catch { /* dev */ }
 
   return (

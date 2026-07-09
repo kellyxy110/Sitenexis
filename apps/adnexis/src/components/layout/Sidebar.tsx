@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { LayoutDashboard, BookOpen, Zap, Wand2, LogOut, BookMarked, Sparkles, Menu, X } from 'lucide-react';
-import { createSupabaseBrowserClient } from '@/lib/supabase/client';
+import { signOut } from 'next-auth/react';
 import { cn } from '@/lib/utils';
 
 const NAV = [
@@ -16,13 +16,9 @@ const NAV = [
 
 function SidebarContent({ onClose }: { onClose?: () => void }) {
   const pathname = usePathname();
-  const router = useRouter();
 
   async function handleSignOut() {
-    const supabase = createSupabaseBrowserClient();
-    await supabase.auth.signOut();
-    router.push('/login');
-    router.refresh();
+    await signOut({ callbackUrl: '/login' });
   }
 
   return (
@@ -97,10 +93,8 @@ export function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
 
-  // Close drawer on route change
   useEffect(() => { setMobileOpen(false); }, [pathname]);
 
-  // Prevent body scroll when drawer is open
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
