@@ -14,9 +14,17 @@
 export function isFullyConfigured(): boolean {
   if (process.env['DEMO_MODE'] === 'true') return false;
 
-  const supabaseUrl   = process.env['SUPABASE_URL'] ?? process.env['NEXT_PUBLIC_SUPABASE_URL'] ?? '';
-  const dbUrl         = process.env['DATABASE_URL'] ?? '';
-  const supabaseAnon  = process.env['SUPABASE_ANON_KEY'] ?? process.env['NEXT_PUBLIC_SUPABASE_ANON_KEY'] ?? '';
+  // Prefer the non-public vars; fall back to NEXT_PUBLIC_ when the non-public
+  // var is missing or still holds a placeholder value from .env.example.
+  const rawSupabaseUrl  = process.env['SUPABASE_URL'] ?? '';
+  const rawSupabaseAnon = process.env['SUPABASE_ANON_KEY'] ?? '';
+  const supabaseUrl  = (rawSupabaseUrl && !rawSupabaseUrl.includes('placeholder'))
+    ? rawSupabaseUrl
+    : (process.env['NEXT_PUBLIC_SUPABASE_URL'] ?? '');
+  const supabaseAnon = (rawSupabaseAnon && !rawSupabaseAnon.includes('placeholder'))
+    ? rawSupabaseAnon
+    : (process.env['NEXT_PUBLIC_SUPABASE_ANON_KEY'] ?? '');
+  const dbUrl = process.env['DATABASE_URL'] ?? '';
 
   const supabaseOk = Boolean(supabaseUrl) && !supabaseUrl.includes('placeholder');
   const dbOk       = Boolean(dbUrl)       && !dbUrl.includes('placeholder');
@@ -36,10 +44,16 @@ export function getConfigurationStatus(): {
   fullyConfigured: boolean;
   services: Record<string, { ok: boolean; reason?: string | undefined }>;
 } {
-  const supabaseUrl  = process.env['SUPABASE_URL'] ?? process.env['NEXT_PUBLIC_SUPABASE_URL'] ?? '';
-  const dbUrl        = process.env['DATABASE_URL'] ?? '';
-  const redisUrl     = process.env['REDIS_URL'] ?? '';
-  const supabaseAnon = process.env['SUPABASE_ANON_KEY'] ?? process.env['NEXT_PUBLIC_SUPABASE_ANON_KEY'] ?? '';
+  const rawSupabaseUrl2  = process.env['SUPABASE_URL'] ?? '';
+  const rawSupabaseAnon2 = process.env['SUPABASE_ANON_KEY'] ?? '';
+  const supabaseUrl  = (rawSupabaseUrl2 && !rawSupabaseUrl2.includes('placeholder'))
+    ? rawSupabaseUrl2
+    : (process.env['NEXT_PUBLIC_SUPABASE_URL'] ?? '');
+  const supabaseAnon = (rawSupabaseAnon2 && !rawSupabaseAnon2.includes('placeholder'))
+    ? rawSupabaseAnon2
+    : (process.env['NEXT_PUBLIC_SUPABASE_ANON_KEY'] ?? '');
+  const dbUrl    = process.env['DATABASE_URL'] ?? '';
+  const redisUrl = process.env['REDIS_URL'] ?? '';
 
   const services = {
     supabase: {
@@ -62,7 +76,11 @@ export function getConfigurationStatus(): {
     },
     supabaseAnon: {
       ok: Boolean(supabaseAnon) && !supabaseAnon.includes('placeholder'),
-      reason: !supabaseAnon ? 'SUPABASE_ANON_KEY not set' : supabaseAnon.includes('placeholder') ? 'SUPABASE_ANON_KEY is placeholder' : undefined,
+      reason: !supabaseAnon
+        ? 'SUPABASE_ANON_KEY not set'
+        : supabaseAnon.includes('placeholder')
+        ? 'SUPABASE_ANON_KEY is placeholder'
+        : undefined,
     },
   };
 

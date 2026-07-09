@@ -53,9 +53,12 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
     cookies: {
       getAll: () => req.cookies.getAll(),
       setAll: (cookiesToSet: Array<{ name: string; value: string; options?: Partial<ResponseCookie> }>) => {
+        // Update all request cookies first, then create one new response so every
+        // cookie survives (creating a new NextResponse.next inside the loop loses
+        // cookies from previous iterations).
+        cookiesToSet.forEach(({ name, value }) => req.cookies.set(name, value));
+        res = NextResponse.next({ request: req });
         cookiesToSet.forEach(({ name, value, options }) => {
-          req.cookies.set(name, value);
-          res = NextResponse.next({ request: req });
           if (options !== undefined) {
             res.cookies.set(name, value, options);
           } else {
