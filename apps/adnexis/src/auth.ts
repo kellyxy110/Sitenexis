@@ -66,7 +66,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           try {
             const { getUserByEmail, upsertUser } = await import('@sitenexis/db');
             const existing = await getUserByEmail(email);
-            const dbUser = existing ?? await upsertUser(user.id, email);
+            const dbUser = existing ?? await upsertUser(user.id ?? crypto.randomUUID(), email);
             token.id = dbUser.id;
           } catch {
             token.id = user.id;

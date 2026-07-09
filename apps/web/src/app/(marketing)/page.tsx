@@ -113,6 +113,8 @@ const INTEL_CARDS = [
   { label: 'Web Extraction',         sub: 'Crawl4AI' },
   { label: 'Competitive Intel',      sub: 'Scrapy' },
   { label: 'Decision Roadmap',       sub: 'v4' },
+  { label: 'Intelligence Report',    sub: 'Editorial' },
+  { label: 'Competitive Simulation', sub: 'v4' },
 ];
 
 const SCORES_PREVIEW = [
@@ -372,6 +374,16 @@ export default function HomePage() {
         '@type': 'Question',
         name: 'What is the AI Visibility Score?',
         acceptedAnswer: { '@type': 'Answer', text: 'The AI Visibility Score is a 0–100 composite: Machine Readability (15%) + Entity Confidence (20%) + Retrieval Readiness (20%) + Citation Probability (20%) + Semantic Trust (15%) + Schema Completeness (10%). Every deduction maps to a named Issue with description, recommendation, and expected score impact. No black-box scoring.' },
+      },
+      {
+        '@type': 'Question',
+        name: 'What is the Intelligence Report?',
+        acceptedAnswer: { '@type': 'Answer', text: 'The Intelligence Report is a Grok-style editorial audit narrative generated for every completed scan. It synthesizes all twelve module scores and the top critical issues into six named sections — Signal Summary, SEO Posture, AI Visibility, Machine Trust, Entity Health, and Strategic Verdict — each with an X.X/10 subscale and a composite verdict. It reads like a senior analyst\'s assessment rather than a raw score dashboard.' },
+      },
+      {
+        '@type': 'Question',
+        name: 'What is the Decision Roadmap?',
+        acceptedAnswer: { '@type': 'Answer', text: 'The Decision Roadmap is produced by the Decision Orchestrator — a v4 system that ranks issues using Sequencing Value Score (SVS = impact × unlock multiplier × critical path bonus ÷ effort hours) and sequences them into This Week, This Sprint, and Backlog bands. It identifies the single highest-ROI action to start with, calculates cumulative projected score impact per band, and surfaces parallel tracks for team-based execution.' },
       },
     ],
   };

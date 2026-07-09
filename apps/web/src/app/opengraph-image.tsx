@@ -30,7 +30,7 @@ export default function Image() {
           Model how AI systems retrieve, interpret, trust, and recommend your website — across every layer of the intelligence stack
         </div>
         <div style={{ display: 'flex', gap: 12, marginTop: 44 }}>
-          {['Machine Trust Score', 'AI Retrieval Simulation', 'Entity Intelligence', 'Citation Probability'].map((f) => (
+          {['Intelligence Report', 'Decision Roadmap', 'Machine Trust Score', 'Retrieval Simulation', 'Entity Intelligence'].map((f) => (
             <div
               key={f}
               style={{

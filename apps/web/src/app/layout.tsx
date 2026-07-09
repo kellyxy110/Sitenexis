@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(appUrl),
   title: 'SiteNexis — AI Retrieval & Machine Trust Intelligence',
   description:
-    'SiteNexis models how AI systems retrieve, interpret, trust, and recommend your website. 12 scores, 16 agents, Crawl4AI web extraction, Scrapy competitive intelligence, real-time retrieval simulation.',
+    'SiteNexis models how AI systems retrieve, interpret, trust, and recommend your website. 12 scores, 16 agents, Intelligence Report, Decision Roadmap, Competitive Reality Simulation, Crawl4AI web extraction, real-time retrieval simulation.',
   alternates: {
     canonical: '/',
   },
@@ -43,7 +43,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: 'SiteNexis — AI Retrieval & Machine Trust Intelligence',
-    description: 'SiteNexis models how AI systems retrieve, interpret, trust, and recommend your website. 12 scores, 16 agents, Crawl4AI web extraction, Scrapy competitive intelligence, real-time retrieval simulation.',
+    description: 'SiteNexis models how AI systems retrieve, interpret, trust, and recommend your website. 12 scores, 16 agents, Intelligence Report, Decision Roadmap, Competitive Reality Simulation, Crawl4AI web extraction, real-time retrieval simulation.',
     url: appUrl,
     siteName: 'SiteNexis',
     type: 'website',
@@ -62,7 +62,7 @@ export const metadata: Metadata = {
     site: '@Sitenexis',
     creator: '@Sitenexis',
     title: 'SiteNexis — AI Retrieval & Machine Trust Intelligence',
-    description: 'SiteNexis models how AI systems retrieve, interpret, trust, and recommend your website. 12 scores, 16 agents, Crawl4AI web extraction, Scrapy competitive intelligence, real-time retrieval simulation.',
+    description: 'SiteNexis models how AI systems retrieve, interpret, trust, and recommend your website. 12 scores, 16 agents, Intelligence Report, Decision Roadmap, Competitive Reality Simulation, Crawl4AI web extraction, real-time retrieval simulation.',
     images: ['/opengraph-image'],
   },
 };
@@ -169,7 +169,7 @@ const SITE_SCHEMA = {
       operatingSystem: 'Web',
       url: appUrl,
       description:
-        'SiteNexis audits any domain across 12 dimensions using 16 intelligence agents. It produces AI Visibility scores, Machine Trust scores, Retrieval Simulation results, Temporal Authority analysis, Recommendation Surface maps, and Synthetic Entity detection — giving publishers a complete model of how AI systems perceive and recommend their content.',
+        'SiteNexis audits any domain across 12 dimensions using 16 intelligence agents. It produces AI Visibility scores, Machine Trust scores, Retrieval Simulation results, Temporal Authority analysis, Recommendation Surface maps, Synthetic Entity detection, a Grok-style Intelligence Report, a Decision Roadmap, and a Competitive Reality Simulation — giving publishers a complete model of how AI systems perceive, trust, and recommend their content.',
       keywords: 'AI visibility, machine trust, entity SEO, AI retrieval simulation, ChatGPT visibility, Gemini optimization, AI Overviews, retrieval-augmented generation, Crawl4AI web extraction, Scrapy competitive intelligence, capability-first architecture',
       screenshot: `${appUrl}/opengraph-image`,
       offers: {
@@ -181,7 +181,7 @@ const SITE_SCHEMA = {
           { '@type': 'Offer', name: 'Free', price: '0', priceCurrency: 'USD', description: '1 audit per month' },
           { '@type': 'Offer', name: 'Starter', price: '29', priceCurrency: 'USD' },
           { '@type': 'Offer', name: 'Pro', price: '79', priceCurrency: 'USD', description: 'Unlimited audits + Layer 4 Machine Trust analysis' },
-          { '@type': 'Offer', name: 'Agency', price: '199', priceCurrency: 'USD', description: 'Unlimited audits + API access + bulk domains' },
+          { '@type': 'Offer', name: 'Agency', price: '249', priceCurrency: 'USD', description: 'Unlimited audits + API access + bulk domains' },
         ],
       },
       provider: { '@id': 'https://sitenexis.com/#organization' },
@@ -198,8 +198,10 @@ const SITE_SCHEMA = {
         'Schema Completeness Analysis',
         'Crawl4AI Web Extraction',
         'Scrapy Competitive Intelligence',
+        'Intelligence Report (Grok-Style Executive Audit Narrative)',
         'Decision Roadmap Orchestrator',
         'Competitive Reality Simulation',
+        'Outcome Intelligence',
         'Capability-First Adapter Architecture',
       ],
     },
@@ -238,6 +240,22 @@ const SITE_SCHEMA = {
           acceptedAnswer: {
             '@type': 'Answer',
             text: 'The Machine Trust Score is a 0–100 composite that models AI system confidence in a website as a reliable source. It combines entity credibility consistency (30%), schema trust alignment (20%), external validation depth (25%), contradiction absence (15%), and trust degradation resistance (10%).',
+          },
+        },
+        {
+          '@type': 'Question',
+          name: 'What is the Intelligence Report?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'The Intelligence Report is a Grok-style editorial narrative generated for every audit. It synthesizes all twelve scores and the top issues into six named sections: a Signal Summary, SEO Posture, AI Visibility standing, Machine Trust analysis, Entity Health, and a Strategic Verdict with a composite X.X/10 score. Unlike dashboards that surface raw numbers, the Intelligence Report reads like a professional analyst\'s assessment — prose with precision.',
+          },
+        },
+        {
+          '@type': 'Question',
+          name: 'What is the Decision Roadmap?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'The Decision Roadmap is the output of the Decision Orchestrator — a v4 system that transforms a ranked issue list into an optimally sequenced action plan using Sequencing Value Score (SVS). It identifies the single best action to start with, groups subsequent actions into This Week, This Sprint, and Backlog bands, and calculates the projected score impact of completing each band. It also identifies parallel tracks for team-based execution.',
           },
         },
         {
