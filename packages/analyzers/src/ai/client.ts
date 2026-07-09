@@ -55,13 +55,17 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function callGroqDirect<T>(userPrompt: string, systemPrompt: string): Promise<T> {
+async function callGroqDirect<T>(
+  userPrompt: string,
+  systemPrompt: string,
+  maxTokens: number = GROQ_MAX_TOKENS,
+): Promise<T> {
   await groqRateLimiter.acquire();
   const output = await getGroqAdapter().complete({
     systemPrompt,
     userPrompt,
     model: AI_MODEL,
-    maxTokens: GROQ_MAX_TOKENS,
+    maxTokens,
     temperature: TEMPERATURE,
     jsonMode: true,
   });
@@ -79,12 +83,13 @@ async function callGroqDirect<T>(userPrompt: string, systemPrompt: string): Prom
 export async function callAI<T>(
   userPrompt: string,
   systemPrompt: string = AI_SYSTEM_PROMPT,
+  maxTokens: number = GROQ_MAX_TOKENS,
 ): Promise<T> {
   if (isAnyOpenRouterAvailable()) {
     try {
       const result = await routeTask<T>('structured_scoring', systemPrompt, userPrompt, {
         jsonMode: true,
-        maxTokens: 2_048,
+        maxTokens: Math.max(maxTokens, 2_048),
         temperature: TEMPERATURE,
       });
       if (result !== null) return result;
@@ -93,7 +98,7 @@ export async function callAI<T>(
     }
   }
 
-  return callGroqDirect<T>(userPrompt, systemPrompt);
+  return callGroqDirect<T>(userPrompt, systemPrompt, maxTokens);
 }
 
 /** @deprecated Use callAI */

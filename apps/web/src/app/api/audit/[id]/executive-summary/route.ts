@@ -154,7 +154,7 @@ export async function GET(req: NextRequest, { params }: Params): Promise<NextRes
     };
 
     // ── Generate via AI ──────────────────────────────────────────────────────
-    const { executiveSummaryPrompt, routeTask, parseAIResponse } = await import('@sitenexis/analyzers');
+    const { executiveSummaryPrompt, routeTask } = await import('@sitenexis/analyzers');
 
     const SYSTEM = 'You are the SiteNexis Executive Audit Narrator. You write professional prose assessment reports for website owners. You synthesize multi-agent audit data into readable editorial intelligence. You never invent data. Return a single valid JSON object only — no surrounding text, no markdown.';
     const USER = executiveSummaryPrompt(context);
@@ -168,10 +168,8 @@ export async function GET(req: NextRequest, { params }: Params): Promise<NextRes
 
     if (!summary) {
       const { callAI } = await import('@sitenexis/analyzers');
-      const raw = await callAI<string>(USER, SYSTEM);
-      summary = (typeof raw === 'string'
-        ? parseAIResponse<ExecutiveSummaryOutput>(raw)
-        : raw) as ExecutiveSummaryOutput;
+      // Pass 3000 tokens — executive summary JSON is large and truncates at the 1024 default
+      summary = await callAI<ExecutiveSummaryOutput>(USER, SYSTEM, 3000);
     }
 
     if (!summary) {
