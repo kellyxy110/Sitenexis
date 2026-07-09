@@ -1,5 +1,6 @@
 {
   "framework": "nextjs",
+  "nodeVersion": "20.x",
   "installCommand": "pnpm install --frozen-lockfile=false",
   "buildCommand": "cd ../.. && pnpm --filter @sitenexis/shared build && pnpm --filter @sitenexis/db build && pnpm --filter @sitenexis/analyzers build && cd apps/adnexis && pnpm run build",
   "outputDirectory": ".next"
