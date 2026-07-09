@@ -188,15 +188,15 @@ function ThemeToggle({ collapsed }: { collapsed: boolean }) {
       onClick={toggle}
       title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
       className={[
-        'flex items-center gap-2 rounded-md p-1.5 text-[#4A6280] transition-colors hover:bg-white/5 hover:text-white',
-        collapsed ? 'justify-center w-full' : 'w-full px-2',
+        'flex items-center gap-2.5 rounded-lg border border-white/[0.06] py-2 text-[#7A9AB4] transition-colors hover:border-white/10 hover:bg-white/5 hover:text-white',
+        collapsed ? 'justify-center w-full px-2' : 'w-full px-3',
       ].join(' ')}
     >
       {theme === 'dark'
-        ? <Sun className="h-3.5 w-3.5 shrink-0" />
-        : <Moon className="h-3.5 w-3.5 shrink-0" />}
+        ? <Sun className="h-4 w-4 shrink-0" />
+        : <Moon className="h-4 w-4 shrink-0" />}
       {!collapsed && (
-        <span className="text-xs">{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
+        <span className="text-xs font-medium">{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
       )}
     </button>
   );

@@ -1,8 +1,32 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Search, Play, Bell, ChevronDown, User, CreditCard, LogOut, Settings, Zap } from 'lucide-react';
+import { Search, Play, Bell, ChevronDown, User, CreditCard, LogOut, Settings, Zap, Sun, Moon } from 'lucide-react';
 import Link from 'next/link';
+
+function ThemeToggleBtn() {
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  useEffect(() => {
+    const saved = (localStorage.getItem('sn-theme') ?? 'dark') as 'dark' | 'light';
+    setTheme(saved);
+    document.documentElement.setAttribute('data-theme', saved);
+  }, []);
+  function toggle() {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+    localStorage.setItem('sn-theme', next);
+    document.documentElement.setAttribute('data-theme', next);
+  }
+  return (
+    <button
+      onClick={toggle}
+      title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+      className="relative flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.03] text-[#4A6280] transition-colors hover:bg-white/[0.06] hover:text-white"
+    >
+      {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+    </button>
+  );
+}
 
 interface TopCommandBarProps {
   onRunAudit: (domain: string) => void;
@@ -178,6 +202,9 @@ export function TopCommandBar({
             <span className="absolute right-1 top-1 flex h-2 w-2 items-center justify-center rounded-full bg-cyan text-[8px] font-bold text-[#030907]" />
           )}
         </button>
+
+        {/* Theme toggle */}
+        <ThemeToggleBtn />
 
         {/* User menu */}
         <UserMenu userName={userName} plan={plan} />
