@@ -52,7 +52,7 @@ export function buildFixPlan(input: FixPlanInput): FixPlan {
   const timestamp = new Date().toISOString();
 
   // ── Step 1: Normalize all issues into FixPlanItems ────────────────────────
-  const items: FixPlanItem[] = [];
+  const rawItems: FixPlanItem[] = [];
 
   // From Issues table
   for (const issue of issues) {
@@ -61,7 +61,7 @@ export function buildFixPlan(input: FixPlanInput): FixPlan {
     const expectedImpact = computeExpectedImpact(issue.severity, impactScores);
     const priority = assignPriority(issue.severity, issue.module, impactScores);
 
-    items.push({
+    rawItems.push({
       id: issue.id,
       priority,
       module: issue.module,
@@ -90,7 +90,7 @@ export function buildFixPlan(input: FixPlanInput): FixPlan {
       const expectedImpact = computeExpectedImpact(severity, impactScores);
       const priority = assignPriority(severity, 'machine-trust', impactScores);
 
-      items.push({
+      rawItems.push({
         id: `trust-${ti.entity}-${ti.type}`,
         priority, module: 'machine-trust', type: ti.type, severity,
         pageUrl: null, message: ti.description, recommendation: ti.recommendation,
@@ -109,7 +109,7 @@ export function buildFixPlan(input: FixPlanInput): FixPlan {
       const expectedImpact = computeExpectedImpact(severity, impactScores);
       const priority = assignPriority(severity, 'temporal-authority', impactScores);
 
-      items.push({
+      rawItems.push({
         id: `temporal-${ti.pageUrl}-${ti.type}`,
         priority, module: 'temporal-authority', type: ti.type, severity,
         pageUrl: ti.pageUrl, message: ti.description, recommendation: ti.recommendation,
@@ -128,8 +128,8 @@ export function buildFixPlan(input: FixPlanInput): FixPlan {
       const expectedImpact = computeExpectedImpact(severity, impactScores);
       const priority = assignPriority(severity, 'retrieval-simulation', impactScores);
 
-      items.push({
-        id: `retrieval-${rf.stage}-${items.length}`,
+      rawItems.push({
+        id: `retrieval-${rf.stage}-${rawItems.length}`,
         priority, module: 'retrieval-simulation', type: rf.stage, severity,
         pageUrl: null, message: rf.description, recommendation: rf.recommendation,
         problem: null, solution: null, fixCode: null, fixLanguage: null,
@@ -147,8 +147,8 @@ export function buildFixPlan(input: FixPlanInput): FixPlan {
       const expectedImpact = computeExpectedImpact(severity, impactScores);
       const priority = assignPriority(severity, 'recommendation-surface', impactScores);
 
-      items.push({
-        id: `surface-${cg.surface}-${items.length}`,
+      rawItems.push({
+        id: `surface-${cg.surface}-${rawItems.length}`,
         priority, module: 'recommendation-surface', type: 'coverage_gap', severity,
         pageUrl: null, message: `${cg.surface}: ${cg.missedOpportunity}`,
         recommendation: `Add required signals: ${cg.requiredSignals.join(', ')}`,
@@ -167,8 +167,8 @@ export function buildFixPlan(input: FixPlanInput): FixPlan {
       const expectedImpact = computeExpectedImpact(severity, impactScores);
       const priority = assignPriority(severity, 'synthetic-entity', impactScores);
 
-      items.push({
-        id: `synthetic-${sp.patternType}-${items.length}`,
+      rawItems.push({
+        id: `synthetic-${sp.patternType}-${rawItems.length}`,
         priority, module: 'synthetic-entity', type: sp.patternType, severity,
         pageUrl: null, message: `Synthetic pattern detected: ${sp.patternType.replace(/_/g, ' ')}`,
         recommendation: sp.evidence.length > 0 ? `Investigate: ${sp.evidence[0]}` : 'Review entity authenticity signals',
@@ -177,6 +177,13 @@ export function buildFixPlan(input: FixPlanInput): FixPlan {
       });
     }
   }
+
+  // ── Step 1b: Collapse duplicate actions ───────────────────────────────────
+  // The Issues table can carry the same fix across many pages (e.g. missing alt
+  // text on 40 URLs). Emitting one action per row produces a repetitive plan, so
+  // collapse by (module, type, recommendation), keep the most-severe representative,
+  // and record how many pages the fix spans.
+  const items = dedupeItems(rawItems);
 
   // ── Step 2: Apply dependency mapping ──────────────────────────────────────
   applyDependencies(items);
@@ -256,6 +263,45 @@ function computeOverallFixScore(items: FixPlanItem[]): number {
   const impactRatio = totalImpact / maxPossibleImpact;
 
   return Math.max(0, Math.min(100, Math.round((1 - impactRatio) * 100)));
+}
+
+const SEVERITY_RANK: Record<string, number> = { critical: 0, warning: 1, info: 2 };
+
+/**
+ * Collapse duplicate fix actions. Two items are "the same fix" when they share a
+ * module, type, and (normalized) recommendation — regardless of which page raised
+ * them. The representative kept is the most severe; on a tie, the one carrying a
+ * code fix. When a fix spans multiple pages, its message notes the page count so
+ * the coverage information is preserved rather than lost.
+ */
+function dedupeItems(items: FixPlanItem[]): FixPlanItem[] {
+  const groups = new Map<string, FixPlanItem[]>();
+  for (const item of items) {
+    const actionText = (item.recommendation || item.message).trim().toLowerCase().replace(/\s+/g, ' ');
+    const sig = `${item.module}::${item.type}::${actionText}`;
+    const group = groups.get(sig);
+    if (group) group.push(item);
+    else groups.set(sig, [item]);
+  }
+
+  const result: FixPlanItem[] = [];
+  for (const group of groups.values()) {
+    if (group.length === 1) {
+      result.push(group[0]!);
+      continue;
+    }
+    const rep = [...group].sort((a, b) =>
+      ((SEVERITY_RANK[a.severity] ?? 2) - (SEVERITY_RANK[b.severity] ?? 2))
+      || ((a.fixCode ? 0 : 1) - (b.fixCode ? 0 : 1)),
+    )[0]!;
+    const affectedPages = new Set(group.map((i) => i.pageUrl).filter((u): u is string => !!u)).size;
+    result.push(
+      affectedPages > 1
+        ? { ...rep, message: `${rep.message} (affects ${affectedPages} pages)` }
+        : rep,
+    );
+  }
+  return result;
 }
 
 function normalizeSeverity(severity: string): SEOIssueSeverity {

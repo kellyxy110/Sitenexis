@@ -1,7 +1,6 @@
 export const dynamic = 'force-dynamic';
 import { type NextRequest, NextResponse } from 'next/server';
 import { requireAuth, unauthorizedResponse } from '@/lib/auth';
-import { isFullyConfigured } from '@/lib/mode';
 import { gtlEmpty, gtlResponse } from '@/lib/gtl';
 import type { AuditStatus } from '@sitenexis/shared';
 
@@ -18,8 +17,6 @@ export async function GET(req: NextRequest, { params }: Params): Promise<NextRes
   }
 
   const { id } = await params;
-
-  if (!isFullyConfigured()) return gtlEmpty();
 
   try {
     const { getAuditWithResults } = await import('@sitenexis/db');
@@ -46,10 +43,6 @@ export async function DELETE(req: NextRequest, { params }: Params): Promise<Next
   }
 
   const { id } = await params;
-
-  if (!isFullyConfigured()) {
-    return NextResponse.json({ error: 'Not found' }, { status: 404 });
-  }
 
   try {
     const { getAuditWithResults, softDeleteAudit } = await import('@sitenexis/db');

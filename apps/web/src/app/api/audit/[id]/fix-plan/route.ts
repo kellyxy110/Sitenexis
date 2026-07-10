@@ -1,7 +1,6 @@
 export const dynamic = 'force-dynamic';
 import { type NextRequest, NextResponse } from 'next/server';
 import { requireAuth, unauthorizedResponse } from '@/lib/auth';
-import { isFullyConfigured } from '@/lib/mode';
 import { logger } from '@/lib/logger';
 import { gtlEmpty, gtlResponse } from '@/lib/gtl';
 import type { AuditStatus, TrustIssue, TemporalIssue, RetrievalFailure, CoverageGap, SyntheticPattern } from '@sitenexis/shared';
@@ -13,8 +12,6 @@ export async function GET(req: NextRequest, { params }: Params): Promise<NextRes
   let user: Awaited<ReturnType<typeof requireAuth>>;
   try { user = await requireAuth(req); } catch { return unauthorizedResponse(); }
   const { id } = await params;
-
-  if (!isFullyConfigured()) return gtlEmpty();
 
   try {
     const { getAuditWithResults, getIssuesByAudit } = await import('@sitenexis/db');

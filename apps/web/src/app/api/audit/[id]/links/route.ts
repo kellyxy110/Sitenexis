@@ -1,7 +1,6 @@
 export const dynamic = 'force-dynamic';
 import { type NextRequest, NextResponse } from 'next/server';
 import { requireAuth, unauthorizedResponse } from '@/lib/auth';
-import { isFullyConfigured } from '@/lib/mode';
 import { logger } from '@/lib/logger';
 import { gtlEmpty, gtlResponse, resolveGTLState } from '@/lib/gtl';
 import type { LinkGraphScore, GraphNode, GraphEdge, AuditStatus } from '@sitenexis/shared';
@@ -38,8 +37,6 @@ export async function GET(req: NextRequest, { params }: Params): Promise<NextRes
   const nodesLimit  = Math.min(500, Math.max(1, parseInt(sp.get('nodesLimit') ?? String(DEFAULT_NODES_LIMIT), 10) || DEFAULT_NODES_LIMIT));
   const edgesOffset = Math.max(0, parseInt(sp.get('edgesOffset') ?? '0', 10) || 0);
   const edgesLimit  = Math.min(2000, Math.max(1, parseInt(sp.get('edgesLimit') ?? String(DEFAULT_EDGES_LIMIT), 10) || DEFAULT_EDGES_LIMIT));
-
-  if (!isFullyConfigured()) return gtlEmpty();
 
   try {
     const { getAuditWithResults, getAuditScores } = await import('@sitenexis/db');

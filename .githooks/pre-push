@@ -1,0 +1,39 @@
+#!/bin/sh
+# SiteNexis pre-push guard.
+#
+# Prevents the "works locally, fails on Vercel" build class — the exact failure
+# that broke deploy c8cc1c4, where packages/shared/src/index.ts re-exported two
+# files (capabilities/types.ts, audit-report.ts) that lived on disk but were
+# never committed. Vercel builds only what git has, so the remote build failed
+# with TS2307 while the local build was green.
+#
+# This hook blocks a push when there are untracked, non-ignored SOURCE files —
+# files git does not know about that a committed module could already import.
+#
+# Bypass for a deliberate push:  SKIP_UNTRACKED_CHECK=1 git push
+
+untracked=$(git ls-files --others --exclude-standard -- \
+  '*.ts' '*.tsx' '*.js' '*.jsx' '*.mjs' '*.cjs' '*.py' '*.css' '*.json' \
+  ':!*tsconfig.tsbuildinfo')
+
+if [ -n "$untracked" ]; then
+  echo ""
+  echo "  SiteNexis pre-push guard — untracked source files detected"
+  echo "  ---------------------------------------------------------"
+  echo "  Vercel builds only COMMITTED files. These exist locally but git"
+  echo "  has never seen them, so a committed import of any of them will"
+  echo "  break the remote build (TS2307 / module-not-found):"
+  echo ""
+  echo "$untracked" | sed 's/^/      /'
+  echo ""
+  echo "  Fix: commit them, add them to .gitignore, or bypass this push with"
+  echo "       SKIP_UNTRACKED_CHECK=1 git push"
+  echo ""
+  if [ "$SKIP_UNTRACKED_CHECK" != "1" ]; then
+    exit 1
+  fi
+  echo "  SKIP_UNTRACKED_CHECK=1 set — continuing despite untracked files."
+  echo ""
+fi
+
+exit 0

@@ -2047,7 +2047,7 @@ function AuditPageInner() {
 
   // SSE scores — fetch as soon as the audit is complete (not tab-gated)
   // Returns null when scores don't exist yet (404) so the panel stays hidden
-  const { data: sseData } = useQuery<SseData | null>({
+  const { data: sseData, isFetched: sseFetched } = useQuery<SseData | null>({
     queryKey: ['audit-sse', auditId2],
     queryFn: async () => {
       const r = await fetch(`/api/audit/${auditId2}/sse`);
@@ -2314,9 +2314,10 @@ function AuditPageInner() {
                 <div className="text-xs font-semibold uppercase tracking-widest text-[#4A6280] mb-2">GEO Score</div>
                 <div className="text-2xl font-bold tabular-nums" style={{ color: scoreColor(sseData.geoScore ?? 0) }}>{sseData.geoScore ?? 0}</div>
                 <div className="mt-2 space-y-1">
-                  <BarMini label="Citation Prob" value={sseData.taBreakdown?.depth ?? 0} />
-                  <BarMini label="Retrieval" value={sseData.taBreakdown?.breadth ?? 0} />
-                  <BarMini label="Semantic Trust" value={sseData.taBreakdown?.interlinking ?? 0} />
+                  {/* GEO's actual top drivers — citation (0.25), semantic trust (0.20), topical authority (0.15) */}
+                  <BarMini label="Citation Prob" value={data.aiVisibilityScores?.citationProbabilityScore ?? 0} />
+                  <BarMini label="Semantic Trust" value={data.aiVisibilityScores?.semanticTrustScore ?? 0} />
+                  <BarMini label="Topical Auth" value={sseData.topicalAuthorityScore ?? 0} />
                 </div>
               </div>
 
@@ -2361,6 +2362,17 @@ function AuditPageInner() {
               SNS = AVS×15% + GEO×15% + RR×10% + EC×10% + CP×10% + ST×10% + TA×10% + KGS×5% + ACI×5% + Schema×10%
               &nbsp;·&nbsp;
               GEO = CP×25% + RR×20% + ST×20% + TA×15% + MR×10% + EC×10%
+            </p>
+          </div>
+        )}
+
+        {/* SSE scores absent on a completed audit — be honest, never render fake 0s */}
+        {data?.status === 'complete' && sseFetched && !sseData && (
+          <div className="mb-8 card-glass rounded-2xl p-5 sm:p-8">
+            <h2 className="font-bold text-white text-base sm:text-lg">SiteNexis Scoring Engine</h2>
+            <p className="mt-2 text-sm text-[#F59E0B]">
+              Insufficient data — GEO, Topical Authority, Semantic Density and AI Crawlability were not
+              recorded for this audit. Re-run the audit to generate these scores.
             </p>
           </div>
         )}

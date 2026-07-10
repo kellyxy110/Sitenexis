@@ -1214,7 +1214,9 @@ export async function runServerlessAudit(
           label: n.label, type: n.type, confidence: n.confidence, citationReadiness: n.citationReadiness,
         })) ?? [];
 
-        const geoScore = Math.round(aiScores.aiScore * 0.7 + schemaScore * 0.3);
+        // Single source of truth for GEO — reuse the 6-factor sseGeoScore persisted
+        // to the SseScore table, so the health monitor and the audit dashboard never disagree.
+        const geoScore = sseGeoScore;
         const healthScore = overall;
 
         // Compile recommendations

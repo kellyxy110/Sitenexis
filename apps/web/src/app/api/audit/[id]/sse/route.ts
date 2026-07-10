@@ -1,7 +1,6 @@
 export const dynamic = 'force-dynamic';
 import { type NextRequest, NextResponse } from 'next/server';
 import { requireAuth, unauthorizedResponse } from '@/lib/auth';
-import { isFullyConfigured } from '@/lib/mode';
 import { logger } from '@/lib/logger';
 import { gtlEmpty, gtlResponse, resolveGTLState } from '@/lib/gtl';
 import type { AuditStatus } from '@sitenexis/shared';
@@ -9,15 +8,18 @@ import type { AuditStatus } from '@sitenexis/shared';
 interface Params { params: Promise<{ id: string }> }
 
 export async function GET(req: NextRequest, { params }: Params): Promise<NextResponse> {
-  try { await requireAuth(req); } catch { return unauthorizedResponse(); }
+  let user: Awaited<ReturnType<typeof requireAuth>>;
+  try { user = await requireAuth(req); } catch { return unauthorizedResponse(); }
   const { id } = await params;
 
-  if (!isFullyConfigured()) return gtlEmpty();
-
+  // Auth is the protection here — do NOT gate on isFullyConfigured(). A placeholder
+  // env var must not blank out real, persisted SSE scores for an authenticated owner
+  // (same failure class fixed for the executive-summary route in b70b926a).
   try {
     const { getAuditWithResults, getSseScore } = await import('@sitenexis/db');
     const audit = await getAuditWithResults(id) as { userId: string; status: AuditStatus } | null;
     if (!audit) return gtlEmpty();
+    if (audit.userId !== user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const sse = await getSseScore(id);
     const state = resolveGTLState(audit.status as AuditStatus, !!sse);
