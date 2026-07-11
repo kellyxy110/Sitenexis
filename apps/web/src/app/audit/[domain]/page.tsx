@@ -2389,6 +2389,57 @@ function AuditPageInner() {
           </div>
         )}
 
+        {/* ── Security & Trust + Brand Presence (Modules 12 & 13) ──────────── */}
+        {(() => {
+          const bd = data.scores?.breakdown as Record<string, unknown> | undefined;
+          const sec = bd?.['security'] as {
+            overallScore: number | null; grade: string; secretsFound: number;
+            riskyFilesExposed: number; headers: { assessed: boolean; score: number | null };
+            trustSignals: { score: number; socialProfiles: string[] };
+          } | null | undefined;
+          const brand = bd?.['brandPresence'] as {
+            brandPresenceScore: number; foundProfiles: { platform: string; inSameAs: boolean }[];
+            missingRecommended: string[];
+          } | null | undefined;
+          if (!sec && !brand) return null;
+          return (
+            <div className="mb-8 grid gap-4 sm:grid-cols-2">
+              {sec && (
+                <div className="card-glass rounded-2xl p-5">
+                  <div className="mb-3 flex items-center justify-between">
+                    <h2 className="font-bold text-white text-sm sm:text-base">Security &amp; Trust</h2>
+                    <span className="text-2xl font-bold tabular-nums" style={{ color: scoreColor(sec.overallScore ?? 0) }}>{sec.overallScore ?? '—'}</span>
+                  </div>
+                  <div className="space-y-1.5 text-xs text-[#4A6280]">
+                    <div className="flex justify-between"><span>Security headers</span><span className="font-medium text-white">{sec.headers.assessed ? `${sec.headers.score}/100` : 'not assessed'}</span></div>
+                    <div className="flex justify-between"><span>Trust signals</span><span className="font-medium text-white">{sec.trustSignals.score}/100</span></div>
+                    <div className="flex justify-between"><span>Exposed secrets</span><span className="font-medium" style={{ color: sec.secretsFound > 0 ? '#EF4444' : '#22C55E' }}>{sec.secretsFound}</span></div>
+                    <div className="flex justify-between"><span>Risky files</span><span className="font-medium" style={{ color: sec.riskyFilesExposed > 0 ? '#EF4444' : '#22C55E' }}>{sec.riskyFilesExposed}</span></div>
+                  </div>
+                </div>
+              )}
+              {brand && (
+                <div className="card-glass rounded-2xl p-5">
+                  <div className="mb-3 flex items-center justify-between">
+                    <h2 className="font-bold text-white text-sm sm:text-base">Brand Presence</h2>
+                    <span className="text-2xl font-bold tabular-nums" style={{ color: scoreColor(brand.brandPresenceScore) }}>{brand.brandPresenceScore}</span>
+                  </div>
+                  <div className="mb-2 flex flex-wrap gap-1.5">
+                    {brand.foundProfiles.length > 0 ? brand.foundProfiles.map((p) => (
+                      <span key={p.platform} className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-0.5 text-xs text-[#cbd5e1]">
+                        {p.platform}{p.inSameAs ? ' ✓' : ''}
+                      </span>
+                    )) : <span className="text-xs text-red-400">No profiles detected</span>}
+                  </div>
+                  {brand.missingRecommended.length > 0 && (
+                    <div className="text-xs text-[#4A6280]">Missing: {brand.missingRecommended.join(', ')}</div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
         {/* ── Critical issues banner ───────────────────────────────────────── */}
         {criticalIssues.length > 0 && (
           <div className="mb-6 rounded-xl border border-red-500/30 bg-red-500/8 p-5">

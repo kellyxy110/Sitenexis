@@ -49,6 +49,60 @@ function issueRow(i: { severity: string; message: string; recommendation: string
   </tr>`;
 }
 
+interface SecuritySummary {
+  overallScore: number | null;
+  grade: string;
+  secretsFound: number;
+  riskyFilesExposed: number;
+  headers: { assessed: boolean; score: number | null };
+  trustSignals: { score: number; present: string[]; socialProfiles: string[] };
+  findings: { severity: string; title: string; recommendation: string }[];
+}
+
+interface BrandSummary {
+  brandPresenceScore: number;
+  foundProfiles: { platform: string; inSameAs: boolean }[];
+  missingRecommended: string[];
+  notes: string[];
+}
+
+function securitySection(sec: SecuritySummary): string {
+  const headerLine = sec.headers.assessed
+    ? `Security headers: <span style="color:#cbd5e1">${sec.headers.score}/100</span>`
+    : `Security headers: <span style="color:#94a3b8">not assessed (headers unavailable)</span>`;
+  const top = sec.findings.slice(0, 8).map((f) => issueRow({ severity: f.severity, message: f.title, recommendation: f.recommendation }));
+  return `
+    <div class="section-label" style="margin-top:8px">Security &amp; Trust</div>
+    <div class="score-grid">
+      ${card('Security & Trust', sec.overallScore)}
+      <div style="background:#0d2137;border:1px solid #1e3a5f;border-radius:8px;padding:14px;flex:2;min-width:220px">
+        <div style="color:#94a3b8;font-size:12px;line-height:1.9">
+          ${headerLine}<br>
+          Trust signals: <span style="color:#cbd5e1">${sec.trustSignals.score}/100</span> · social: ${sec.trustSignals.socialProfiles.length ? escHtml(sec.trustSignals.socialProfiles.join(', ')) : '<span style="color:#ef4444">none</span>'}<br>
+          Exposed secrets: <span style="color:${sec.secretsFound > 0 ? '#ef4444' : '#22c55e'}">${sec.secretsFound}</span> · risky files: <span style="color:${sec.riskyFilesExposed > 0 ? '#ef4444' : '#22c55e'}">${sec.riskyFilesExposed}</span>
+        </div>
+      </div>
+    </div>
+    ${top.length > 0 ? `<table style="width:100%;border-collapse:collapse;margin-bottom:24px"><tbody>${top.join('')}</tbody></table>` : ''}`;
+}
+
+function brandSection(brand: BrandSummary): string {
+  const profiles = brand.foundProfiles.length
+    ? brand.foundProfiles.map((p) => `<span style="display:inline-block;background:#0d2137;border:1px solid #1e3a5f;border-radius:12px;padding:3px 10px;margin:2px;font-size:12px;color:#cbd5e1">${escHtml(p.platform)}${p.inSameAs ? ' <span style="color:#22c55e">✓ sameAs</span>' : ''}</span>`).join('')
+    : '<span style="color:#ef4444;font-size:12px">No profiles detected</span>';
+  const notes = brand.notes.slice(0, 4).map((n) => `<li style="margin-bottom:4px">${escHtml(n)}</li>`).join('');
+  return `
+    <div class="section-label" style="margin-top:8px">Brand Presence</div>
+    <div class="score-grid">
+      ${card('Brand Presence', brand.brandPresenceScore)}
+      <div style="background:#0d2137;border:1px solid #1e3a5f;border-radius:8px;padding:14px;flex:2;min-width:220px">
+        <div style="margin-bottom:6px">${profiles}</div>
+        ${brand.missingRecommended.length ? `<div style="color:#94a3b8;font-size:12px">Missing recommended: ${escHtml(brand.missingRecommended.join(', '))}</div>` : ''}
+      </div>
+    </div>
+    ${notes ? `<ul style="color:#94a3b8;font-size:12px;margin:0 0 24px 18px">${notes}</ul>` : ''}`;
+}
+
 function generateReportHTML(
   domain: string,
   createdAt: Date,
@@ -57,6 +111,8 @@ function generateReportHTML(
   issues: Array<{ severity: string; message: string; recommendation: string }>,
   sseScores: Record<string, number | null> | undefined,
   integrity: { reportId: string; inputHash: string; engineVersion: string; signedAt: string },
+  security: SecuritySummary | null,
+  brand: BrandSummary | null,
 ): string {
   const date = createdAt.toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' });
   const overall = scores['overall'] ?? null;
@@ -140,6 +196,9 @@ function generateReportHTML(
 
   ${tier3.length > 0 ? `<div class="section-label">Tier 3 — Machine Trust Signals</div><div class="score-grid">${tier3.map(([l, v]) => card(l, v)).join('')}</div>` : ''}
 
+  ${security ? securitySection(security) : ''}
+  ${brand ? brandSection(brand) : ''}
+
   ${critical.length > 0 ? `<div class="section-label" style="margin-top:8px">Critical Issues (${critical.length})</div>${issueTable(critical)}` : ''}
   ${warnings.length > 0 ? `<div class="section-label">Warnings (${warnings.length})</div>${issueTable(warnings)}` : ''}
   ${!hasIssues ? '<div class="section-label">Issues</div><p style="color:#4a6280;font-style:italic;padding:12px 0">No issues detected in this audit.</p>' : ''}
@@ -211,6 +270,11 @@ export async function POST(req: NextRequest, { params }: Params): Promise<NextRe
 
     const reportIssues = issues.map((i) => ({ severity: i.severity, message: i.message, recommendation: i.recommendation }));
 
+    // Security & Brand Presence live in the auditScore breakdown JSON (Modules 12 & 13)
+    const breakdown = (scores as { breakdown?: Record<string, unknown> }).breakdown ?? {};
+    const security = (breakdown['security'] ?? null) as SecuritySummary | null;
+    const brand = (breakdown['brandPresence'] ?? null) as BrandSummary | null;
+
     // Sign the report from its canonical inputs — tamper-evident report identity
     const { signReport } = await import('@sitenexis/analyzers');
     const integrity = signReport({
@@ -233,6 +297,8 @@ export async function POST(req: NextRequest, { params }: Params): Promise<NextRe
       reportIssues,
       sseRecord,
       { reportId: integrity.reportId, inputHash: integrity.inputHash, engineVersion: integrity.engineVersion, signedAt: integrity.signedAt },
+      security,
+      brand,
     );
 
     const filename = `sitenexis-report-${auditTyped.domain.replace(/[^a-z0-9.-]/gi, '-')}-${new Date().toISOString().slice(0, 10)}.html`;

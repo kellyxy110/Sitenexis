@@ -857,6 +857,34 @@ function computeAiCrawlabilitySSE(pages: ParsedPage[], seoIssues: { type: string
   return { score, breakdown: { robots, sitemap, renderability, indexability } };
 }
 
+// ── Security & brand-presence input extraction (Modules 12 & 13) ───────────────
+
+const EMAIL_RE = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+
+function extractSameAs(pages: ParsedPage[]): string[] {
+  const out = new Set<string>();
+  for (const page of pages) {
+    for (const schema of page.schemaMarkup ?? []) {
+      if (typeof schema !== 'object' || schema === null) continue;
+      const sameAs = (schema as Record<string, unknown>)['sameAs'];
+      if (typeof sameAs === 'string') out.add(sameAs);
+      else if (Array.isArray(sameAs)) for (const u of sameAs) if (typeof u === 'string') out.add(u);
+    }
+  }
+  return [...out];
+}
+
+function extractEmails(pages: ParsedPage[]): string[] {
+  const out = new Set<string>();
+  for (const page of pages) {
+    for (const m of page.bodyText.matchAll(EMAIL_RE)) out.add(m[0].toLowerCase());
+    for (const link of page.externalLinks) {
+      if (link.toLowerCase().startsWith('mailto:')) out.add(link.slice(7).split('?')[0]!.toLowerCase());
+    }
+  }
+  return [...out].slice(0, 10);
+}
+
 // ── Main export ───────────────────────────────────────────────────────────────
 
 export async function runServerlessAudit(
@@ -972,6 +1000,33 @@ export async function runServerlessAudit(
       } catch { /* individual page save failure is non-fatal */ }
     }
 
+    // ── Security & Brand Presence scanners (Modules 12 & 13) ──────────────────
+    // Persisted in the auditScore.breakdown JSON — no schema migration required.
+    let securityReport: unknown = null;
+    let brandReport: unknown = null;
+    try {
+      const { buildSecurityTrustReport, buildBrandPresenceReport } = await import('@sitenexis/analyzers');
+      securityReport = buildSecurityTrustReport({
+        pages: pages.map((p) => ({
+          url: p.url,
+          bodyText: p.bodyText,
+          title: p.title,
+          internalLinks: p.internalLinks,
+          externalLinks: p.externalLinks,
+          extraText: JSON.stringify(p.schemaMarkup ?? []),
+        })),
+        ...(pages[0]?.responseHeaders ? { homepageHeaders: pages[0].responseHeaders } : {}),
+      });
+      brandReport = buildBrandPresenceReport({
+        domain,
+        externalLinks: [...new Set(pages.flatMap((p) => p.externalLinks))],
+        sameAsUrls: extractSameAs(pages),
+        emails: extractEmails(pages),
+      });
+    } catch (scanErr) {
+      logger.warn({ auditId, err: scanErr }, 'Security/brand scan failed (non-fatal)');
+    }
+
     // Save audit scores
     await (db as unknown as {
       auditScore: {
@@ -1013,6 +1068,8 @@ export async function runServerlessAudit(
           schema: { coverage: schemaScore / 100, schemaUrls },
           linkGraph: { avgPageRank: 0.5 },
           performance: { lcp: null, cls: null, ttfb: null },
+          security: securityReport,
+          brandPresence: brandReport,
         },
       },
       update: { overall, seoScore, aiScore: aiScores.aiScore, schemaScore },
