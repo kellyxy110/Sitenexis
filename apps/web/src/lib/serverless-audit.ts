@@ -884,9 +884,14 @@ export async function runServerlessAudit(
       },
     });
 
-    if (crawledRaw.length === 0 || crawledRaw[0]!.statusCode >= 400) {
-      const code = crawledRaw[0]?.statusCode ?? 'timeout';
-      await updateAuditStatus(auditId, 'failed', { errorMessage: `Homepage returned ${code} — cannot crawl ${domain}` });
+    const first = crawledRaw[0] as CrawledPage | undefined;
+    if (!first || first.statusCode >= 400) {
+      const code: number | 'timeout' = first?.statusCode ?? 'timeout';
+      const blocked = !first || first.statusCode === 403 || first.statusCode === 429 || first.statusCode === 503;
+      const hint = blocked
+        ? ' — the site appears to block automated access (bot mitigation such as Akamai/Cloudflare). Try a site without an aggressive WAF, or enable the headless crawler.'
+        : '';
+      await updateAuditStatus(auditId, 'failed', { errorMessage: `Homepage returned ${code} for ${domain}${hint}` });
       return;
     }
 

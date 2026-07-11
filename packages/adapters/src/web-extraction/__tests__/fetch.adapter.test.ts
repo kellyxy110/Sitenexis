@@ -98,6 +98,42 @@ describe('FetchExtractionAdapter', () => {
     expect(metrics.wordCount).toBeGreaterThan(0);
   });
 
+  // ── Redirect origin + response headers (crawl-reliability regression) ─────────
+
+  it('uses the post-redirect URL as the page origin', async () => {
+    // Request non-www; server redirects to www. Links are www-absolute.
+    const html = `<html><head><title>Redirected</title></head><body>
+      <a href="https://www.acme.example.com/about">About</a>
+      <a href="https://external.com/x">Ext</a>
+    </body></html>`;
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      status: 200, ok: true,
+      url: 'https://www.acme.example.com/',
+      headers: new Headers({ 'content-type': 'text/html' }),
+      text: () => Promise.resolve(html),
+    }));
+
+    const { page } = await adapter.extractPage('https://acme.example.com/');
+    expect(page.url).toBe('https://www.acme.example.com/');
+    expect(page.redirectChain).toEqual(['https://acme.example.com/', 'https://www.acme.example.com/']);
+    // The www /about link must classify as INTERNAL now, not external.
+    expect(page.internalLinks.some((u) => u.includes('www.acme.example.com/about'))).toBe(true);
+    expect(page.externalLinks.some((u) => u.includes('external.com'))).toBe(true);
+  });
+
+  it('captures lower-cased response headers', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      status: 200, ok: true,
+      url: 'https://acme.example.com/',
+      headers: new Headers({ 'Strict-Transport-Security': 'max-age=63072000', 'X-Frame-Options': 'DENY' }),
+      text: () => Promise.resolve('<html><head><title>H</title></head><body>hi</body></html>'),
+    }));
+
+    const { page } = await adapter.extractPage('https://acme.example.com/');
+    expect(page.responseHeaders?.['strict-transport-security']).toBe('max-age=63072000');
+    expect(page.responseHeaders?.['x-frame-options']).toBe('DENY');
+  });
+
   // ── Schema-rich fixture ───────────────────────────────────────────────────────
 
   it('extracts multiple schema blocks from schema-rich fixture', async () => {

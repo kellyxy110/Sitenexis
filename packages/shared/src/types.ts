@@ -56,6 +56,8 @@ export interface CrawledPage {
   hasStructuredData?: boolean;
   /** Open Graph metadata */
   openGraph?: { title?: string; description?: string; image?: string; type?: string };
+  /** Lower-cased HTTP response headers (homepage/page). Powers the security-header scanner. */
+  responseHeaders?: Record<string, string>;
 }
 
 export interface CrawlResult {

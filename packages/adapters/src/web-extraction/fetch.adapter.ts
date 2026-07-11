@@ -14,9 +14,36 @@ import type {
 import { validateExtractionUrl } from './security';
 
 const DEFAULT_TIMEOUT_MS = 12_000;
+// The homepage decides the whole audit — give it more room and a retry, since large
+// sites behind bot mitigation/CDNs are slow on the first (cold) request.
+const HOMEPAGE_TIMEOUT_MS = 22_000;
 const DEFAULT_MAX_PAGES = 50;
 const DEFAULT_CONCURRENCY = 3;
-const DEFAULT_USER_AGENT = 'SiteNexis-Audit/1.0 (+https://sitenexis.com/bot)';
+// A realistic browser UA. The previous "SiteNexis-Audit/1.0 (+…/bot)" string was
+// blocked outright (403/challenge) by enterprise bot mitigation (Akamai/Cloudflare),
+// which caused audits of large sites (e.g. mayoclinic.org) to fail with zero pages.
+// Standard for audit/render tools (Lighthouse/PageSpeed present a Chrome UA too).
+const DEFAULT_USER_AGENT =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
+
+/** Root-domain compare so www / non-www (and other subdomains) are treated as same-site. */
+function sameSite(hostA: string, hostB: string): boolean {
+  const root = (h: string): string => {
+    const parts = h.toLowerCase().replace(/^www\./, '').split('.');
+    return parts.length > 2 ? parts.slice(-2).join('.') : parts.join('.');
+  };
+  return root(hostA) === root(hostB);
+}
+
+/** Extract HTTP response headers into a plain lower-cased object (defensive: mocks may omit). */
+function extractHeaders(headers: unknown): Record<string, string> {
+  const out: Record<string, string> = {};
+  const h = headers as { forEach?: (cb: (v: string, k: string) => void) => void } | undefined;
+  if (h && typeof h.forEach === 'function') {
+    h.forEach((value, key) => { out[key.toLowerCase()] = value; });
+  }
+  return out;
+}
 
 // ─── HTML parsing ─────────────────────────────────────────────────────────────
 
@@ -164,11 +191,21 @@ function buildMetrics(
 
 // ─── Fetch helpers ─────────────────────────────────────────────────────────────
 
+interface FetchRawResult {
+  html: string;
+  statusCode: number;
+  ms: number;
+  contentLength: number;
+  /** URL after following redirects (falls back to the requested URL). */
+  finalUrl: string;
+  headers: Record<string, string>;
+}
+
 async function fetchRaw(
   url: string,
   timeoutMs: number,
   userAgent: string,
-): Promise<{ html: string; statusCode: number; ms: number; contentLength: number } | null> {
+): Promise<FetchRawResult | null> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   const t = Date.now();
@@ -177,8 +214,13 @@ async function fetchRaw(
       signal: controller.signal,
       headers: {
         'User-Agent': userAgent,
-        'Accept': 'text/html,application/xhtml+xml',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Upgrade-Insecure-Requests': '1',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
       },
       redirect: 'follow',
     });
@@ -188,12 +230,22 @@ async function fetchRaw(
       statusCode: res.status,
       ms: Date.now() - t,
       contentLength: html.length,
+      finalUrl: (res as { url?: string }).url || url,
+      headers: extractHeaders((res as { headers?: unknown }).headers),
     };
   } catch {
     return null;
   } finally {
     clearTimeout(timer);
   }
+}
+
+/** Fetch with one retry on failure/5xx — the homepage gates the whole audit. */
+async function fetchWithRetry(url: string, timeoutMs: number, userAgent: string): Promise<FetchRawResult | null> {
+  const first = await fetchRaw(url, timeoutMs, userAgent);
+  if (first && first.statusCode < 500) return first;
+  const second = await fetchRaw(url, timeoutMs, userAgent);
+  return second ?? first;
 }
 
 async function fetchSitemapUrls(domain: string, timeoutMs: number, userAgent: string, maxPages: number): Promise<string[]> {
@@ -211,7 +263,7 @@ async function fetchSitemapUrls(domain: string, timeoutMs: number, userAgent: st
         .map((m) => m[1]!.trim())
         .filter((u) => {
           if (!u.startsWith('http')) return false;
-          try { return new URL(u).hostname === domain; } catch { return false; }
+          try { return sameSite(new URL(u).hostname, domain); } catch { return false; }
         });
       if (urls.length > 0) return urls.slice(0, maxPages);
     } catch { /* try next */ }
@@ -259,15 +311,17 @@ export class FetchExtractionAdapter implements WebExtractionAdapter {
       };
     }
 
-    const parsed = parseHtml(raw.html, validUrl.href);
+    const finalUrl = raw.finalUrl;
+    const parsed = parseHtml(raw.html, finalUrl);
     const page: CrawledPage = {
-      url: validUrl.href,
+      url: finalUrl,
       statusCode: raw.statusCode,
-      redirectChain: [],
+      redirectChain: finalUrl !== validUrl.href ? [validUrl.href, finalUrl] : [],
       responseTimeMs: raw.ms,
       contentType: 'text/html',
       crawledAt: new Date(),
       images: [],
+      responseHeaders: raw.headers,
       ...parsed,
     };
 
@@ -292,14 +346,19 @@ export class FetchExtractionAdapter implements WebExtractionAdapter {
 
     const pages: CrawledPage[] = [];
 
-    // Always crawl homepage first
-    const homeRaw = await fetchRaw(baseUrl, timeoutMs, userAgent);
+    // Always crawl homepage first — with a longer timeout + retry, since it gates the audit.
+    const homeRaw = await fetchWithRetry(baseUrl, Math.max(timeoutMs, HOMEPAGE_TIMEOUT_MS), userAgent);
     if (!homeRaw || homeRaw.statusCode >= 400) return pages;
 
-    const homeParsed = parseHtml(homeRaw.html, baseUrl);
+    // Use the post-redirect URL as the origin so www/non-www internal links classify
+    // correctly (otherwise every link looks external and discovery finds nothing).
+    const homeUrl = homeRaw.finalUrl;
+    const homeParsed = parseHtml(homeRaw.html, homeUrl);
     const homePage: CrawledPage = {
-      url: baseUrl, statusCode: homeRaw.statusCode, redirectChain: [],
+      url: homeUrl, statusCode: homeRaw.statusCode,
+      redirectChain: homeUrl !== baseUrl ? [baseUrl, homeUrl] : [],
       responseTimeMs: homeRaw.ms, contentType: 'text/html', crawledAt: new Date(), images: [],
+      responseHeaders: homeRaw.headers,
       ...homeParsed,
     };
     pages.push(homePage);

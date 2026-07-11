@@ -1974,7 +1974,19 @@ function AuditPageInner() {
       if (!match) {
         const anyMatch = list.data.find((a) => a.domain === domain);
         if (!anyMatch) throw new Error('Audit not found');
-        if (anyMatch.status === 'failed') throw new Error('Audit failed — please try again.');
+        if (anyMatch.status === 'failed') {
+          // Surface the real reason (e.g. "Homepage returned 403 …") instead of a generic message.
+          let reason = '';
+          try {
+            const d = await fetch(`/api/audit/${anyMatch.id}`);
+            if (d.ok) {
+              const env = await d.json() as { data?: { errorMessage?: string | null } } | { errorMessage?: string | null };
+              const data = ('data' in env && env.data) ? env.data : env as { errorMessage?: string | null };
+              reason = data?.errorMessage ?? '';
+            }
+          } catch { /* fall back to generic message */ }
+          throw new Error(reason ? `Audit failed: ${reason}` : 'Audit failed — please try again.');
+        }
         throw Object.assign(new Error('Audit completing…'), { retriable: true });
       }
       const detail = await fetch(`/api/audit/${match.id}`);
