@@ -21,6 +21,32 @@ export { analyzeContentQuality } from './content/engine';
 // generateAuditReport is imported directly by the reporting agent.
 // Do NOT re-export here — @react-pdf/renderer and @aws-sdk/client-s3 are
 // worker-only deps that must not enter the Next.js webpack bundle.
+// Report integrity is a pure crypto module — safe to re-export.
+export {
+  signReport,
+  verifyReport,
+  attachOutputHash,
+  computeInputHash,
+  computeOutputHash,
+  canonicalize,
+  generateReportId,
+  sha256,
+  REPORT_ENGINE_VERSION,
+} from './reports/integrity';
+export type { ReportIntegrity, SignReportParams, VerificationResult } from './reports/integrity';
+export { buildSecurityTrustReport } from './security/engine';
+export type {
+  SecurityTrustReport,
+  SecurityFinding,
+  SecurityScanInput,
+  SecurityPage,
+  SecurityHeaderResult,
+  TrustSignalResult,
+  ProbeResult,
+  SecuritySeverity,
+} from './security/engine';
+export { buildBrandPresenceReport } from './brand-presence/engine';
+export type { BrandPresenceReport, BrandPresenceInput, BrandProfile } from './brand-presence/engine';
 export { callAI, callClaude, parseAIResponse, AI_MODEL, CLAUDE_MODEL } from './ai/client';
 export {
   entityClarityPrompt,

@@ -21,6 +21,7 @@ import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 // @ts-ignore — db accessed only by report generator (architectural exception documented in CLAUDE.md)
 import { db } from '@sitenexis/db';
 import { type AuditScores, type SEOIssueSeverity } from '@sitenexis/shared';
+import { signReport, attachOutputHash, type ReportIntegrity } from './integrity';
 
 // ─── Brand tokens ─────────────────────────────────────────────────────────────
 
@@ -498,10 +499,11 @@ interface ReportData {
   auditDate: Date;
   crawlDurationMs: number | null;
   scores: AuditScores;
+  integrity: ReportIntegrity;
 }
 
 function buildDocument(data: ReportData) {
-  const { domain, auditDate, crawlDurationMs, scores } = data;
+  const { domain, auditDate, crawlDurationMs, scores, integrity } = data;
   const all = allIssues(scores);
   const criticalCount = all.filter((i) => i.severity === 'critical').length;
   const warningCount  = all.filter((i) => i.severity === 'warning').length;
@@ -541,6 +543,15 @@ function buildDocument(data: ReportData) {
         ]),
         createElement(Text, { key: 'conf', style: s.coverConfidential },
           'CONFIDENTIAL — This report is prepared exclusively for the audited domain owner.'),
+        // Integrity signature — verifiable, tamper-evident report identity
+        createElement(View, { key: 'integrity', style: { marginTop: 18 } }, [
+          createElement(Text, { key: 'id', style: { fontSize: 8, color: C.cyan, letterSpacing: 1, fontFamily: 'Helvetica-Bold' } },
+            `REPORT ID: ${integrity.reportId}`),
+          createElement(Text, { key: 'hash', style: { fontSize: 7, color: '#4A6280', marginTop: 3 } },
+            `Integrity (SHA-256): ${integrity.inputHash}`),
+          createElement(Text, { key: 'engine', style: { fontSize: 7, color: '#4A6280', marginTop: 2 } },
+            `Engine: ${integrity.engineVersion}  ·  Signed: ${new Date(integrity.signedAt).toISOString()}`),
+        ]),
       ]
     ),
 
@@ -790,7 +801,7 @@ async function uploadToS3(buffer: Buffer, key: string): Promise<string> {
  *
  * @param auditId - The audit record ID from the DB.
  */
-export async function generateAuditReport(auditId: string): Promise<{ pdfUrl: string }> {
+export async function generateAuditReport(auditId: string): Promise<{ pdfUrl: string; integrity: ReportIntegrity }> {
   // ── Load audit + scores from DB ──────────────────────────────────────────
   const auditRecord = await db.audit.findFirst({
     where: { id: auditId, archivedAt: null },
@@ -920,16 +931,29 @@ export async function generateAuditReport(auditId: string): Promise<{ pdfUrl: st
     },
   };
 
+  const auditDate = auditRecord.completedAt ?? auditRecord.createdAt;
+
+  // ── Sign the report from its canonical inputs (before render) ─────────────
+  const integrity = signReport({
+    auditId,
+    input: { domain: auditRecord.domain, auditDate: auditDate.toISOString(), scores },
+    // Deterministic PDF — no LLM contribution, so prompt/model stay null.
+  });
+
   const reportData: ReportData = {
     domain: auditRecord.domain,
-    auditDate: auditRecord.completedAt ?? auditRecord.createdAt,
+    auditDate,
     crawlDurationMs: auditRecord.crawlDurationMs,
     scores,
+    integrity,
   };
 
   // ── Render PDF ───────────────────────────────────────────────────────────
   const doc = buildDocument(reportData);
   const buffer = await renderToBuffer(doc);
+
+  // Hash the rendered artifact so the delivered file can be verified later.
+  const signedIntegrity = attachOutputHash(integrity, buffer);
 
   // ── Upload to S3/R2 ──────────────────────────────────────────────────────
   const timestamp = Date.now();
@@ -946,7 +970,7 @@ export async function generateAuditReport(auditId: string): Promise<{ pdfUrl: st
     update: { pdfUrl, generatedAt, expiresAt },
   });
 
-  return { pdfUrl };
+  return { pdfUrl, integrity: signedIntegrity };
 }
 
 // ─── Utility ──────────────────────────────────────────────────────────────────
