@@ -6,7 +6,7 @@
  */
 
 import { logger } from '@/lib/logger';
-import { getGroqAdapter, getFetchExtractionAdapter } from '@sitenexis/adapters';
+import { getGroqAdapter, getFetchExtractionAdapter, getCrawl4aiExtractionAdapter } from '@sitenexis/adapters';
 import type { CrawledPage } from '@sitenexis/shared';
 import type {
   RetrievalSimulationResult,
@@ -900,24 +900,54 @@ export async function runServerlessAudit(
     const crawlStartTime = Date.now();
 
     // ── 1 + 2. Crawl pages via FetchExtractionAdapter ─────────────────────────
+    const onCrawlProgress = (): void => {
+      // fire-and-forget progress update; ignore errors
+      void updateAuditStatus(auditId, 'running', {}).catch(() => undefined);
+    };
     const extractor = getFetchExtractionAdapter();
-    const crawledRaw = await extractor.crawlDomain(domain, {
+    let crawledRaw = await extractor.crawlDomain(domain, {
       maxPages: MAX_PAGES,
       concurrency: 4,
       timeoutMs: 12_000,
       ctx: { auditId, domain },
-      onPage: () => {
-        // fire-and-forget progress update; ignore errors
-        void updateAuditStatus(auditId, 'running', {}).catch(() => undefined);
-      },
+      onPage: onCrawlProgress,
     });
+
+    // Headless fallback: if the fetch crawler was blocked/failed on the homepage and a
+    // Crawl4AI service is configured (CRAWL4AI_URL), retry with the headless browser —
+    // it renders JS and clears many bot-mitigation challenges plain fetch cannot.
+    let headlessAttempted = false;
+    if (crawledRaw.length === 0 || crawledRaw[0]!.statusCode >= 400) {
+      const headless = getCrawl4aiExtractionAdapter();
+      if (headless.isConfigured()) {
+        headlessAttempted = true;
+        logger.warn({ auditId, domain }, 'Fetch crawl failed — falling back to headless Crawl4AI');
+        try {
+          const headlessPages = await headless.crawlDomain(domain, {
+            maxPages: MAX_PAGES,
+            concurrency: 3,
+            timeoutMs: 30_000,
+            ctx: { auditId, domain },
+            onPage: onCrawlProgress,
+          });
+          if (headlessPages.length > 0 && headlessPages[0]!.statusCode < 400) {
+            crawledRaw = headlessPages;
+            logger.info({ auditId, domain, pages: headlessPages.length }, 'Headless Crawl4AI fallback succeeded');
+          }
+        } catch (headlessErr) {
+          logger.warn({ auditId, err: headlessErr }, 'Headless Crawl4AI fallback failed');
+        }
+      }
+    }
 
     const first = crawledRaw[0] as CrawledPage | undefined;
     if (!first || first.statusCode >= 400) {
       const code: number | 'timeout' = first?.statusCode ?? 'timeout';
       const blocked = !first || first.statusCode === 403 || first.statusCode === 429 || first.statusCode === 503;
       const hint = blocked
-        ? ' — the site appears to block automated access (bot mitigation such as Akamai/Cloudflare). Try a site without an aggressive WAF, or enable the headless crawler.'
+        ? headlessAttempted
+          ? ' — the site blocks automated access; even the headless crawler could not retrieve it.'
+          : ' — the site appears to block automated access (bot mitigation such as Akamai/Cloudflare). Set CRAWL4AI_URL to enable the headless crawler fallback.'
         : '';
       await updateAuditStatus(auditId, 'failed', { errorMessage: `Homepage returned ${code} for ${domain}${hint}` });
       return;
