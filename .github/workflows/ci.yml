@@ -1,0 +1,53 @@
+name: CI — Certification Gate
+
+# Mandatory pre-merge gate. Must be green before any merge to master (and therefore
+# before Vercel auto-deploys production). Part of the Production Certification Pipeline;
+# see scripts/launch-validation/README.md for the full suite and phased plan.
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  certify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    # Non-secret placeholders so env.ts validation and the production build pass in CI.
+    # Real secrets live in Vercel; CI only needs these to satisfy fail-fast validation.
+    env:
+      SELF_AUDIT_SECRET: ci-placeholder-self-audit-secret
+      VERCEL_DEPLOY_WEBHOOK_SECRET: ci-placeholder-vercel-webhook-secret
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Unit tests
+        run: pnpm test
+
+      # Build validates the production bundle compiles (env fail-fast, all 57 API routes).
+      - name: Build
+        run: pnpm build

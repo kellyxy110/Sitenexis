@@ -10,6 +10,7 @@
     "test:coverage": "turbo run test:coverage",
     "typecheck": "turbo run typecheck",
     "lint": "turbo run lint",
+    "certify": "node scripts/launch-validation/run.mjs",
     "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\"",
     "db:push": "pnpm --filter @sitenexis/db db:push",
     "db:migrate": "pnpm --filter @sitenexis/db db:migrate",
