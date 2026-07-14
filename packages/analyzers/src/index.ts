@@ -35,6 +35,8 @@ export {
 } from './reports/integrity';
 export type { ReportIntegrity, SignReportParams, VerificationResult } from './reports/integrity';
 export { buildSecurityTrustReport } from './security/engine';
+export { detectBotMitigation } from './security/bot-mitigation';
+export type { BotMitigationResult, BotMitigationVendor } from './security/bot-mitigation';
 export type {
   SecurityTrustReport,
   SecurityFinding,

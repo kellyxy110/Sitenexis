@@ -943,13 +943,19 @@ export async function runServerlessAudit(
     const first = crawledRaw[0] as CrawledPage | undefined;
     if (!first || first.statusCode >= 400) {
       const code: number | 'timeout' = first?.statusCode ?? 'timeout';
-      const blocked = !first || first.statusCode === 403 || first.statusCode === 429 || first.statusCode === 503;
-      const hint = blocked
+      // Identify the bot-mitigation vendor from the (blocked) response so the failure
+      // is explained specifically — "Akamai Bot Manager", not a generic guess. Generic,
+      // signature-based: works for ANY site behind the same protection, no domain logic.
+      const { detectBotMitigation } = await import('@sitenexis/analyzers');
+      const mit = detectBotMitigation(first?.statusCode, first?.responseHeaders, first?.bodyText);
+      const hint = mit.blocked
         ? headlessAttempted
-          ? ' — the site blocks automated access; even the headless crawler could not retrieve it.'
-          : ' — the site appears to block automated access (bot mitigation such as Akamai/Cloudflare). Set CRAWL4AI_URL to enable the headless crawler fallback.'
+          ? ` — the site is protected by ${mit.vendorLabel} and blocks automated access; even the headless crawler could not retrieve it.`
+          : ` — ${mit.explanation}`
         : '';
-      await updateAuditStatus(auditId, 'failed', { errorMessage: `Homepage returned ${code} for ${domain}${hint}` });
+      await updateAuditStatus(auditId, 'failed', {
+        errorMessage: `Homepage returned ${code} for ${domain}${hint}`.slice(0, 500),
+      });
       return;
     }
 

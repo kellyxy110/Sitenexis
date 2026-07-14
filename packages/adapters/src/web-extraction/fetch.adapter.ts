@@ -301,6 +301,10 @@ export class FetchExtractionAdapter implements WebExtractionAdapter {
       contentType: 'text/html',
       crawledAt: new Date(),
       schemaTypes: [], hasStructuredData: false,
+      // Carry response headers through even on a blocked/failed fetch so downstream
+      // can identify the bot-mitigation vendor (Akamai/Cloudflare/…) and surface
+      // security-header posture instead of failing with no context.
+      ...(raw?.headers ? { responseHeaders: raw.headers } : {}),
     };
 
     if (!raw || raw.statusCode >= 400) {
