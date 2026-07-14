@@ -63,9 +63,15 @@ function setEngineLibrary(): void {
     'libquery_engine-linux-musl.so.node',
   ];
 
-  for (const dir of candidates) {
-    if (!dir) continue;
-    for (const engine of engines) {
+  // Engine-outer, directory-inner: prefer the most platform-appropriate engine
+  // (Windows dll first, then rhel, then musl) across ALL candidate directories
+  // before falling back to the next engine. This prevents an earlier candidate
+  // dir that only contains a Linux engine (e.g. a Next.js-traced copy) from
+  // pinning an incompatible engine on Windows while the real packages/db/generated
+  // — which holds query_engine-windows.dll.node — is skipped.
+  for (const engine of engines) {
+    for (const dir of candidates) {
+      if (!dir) continue;
       const p = join(dir, engine);
       if (existsSync(p)) {
         process.env['PRISMA_QUERY_ENGINE_LIBRARY'] = p;

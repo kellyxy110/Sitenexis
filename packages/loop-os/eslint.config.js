@@ -16,11 +16,4 @@ module.exports = [
       'no-console': ['error', { allow: ['warn', 'error'] }],
     },
   },
-  {
-    // Seed and migration scripts are developer-only — console is acceptable
-    files: ['src/migrations/**/*.ts', 'src/seed*.ts', 'src/**/seed*.ts'],
-    rules: {
-      'no-console': 'off',
-    },
-  },
 ];
