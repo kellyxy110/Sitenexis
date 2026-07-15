@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { analyzeQuickScan } from '@sitenexis/analyzers';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
 import { logger } from '@/lib/logger';
+import { env } from '@/lib/env';
 
 // Private / reserved / loopback addresses an SSRF probe must never be able to reach.
 // Covers IPv4 (loopback, RFC1918, link-local, unspecified) and IPv6 (loopback ::1,
@@ -13,7 +14,7 @@ const PRIVATE_IP_RE =
   /^(localhost|0\.0\.0\.0|127\.|10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.|169\.254\.|::1?$|::ffff:|f[cd][0-9a-f]{2}:|fe80:)/i;
 
 /** True if the URL resolves to a private/reserved/loopback host (IPv4 or IPv6). */
-export function isPrivateHostUrl(u: string): boolean {
+function isPrivateHostUrl(u: string): boolean {
   try {
     // Node keeps IPv6 hosts bracketed in `.hostname` (e.g. "[::1]") — strip the
     // brackets before matching so IPv6 loopback/link-local can't slip through.
@@ -38,10 +39,11 @@ const QuickAuditSchema = z.object({
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const ip = getClientIp(req);
-  const rl = await rateLimit('quick-audit', ip, { limit: 20, windowSec: 3600 });
+  const limit = env.QUICK_AUDIT_RATE_LIMIT;
+  const rl = await rateLimit('quick-audit', ip, { limit, windowSec: 3600 });
   if (!rl.ok) {
     return NextResponse.json(
-      { error: 'Rate limit exceeded. You can run 20 quick audits per hour.' },
+      { error: `Rate limit exceeded. You can run ${limit} quick audits per hour.` },
       { status: 429, headers: rl.headers },
     );
   }
@@ -58,7 +60,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { url } = parsed.data;
+  // Normalise the validated URL through the URL constructor before it is ever fetched
+  // or echoed. This percent-encodes anything hostile in the path (e.g. an injected
+  // `<script>` becomes `%3Cscript%3E`), so the endpoint never reflects raw
+  // attacker-controlled markup back in its JSON response.
+  const url = new URL(parsed.data.url).href;
 
   try {
     const controller = new AbortController();
@@ -120,10 +126,29 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       note: 'Quick audit scans a single page without authentication. Run a full audit for deep AI visibility, entity intelligence, and machine trust analysis.',
     });
   } catch (err) {
-    if (err instanceof Error && err.name === 'AbortError') {
-      return NextResponse.json({ error: 'Page took too long to respond (10s timeout)' }, { status: 408 });
-    }
-    logger.error({ err, url }, 'Quick audit fetch failed');
-    return NextResponse.json({ error: 'Could not fetch page' }, { status: 502 });
+    // A failure to reach the AUDITED site (timeout, DNS failure, connection refused)
+    // is a property of that site, not a fault of this server. Return a graceful,
+    // fully-explained 200 result — an unreachable site is a valid audit outcome, and
+    // a 5xx here would both look like our outage and read as a "silent failure".
+    const isTimeout = err instanceof Error && err.name === 'AbortError';
+    const reason = isTimeout
+      ? 'The page took too long to respond (10s timeout).'
+      : 'The page could not be reached — the domain may not exist, or the server refused the connection.';
+    logger.warn({ err, url }, 'Quick audit could not reach target');
+    return NextResponse.json({
+      url,
+      status: 0,
+      error: reason,
+      issues: [
+        {
+          type: isTimeout ? 'fetch_timeout' : 'unreachable',
+          severity: 'critical',
+          description: reason,
+          recommendation: isTimeout
+            ? 'Improve server response time (TTFB) or check for a slow-loading page.'
+            : 'Verify the domain resolves and the server is reachable over HTTPS.',
+        },
+      ],
+    });
   }
 }

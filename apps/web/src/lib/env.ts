@@ -81,6 +81,11 @@ const envSchema = z.object({
   // Self-audit + deploy webhook — must be strong random secrets in production
   SELF_AUDIT_SECRET: secret(16),
   VERCEL_DEPLOY_WEBHOOK_SECRET: secret(16),
+
+  // Ops-tunable: max unauthenticated quick-audit requests per IP per hour.
+  // Defaults to 20; raise on staging so the launch validation suite can sweep the
+  // full diversity benchmark without self-limiting.
+  QUICK_AUDIT_RATE_LIMIT: z.coerce.number().int().positive().default(20),
 });
 
 export const env = envSchema.parse(process.env);
