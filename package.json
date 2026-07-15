@@ -11,6 +11,8 @@
     "typecheck": "turbo run typecheck",
     "lint": "turbo run lint",
     "certify": "node scripts/launch-validation/run.mjs",
+    "certify:coverage": "node scripts/launch-validation/coverage.mjs",
+    "certify:golden": "node scripts/launch-validation/golden/run.mjs",
     "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\"",
     "db:push": "pnpm --filter @sitenexis/db db:push",
     "db:migrate": "pnpm --filter @sitenexis/db db:migrate",

@@ -14,7 +14,9 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { STATUS, probeInfra, scoreChecks, http } from './lib/harness.mjs';
+import { STATUS, probeInfra, http } from './lib/harness.mjs';
+import { computeScorecard, formatScorecard, UNKNOWN } from './lib/scoring-model.mjs';
+import { loadCoverageSnapshot } from './lib/coverage-snapshot.mjs';
 
 import * as functional from './categories/functional.mjs';
 import * as reliability from './categories/reliability.mjs';
@@ -40,19 +42,6 @@ const CATEGORIES = [
   ['frontend', frontend],
   ['regression', regression],
 ];
-
-function perfScoreFromLoad(ctx) {
-  // The only unauthenticated probe endpoint is /api/health, which deliberately runs
-  // a ~5s Redis-ping race and returns 503 when Redis is down. With Redis over quota
-  // its latency reflects that timeout, not real throughput — so Performance cannot be
-  // scored truthfully here. Report N/A rather than a misleading number; it needs a
-  // production build + healthy Redis (or a dedicated always-200 liveness route).
-  if (!ctx.infra?.redis) return null;
-  const worst = (ctx.load?.ramp ?? []).reduce((a, r) => Math.max(a, r.p95 ?? 0), 0);
-  if (!worst) return null;
-  if (worst < 500) return 100; if (worst < 1000) return 85; if (worst < 2000) return 70;
-  if (worst < 4000) return 50; return 30;
-}
 
 async function main() {
   console.log(`\n═══════════════════════════════════════════════════════════`);
@@ -102,20 +91,10 @@ async function main() {
     }
   }
 
-  // ── Scores ────────────────────────────────────────────────────────────────────
-  const byCat = (c) => allChecks.filter((x) => x.category === c);
-  const infraUp = [infra.server, infra.db, infra.redis, infra.queue, infra.worker].filter(Boolean).length;
-  const scores = {
-    launchReadiness: scoreChecks(allChecks),
-    reliability: scoreChecks(byCat('reliability')),
-    scalability: scoreChecks(byCat('load')),
-    security: scoreChecks(byCat('security')),
-    performance: perfScoreFromLoad(ctx),
-    infrastructure: Math.round((infraUp / 5) * 100),
-    // Honest coverage: % of runtime packages carrying unit tests (not the pass-rate).
-    testCoverage: ctx.regression?.coveragePct ?? null,
-    aiAccuracy: null, // requires a labelled golden-set eval — not scored without evidence
-  };
+  // ── Scores (mathematically reproducible; UNKNOWN when inputs unmeasured) ───────
+  const coverage = loadCoverageSnapshot(); // null ⇒ testCoverage = UNKNOWN (never invented)
+  const scorecard = computeScorecard({ checks: allChecks, perSite: ctx.reliability?.perSite ?? [], infra, coverage });
+  const scores = Object.fromEntries(Object.entries(scorecard.scores).map(([k, v]) => [k, v.value]));
 
   const criticalBlockers = allChecks.filter((c) => c.status === STATUS.FAIL && c.critical);
   const skipped = allChecks.filter((c) => c.status === STATUS.SKIP);
@@ -123,17 +102,18 @@ async function main() {
   const goNoGo = criticalBlockers.length === 0 ? 'GO' : 'NO-GO';
 
   console.log(`\n═══════════════════════════════════════════════════════════`);
-  console.log(`  CERTIFICATION SCORECARD`);
+  console.log(`  CERTIFICATION SCORECARD  (reproducible — see derivations below)`);
   console.log(`═══════════════════════════════════════════════════════════`);
-  const line = (k, v) => console.log(`  ${k.padEnd(22)} ${v === null ? 'N/A (needs eval)' : `${v}/100`}`);
-  line('Launch Readiness', scores.launchReadiness);
-  line('Reliability', scores.reliability);
-  line('Scalability', scores.scalability);
-  line('Security', scores.security);
-  line('Performance', scores.performance);
-  line('Infrastructure', scores.infrastructure);
-  line('Test Coverage', scores.testCoverage);
-  line('AI Accuracy', scores.aiAccuracy);
+  const label = { launchReadiness: 'Launch Readiness', reliability: 'Reliability', scalability: 'Scalability',
+    security: 'Security', performance: 'Performance', infrastructure: 'Infrastructure',
+    testCoverage: 'Test Coverage', aiAccuracy: 'AI Accuracy' };
+  const line = (k, v) => console.log(`  ${label[k].padEnd(22)} ${v === UNKNOWN ? 'UNKNOWN (input not measured)' : `${v}/100`}`);
+  for (const k of Object.keys(label)) line(k, scores[k]);
+
+  // Full derivation: formula + raw inputs + thresholds for every score.
+  console.log(`\n  ── SCORE DERIVATIONS ─────────────────────────────────────`);
+  console.log(formatScorecard(scorecard));
+
   console.log(`\n  Passed:  ${allChecks.filter((c) => c.status === STATUS.PASS).length}`);
   console.log(`  Failed:  ${allChecks.filter((c) => c.status === STATUS.FAIL).length} (${criticalBlockers.length} critical)`);
   console.log(`  Warnings:${warnings.length}   Skipped(infra): ${skipped.length}`);
@@ -152,7 +132,7 @@ async function main() {
 
   const report = {
     generatedAt: new Date().toISOString(), target: BASE_URL, infra,
-    scores, goNoGo,
+    scores, scoreDerivations: scorecard.scores, goNoGo,
     criticalBlockers: criticalBlockers.map((c) => ({ category: c.category, name: c.name, evidence: c.evidence })),
     warnings: warnings.map((c) => ({ category: c.category, name: c.name, evidence: c.evidence })),
     skipped: skipped.map((c) => ({ category: c.category, name: c.name, enableWith: c.enableWith })),

@@ -28,9 +28,22 @@ function classify(r, err, perSiteTimeoutMs) {
   return { verdict: 'FAIL', reason: '200 but no score and no explanation — blank/ambiguous' };
 }
 
+/** Optionally sample N sites per benchmark group (CORPUS_SAMPLE). Full sweep is the release gate. */
+function selectSites(all) {
+  const n = parseInt(process.env.CORPUS_SAMPLE ?? '0', 10);
+  if (!n) return all;
+  const byGroup = new Map();
+  for (const s of all) {
+    const g = s.group ?? 'ungrouped';
+    if (!byGroup.has(g)) byGroup.set(g, []);
+    if (byGroup.get(g).length < n) byGroup.get(g).push(s);
+  }
+  return [...byGroup.values()].flat();
+}
+
 export async function run({ baseUrl, corpus, concurrency = 5, perSiteTimeoutMs = 40_000 }) {
   const { checks, record } = createRecorder('reliability');
-  const sites = corpus.sites;
+  const sites = selectSites(corpus.sites);
   let idx = 0;
   const perSite = [];
 
@@ -48,7 +61,7 @@ export async function run({ baseUrl, corpus, concurrency = 5, perSiteTimeoutMs =
         } catch (e) { error = e; }
         if (!out || out.status < 500) break;
       }
-      perSite.push({ url: site.url, protection: site.protection, ...classify(out ?? {}, error, perSiteTimeoutMs) });
+      perSite.push({ url: site.url, group: site.group, protection: site.protection, ...classify(out ?? {}, error, perSiteTimeoutMs) });
     }
   }
   await Promise.all(Array.from({ length: Math.min(concurrency, sites.length) }, worker));
@@ -60,8 +73,16 @@ export async function run({ baseUrl, corpus, concurrency = 5, perSiteTimeoutMs =
   const audited = perSite.filter((p) => /audited/.test(p.reason)).length;
   const rateLimited = perSite.filter((p) => /rate limit/i.test(p.reason)).length;
 
+  // Per-group breakdown so a regression can be localised to a benchmark group.
+  const groups = [...new Set(perSite.map((p) => p.group ?? 'ungrouped'))].sort();
+  for (const g of groups) {
+    const gp = perSite.filter((p) => (p.group ?? 'ungrouped') === g);
+    const gf = gp.filter((p) => p.verdict === 'FAIL').length;
+    console.log(`      group ${g.padEnd(14)} ${gp.length - gf}/${gp.length} terminal${gf ? `  ✗ ${gf} SILENT` : ''}`);
+  }
+
   record('reliability: no benchmark site fails silently', fails.length === 0 ? STATUS.PASS : STATUS.FAIL,
-    `${perSite.length - fails.length}/${perSite.length} terminal-with-explanation; ${audited} fully audited; ${rateLimited} rate-limited; ${fails.length} silent failures`,
+    `${perSite.length - fails.length}/${perSite.length} terminal-with-explanation; ${audited} fully audited; ${rateLimited} rate-limited; ${fails.length} silent failures (${groups.length} groups)`,
     { critical: fails.length > 0 });
 
   if (rateLimited > 0) {

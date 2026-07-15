@@ -1,0 +1,50 @@
+{
+  "_comment": "Golden Evaluation Dataset. Labelled expected outputs per URL. The runner (golden/run.mjs) fetches the actual analyzer output and computes precision/recall/F1, score variance, hallucination rate, and false pos/neg against these labels. Runnable dimensions today are the deterministic single-page quick-scan signals (schema detection, issue detection, quickScore). The FULL 12-dimension eval (AI Visibility, Entity extraction, Machine Trust, Topical Authority, Semantic Density, Retrieval simulation, Chunk extraction, Recommendations) requires the AUTHENTICATED pipeline (Redis + worker) and is UNKNOWN until that is labelled — see fullPipelineDimensions.",
+  "version": 1,
+  "scoreTolerance": 5,
+  "fullPipelineDimensions": [
+    "aiVisibilityScore", "seoScore", "entityExtraction", "citationOpportunities",
+    "machineTrust", "topicalAuthority", "semanticDensity", "recommendations",
+    "chunkExtraction", "retrievalSimulation"
+  ],
+  "fullPipelineStatus": "UNKNOWN — requires the authenticated audit pipeline (Redis + BullMQ worker) to run; label expected values on staging, then this runner will compute the same metrics for those dimensions.",
+  "cases": [
+    {
+      "url": "https://example.com",
+      "note": "Deterministic control page. Expected quick-scan output is stable across runs.",
+      "quickScan": {
+        "expectedSchemaTypes": [],
+        "expectedIssueTypes": ["title_too_short", "missing_meta_desc", "thin_content", "no_schema"],
+        "expectedQuickScore": 80,
+        "expectedOutcomeState": "SUCCESS_WITH_WARNINGS",
+        "allowedIssueUniverse": [
+          "js_rendered", "missing_title", "title_too_long", "title_too_short",
+          "missing_meta_desc", "meta_desc_too_long", "missing_h1", "multiple_h1",
+          "noindex", "canonical_mismatch", "thin_content", "no_schema", "http_error",
+          "unreachable", "fetch_timeout"
+        ],
+        "allowedSchemaUniverse": [
+          "Organization", "Corporation", "WebSite", "WebPage", "Article", "NewsArticle",
+          "Product", "FAQPage", "BreadcrumbList", "ContactPoint", "LocalBusiness", "Person"
+        ]
+      }
+    },
+    {
+      "url": "https://example.org",
+      "note": "Second deterministic tiny static page.",
+      "quickScan": {
+        "expectedSchemaTypes": [],
+        "expectedIssueTypes": ["title_too_short", "missing_meta_desc", "thin_content", "no_schema"],
+        "expectedQuickScore": 80,
+        "expectedOutcomeState": "SUCCESS_WITH_WARNINGS",
+        "allowedIssueUniverse": [
+          "js_rendered", "missing_title", "title_too_long", "title_too_short",
+          "missing_meta_desc", "meta_desc_too_long", "missing_h1", "multiple_h1",
+          "noindex", "canonical_mismatch", "thin_content", "no_schema", "http_error",
+          "unreachable", "fetch_timeout"
+        ],
+        "allowedSchemaUniverse": ["Organization", "WebSite", "WebPage"]
+      }
+    }
+  ]
+}

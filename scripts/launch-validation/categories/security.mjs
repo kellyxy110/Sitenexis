@@ -43,6 +43,30 @@ export async function run({ baseUrl }) {
   record('A10 SSRF: private/metadata targets blocked', ssrfBlocked === SSRF_TARGETS.length ? STATUS.PASS : STATUS.FAIL,
     `${ssrfBlocked}/${SSRF_TARGETS.length} blocked`, { critical: ssrfBlocked !== SSRF_TARGETS.length });
 
+  // A10 SSRF via REDIRECT — a public URL that 302s to an internal host must be
+  // blocked at the redirect hop (regression guard for the redirect-SSRF fix).
+  const redirTargets = [
+    'https://httpbin.org/redirect-to?url=http://169.254.169.254/latest/meta-data/',
+    'https://nghttp2.org/httpbin/redirect-to?url=http://127.0.0.1:6379/',
+  ];
+  let redirResult = null;
+  for (const t of redirTargets) {
+    const r = await http(baseUrl, '/api/quick-audit', {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ url: t }),
+    }, 25_000).catch(() => ({ status: 0, body: null }));
+    // 400 = correctly blocked at the redirect hop. A slow redirector may time out
+    // (status 0 / graceful timeout) — inconclusive, try the next. Reaching the
+    // internal host and returning a 200 audit result would be the failure.
+    if (r.status === 400) { redirResult = 'blocked'; break; }
+    if (r.status === 200 && r.body && typeof r.body.quickScore === 'number') { redirResult = 'followed'; break; }
+  }
+  record('A10 SSRF (redirect): public→internal redirect is blocked at the hop',
+    redirResult === 'followed' ? STATUS.FAIL : redirResult === 'blocked' ? STATUS.PASS : STATUS.SKIP,
+    redirResult === 'blocked' ? 'redirect to a private host returned 400'
+      : redirResult === 'followed' ? 'FOLLOWED a redirect into an internal host'
+      : 'redirectors unreachable/slow this run — inconclusive',
+    { critical: redirResult === 'followed', enableWith: redirResult ? undefined : 'run when a public redirect service (httpbin/nghttp2) is reachable' });
+
   // ── A03: Injection — payloads must be rejected/handled, never 500 or reflected ─
   let injOk = 0;
   for (const p of INJECTION_PAYLOADS) {
