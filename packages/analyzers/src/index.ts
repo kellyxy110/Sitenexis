@@ -39,6 +39,15 @@ export { detectBotMitigation } from './security/bot-mitigation';
 export type { BotMitigationResult, BotMitigationVendor } from './security/bot-mitigation';
 export { analyzeQuickScan, stripScriptsAndStyles, stripPairedTag, MAX_QUICK_SCAN_HTML } from './quick-scan/analyze';
 export type { QuickScanResult, QuickScanIssue } from './quick-scan/analyze';
+export {
+  AUDIT_OUTCOME_STATES,
+  classifyQuickScanOutcome,
+  makeOutcome,
+  isTerminalOutcome,
+} from './audit-outcome/outcome';
+export type { AuditOutcome, AuditOutcomeState, AuditStage, QuickScanOutcomeInput } from './audit-outcome/outcome';
+export { setMetrics, numericMatch, variance, spearman, hallucinationRate, aggregate } from './golden-eval/metrics';
+export type { SetMetrics, AggregatePrecisionRecall } from './golden-eval/metrics';
 export type {
   SecurityTrustReport,
   SecurityFinding,
