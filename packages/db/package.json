@@ -19,7 +19,8 @@
     "db:seed": "tsx src/migrations/seed.ts",
     "db:seed-demo": "tsx src/seed-demo.ts",
     "db:studio": "prisma studio",
-    "db:generate": "prisma generate"
+    "db:generate": "prisma generate",
+    "test": "vitest run"
   },
   "dependencies": {
     "@prisma/client": "^5.18.0",
@@ -33,6 +34,7 @@
     "eslint": "^9.0.0",
     "prisma": "^5.18.0",
     "tsx": "^4.17.0",
-    "typescript": "^5.5.4"
+    "typescript": "^5.5.4",
+    "vitest": "^2.0.5"
   }
 }

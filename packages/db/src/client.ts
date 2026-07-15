@@ -1,6 +1,7 @@
 import { join, dirname } from 'path';
 import { existsSync } from 'fs';
 import { PrismaClient } from '../generated';
+import { pickEngineLibrary } from './engine-select';
 
 /**
  * Walk up the directory tree from `start`, looking for a `packages/db/generated` subtree.
@@ -55,30 +56,13 @@ function setEngineLibrary(): void {
     join(process.cwd(), '..', '..', 'packages', 'db', 'generated'),
   ];
 
-  const engines = [
-    'query_engine-windows.dll.node',
-    'libquery_engine-rhel-openssl-3.0.x.so.node',
-    'libquery_engine-rhel-openssl-1.1.x.so.node',
-    'libquery_engine-linux-musl-openssl-3.0.x.so.node',
-    'libquery_engine-linux-musl.so.node',
-  ];
-
-  // Engine-outer, directory-inner: prefer the most platform-appropriate engine
-  // (Windows dll first, then rhel, then musl) across ALL candidate directories
-  // before falling back to the next engine. This prevents an earlier candidate
-  // dir that only contains a Linux engine (e.g. a Next.js-traced copy) from
-  // pinning an incompatible engine on Windows while the real packages/db/generated
-  // — which holds query_engine-windows.dll.node — is skipped.
-  for (const engine of engines) {
-    for (const dir of candidates) {
-      if (!dir) continue;
-      const p = join(dir, engine);
-      if (existsSync(p)) {
-        process.env['PRISMA_QUERY_ENGINE_LIBRARY'] = p;
-        return;
-      }
-    }
-  }
+  // Engine-outer, directory-inner selection ordered by the current platform (see
+  // engine-select.ts). Prevents an earlier candidate dir that only contains a Linux
+  // engine (e.g. a Next.js-traced copy) from pinning an incompatible engine on
+  // Windows while the real packages/db/generated — which holds the Windows dll —
+  // is skipped. Regression-tested in engine-select.test.ts.
+  const chosen = pickEngineLibrary(process.platform, candidates, existsSync, join);
+  if (chosen) process.env['PRISMA_QUERY_ENGINE_LIBRARY'] = chosen;
 }
 
 setEngineLibrary();

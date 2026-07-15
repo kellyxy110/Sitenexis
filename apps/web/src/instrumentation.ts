@@ -9,10 +9,26 @@ export async function register() {
   if (process.env.NEXT_RUNTIME !== 'nodejs') return;
   if (process.env.PRISMA_QUERY_ENGINE_LIBRARY) return;
 
-  // Vercel deploys the monorepo under /var/task — the engine is always at this path.
+  // Vercel deploys the monorepo under /var/task — the Linux engine is always there.
   // Setting it here before any route handler runs ensures PrismaClient finds the engine.
   const vercelPath =
     '/var/task/packages/db/generated/libquery_engine-rhel-openssl-3.0.x.so.node';
+
+  // Engine filenames in preference order for the CURRENT platform. On Windows the
+  // committed Linux .so.node binaries are present in the repo too, so we must select
+  // the Windows dll FIRST — otherwise require() pins an incompatible Linux engine and
+  // every query fails with "Prisma engines do not seem to be compatible with your system".
+  // Mirrors @sitenexis/db's orderEnginesForPlatform (kept inline to avoid importing the
+  // Prisma client at instrumentation time); the ordering invariant is regression-tested
+  // in packages/db/src/engine-select.test.ts.
+  const engineOrder =
+    process.platform === 'win32'
+      ? ['query_engine-windows.dll.node',
+         'libquery_engine-rhel-openssl-3.0.x.so.node',
+         'libquery_engine-rhel-openssl-1.1.x.so.node']
+      : ['libquery_engine-rhel-openssl-3.0.x.so.node',
+         'libquery_engine-rhel-openssl-1.1.x.so.node',
+         'query_engine-windows.dll.node'];
 
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -20,16 +36,22 @@ export async function register() {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const path = require('path') as typeof import('path');
 
-    const candidates = [
-      vercelPath,
-      path.join(process.cwd(), '../../packages/db/generated/libquery_engine-rhel-openssl-3.0.x.so.node'),
-      path.join(process.cwd(), '../../packages/db/generated/libquery_engine-rhel-openssl-1.1.x.so.node'),
+    // Directories where the generated engines may live, most-specific first.
+    const dirs = [
+      '/var/task/packages/db/generated',
+      path.join(process.cwd(), '../../packages/db/generated'), // apps/web → repo root
+      path.join(process.cwd(), 'packages/db/generated'),
     ];
 
-    for (const p of candidates) {
-      if (fs.existsSync(p)) {
-        process.env.PRISMA_QUERY_ENGINE_LIBRARY = p;
-        return;
+    // Engine-outer, dir-inner: pick the platform-appropriate engine wherever it exists
+    // before falling back to a less-appropriate one.
+    for (const engine of engineOrder) {
+      for (const dir of dirs) {
+        const p = path.join(dir, engine);
+        if (fs.existsSync(p)) {
+          process.env.PRISMA_QUERY_ENGINE_LIBRARY = p;
+          return;
+        }
       }
     }
   } catch {
