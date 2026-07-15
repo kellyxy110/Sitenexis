@@ -43,6 +43,13 @@ const envSchema = z.object({
   BYNARA_API_KEY: z.string().default(''),
   BYNARA_BASE_URL: z.string().default('https://router.bynara.id/v1'),
 
+  // Agnes — OpenAI-compatible reasoning provider for the per-audit "SiteNexis
+  // Intelligence" assistant ONLY. Server-side only; never exposed to the client.
+  // Reasoning/explanations/recommendations only — never used to compute scores.
+  AGNES_API_KEY: z.string().default(''),
+  AGNES_BASE_URL: z.string().default('https://apihub.agnes-ai.com/v1'),
+  AGNES_MODEL: z.string().default('agnes-2.0-flash'),
+
   // Serper — SERP API for IGE cohort collection
   SERPER_API_KEY: z.string().default(''),
 

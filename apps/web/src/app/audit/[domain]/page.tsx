@@ -13,6 +13,7 @@ import {
 import { IssuesTable } from '@/components/IssuesTable';
 import { AuditProgress } from '@/components/AuditProgress';
 import { LinkGraph } from '@/components/LinkGraph';
+import { SiteNexisIntelligence } from '@/components/SiteNexisIntelligence';
 import type { SEOIssue, InternalLinkGraph } from '@sitenexis/shared';
 
 // ─── Lazy tab content helpers ─────────────────────────────────────────────────
@@ -2477,6 +2478,11 @@ function AuditPageInner() {
               {TAB_LABELS[tab]}
             </button>
           ))}
+        </div>
+
+        {/* ── SiteNexis Intelligence (per-audit assistant) ─────────────────── */}
+        <div className="mb-6">
+          <SiteNexisIntelligence auditId={data.id} domain={data.domain} />
         </div>
 
         {/* ── Tab content ──────────────────────────────────────────────────── */}
