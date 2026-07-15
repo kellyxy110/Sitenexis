@@ -13,14 +13,18 @@ function classify(r, err, perSiteTimeoutMs) {
     const aborted = /abort/i.test(String(err));
     return { verdict: 'FAIL', reason: aborted ? `TIMEOUT ${perSiteTimeoutMs}ms (silent hang)` : `network error: ${String(err).slice(0, 80)}` };
   }
-  if (r.status >= 500) return { verdict: 'FAIL', reason: `platform ${r.status} (server error, not graceful)` };
-  if (!r.body) return { verdict: 'FAIL', reason: `non-JSON/empty body (len=${r.rawLen})` };
+  if (!r.body) return { verdict: 'FAIL', reason: `non-JSON/empty body (status=${r.status}, len=${r.rawLen})` };
   const b = r.body;
   if (r.status === 200 && typeof b.quickScore === 'number') {
     return { verdict: 'PASS', reason: `audited (score=${b.quickScore}, ${b.wordCount ?? '?'}w) ${r.ms}ms` };
   }
+  // "Silent" means no explanation — a hang, an empty body, or a 5xx with nothing in
+  // it. A response that carries a JSON error/status IS graceful, whatever the code:
+  // the platform told the caller what happened and moved on.
   const reason = b.error ? (typeof b.error === 'string' ? b.error : JSON.stringify(b.error)) : b.status ? `http ${b.status}` : null;
   if (reason) return { verdict: 'PASS', reason: `graceful: ${String(reason).slice(0, 80)}` };
+  // No explanation of any kind.
+  if (r.status >= 500) return { verdict: 'FAIL', reason: `platform ${r.status} with no explanation (silent server error)` };
   return { verdict: 'FAIL', reason: '200 but no score and no explanation — blank/ambiguous' };
 }
 

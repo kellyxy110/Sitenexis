@@ -42,6 +42,12 @@ const CATEGORIES = [
 ];
 
 function perfScoreFromLoad(ctx) {
+  // The only unauthenticated probe endpoint is /api/health, which deliberately runs
+  // a ~5s Redis-ping race and returns 503 when Redis is down. With Redis over quota
+  // its latency reflects that timeout, not real throughput — so Performance cannot be
+  // scored truthfully here. Report N/A rather than a misleading number; it needs a
+  // production build + healthy Redis (or a dedicated always-200 liveness route).
+  if (!ctx.infra?.redis) return null;
   const worst = (ctx.load?.ramp ?? []).reduce((a, r) => Math.max(a, r.p95 ?? 0), 0);
   if (!worst) return null;
   if (worst < 500) return 100; if (worst < 1000) return 85; if (worst < 2000) return 70;
@@ -68,6 +74,8 @@ async function main() {
     process.stdout.write('\nWarming routes (health, quick-audit)… ');
     await Promise.all([
       http(BASE_URL, '/api/health', { method: 'GET' }, 180_000).catch(() => {}),
+      http(BASE_URL, '/', { method: 'GET' }, 180_000).catch(() => {}),      // compile the document route for the browser check
+      http(BASE_URL, '/login', { method: 'GET' }, 180_000).catch(() => {}), // and its redirect target
       http(BASE_URL, '/api/quick-audit', {
         method: 'POST', headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ url: 'https://example.com' }),

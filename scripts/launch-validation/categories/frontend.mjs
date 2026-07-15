@@ -41,7 +41,9 @@ export async function run({ baseUrl }) {
     attempted++;
     try {
       const page = await browser.newPage();
-      const resp = await page.goto(baseUrl, { waitUntil: 'domcontentloaded', timeout: 30_000 });
+      // 60s: a cold dev root (auth redirect + hydration) can exceed 30s on first paint;
+      // the orchestrator warms '/' and '/login' first, but keep generous headroom.
+      const resp = await page.goto(baseUrl, { waitUntil: 'domcontentloaded', timeout: 60_000 });
       const title = await page.title();
       const ok = resp && resp.status() < 400 && title.length > 0;
       if (ok) rendered++;

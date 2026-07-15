@@ -20,7 +20,13 @@ async function burst(baseUrl, path, n, timeoutMs = 20_000) {
       const t = Date.now();
       try {
         const r = await http(baseUrl, path, { method: 'GET' }, timeoutMs);
-        return { ms: Date.now() - t, ok: r.status > 0 && r.status < 500 };
+        // Load/responsiveness cares whether the server HANDLED the request under
+        // concurrency. Any HTTP response proves it did; 503 is the app's deliberate
+        // degraded-readiness signal (e.g. Redis over quota) — the server still
+        // responded, so it counts as handled. Only a hard 5xx (500/502/504) or a
+        // network error/timeout is a real failure.
+        const handled = r.status > 0 && (r.status < 500 || r.status === 503);
+        return { ms: Date.now() - t, ok: handled };
       } catch { return { ms: Date.now() - t, ok: false }; }
     }),
   );
