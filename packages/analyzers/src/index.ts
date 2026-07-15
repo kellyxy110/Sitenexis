@@ -37,6 +37,8 @@ export type { ReportIntegrity, SignReportParams, VerificationResult } from './re
 export { buildSecurityTrustReport } from './security/engine';
 export { detectBotMitigation } from './security/bot-mitigation';
 export type { BotMitigationResult, BotMitigationVendor } from './security/bot-mitigation';
+export { analyzeQuickScan, stripScriptsAndStyles, stripPairedTag, MAX_QUICK_SCAN_HTML } from './quick-scan/analyze';
+export type { QuickScanResult, QuickScanIssue } from './quick-scan/analyze';
 export type {
   SecurityTrustReport,
   SecurityFinding,
