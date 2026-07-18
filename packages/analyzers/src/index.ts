@@ -48,6 +48,10 @@ export {
 export type { AuditOutcome, AuditOutcomeState, AuditStage, QuickScanOutcomeInput } from './audit-outcome/outcome';
 export { setMetrics, numericMatch, variance, spearman, hallucinationRate, aggregate } from './golden-eval/metrics';
 export type { SetMetrics, AggregatePrecisionRecall } from './golden-eval/metrics';
+export { buildFindingPool, filterTraceableRecommendations } from './page-intelligence/finding-pool';
+export type { Finding, PageFacts, IssueFinding, RetrievalFailureFinding, RecommendationCandidate } from './page-intelligence/finding-pool';
+export { PAGE_INTELLIGENCE_SYSTEM_PROMPT, buildPageIntelligenceUserPrompt } from './page-intelligence/prompt';
+export type { PageIntelligenceContext } from './page-intelligence/prompt';
 export type {
   SecurityTrustReport,
   SecurityFinding,

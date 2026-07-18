@@ -1,9 +1,11 @@
 'use client';
 
+import { Suspense } from 'react';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { TopCommandBar } from '@/components/dashboard/TopCommandBar';
+import { GoogleIntegrationCard } from '@/components/dashboard/GoogleIntegrationCard';
 import { useRouter } from 'next/navigation';
-import { Puzzle, Bell, Search, Zap, Globe, ArrowRight } from 'lucide-react';
+import { Puzzle, Bell, Zap, Globe, ArrowRight } from 'lucide-react';
 
 interface Integration {
   id: string;
@@ -23,14 +25,6 @@ const INTEGRATIONS: Integration[] = [
     icon: Bell,
     connected: false,
     action: 'Connect Slack',
-  },
-  {
-    id: 'google-search-console',
-    name: 'Google Search Console',
-    description: 'Correlate AI visibility scores with GSC performance data — impressions, clicks, and ranking trends.',
-    icon: Search,
-    connected: false,
-    action: 'Connect GSC',
   },
   {
     id: 'zapier',
@@ -68,6 +62,9 @@ export default function IntegrationsPage() {
         </div>
 
         <div className="space-y-3">
+          <Suspense fallback={null}>
+            <GoogleIntegrationCard />
+          </Suspense>
           {INTEGRATIONS.map((integration) => {
             const Icon = integration.icon;
             const isComingSoon = integration.badge === 'Coming Soon';

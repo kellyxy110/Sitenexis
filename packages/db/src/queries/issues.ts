@@ -33,6 +33,10 @@ export async function getIssuesByAudit(auditId: string): Promise<Issue[]> {
   });
 }
 
+export async function getIssuesByPage(pageId: string): Promise<Issue[]> {
+  return db.issue.findMany({ where: { pageId }, orderBy: [{ severity: 'asc' }, { module: 'asc' }] });
+}
+
 export async function getIssuesBySeverity(
   auditId: string,
   severity: IssueSeverity

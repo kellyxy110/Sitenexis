@@ -18,3 +18,4 @@ export * from './queries/ige';
 export * from './queries/scout';
 export * from './queries/v4';
 export * from './queries/google-integrations';
+export * from './queries/page-intelligence';

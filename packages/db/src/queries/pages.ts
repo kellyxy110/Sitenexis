@@ -37,6 +37,10 @@ export async function getPageTextsByAudit(auditId: string): Promise<Map<string, 
   return map;
 }
 
+export async function getPageById(id: string): Promise<Page | null> {
+  return db.page.findUnique({ where: { id } });
+}
+
 export async function getPagesByAudit(auditId: string): Promise<Page[]> {
   return db.page.findMany({
     where: { auditId, archivedAt: null },

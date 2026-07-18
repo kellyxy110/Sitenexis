@@ -67,6 +67,7 @@ model User {
   searchQueryMetrics       SearchQueryMetric[]
   searchPageMetrics        SearchPageMetric[]
   aiVisibilityInsights     AiVisibilityInsight[]
+  optimizationSessions     OptimizationSession[]
 
   // AdNexis NextAuth credentials (null for SiteNexis Supabase users)
   passwordHash String? @map("password_hash")
@@ -143,6 +144,9 @@ model Audit {
   // AI Visibility Intelligence Center
   aiVisibilityInsights AiVisibilityInsight[]
 
+  // Page Intelligence
+  optimizationSessions OptimizationSession[]
+
   @@index([userId])
   @@index([domain])
   @@index([status])
@@ -177,6 +181,7 @@ model Page {
   audit  Audit        @relation(fields: [auditId], references: [id])
   issues Issue[]
   chunks PageChunk[]
+  optimizationSessions OptimizationSession[]
 
   @@index([auditId])
   @@map("pages")
@@ -1487,6 +1492,69 @@ model AiVisibilityInsight {
   @@index([type])
   @@index([createdAt])
   @@map("ai_visibility_insights")
+}
+
+// ─── Page Intelligence — explanation + optimization layer over deterministic scores ──
+//
+// Hard rule (enforced in code, not just prompted): every recommendation in
+// `recommendations` must carry sourceFindingIds referencing a real Issue.id or a
+// score-fact id for this page — generation-time validation discards anything that
+// doesn't trace back to an existing SiteNexis finding. The LLM never computes,
+// estimates, or overrides scoresSnapshot — that JSON is a direct copy of this
+// page's already-computed scores at generation time, for the diff view only.
+// Rewrites are suggestions only — nothing here is ever auto-applied to the page.
+
+enum OptimizationSessionStatus {
+  draft
+  accepted
+  published
+}
+
+model OptimizationSession {
+  id      String @id @default(cuid())
+  auditId String @map("audit_id")
+  pageId  String @map("page_id")
+  userId  String @map("user_id")
+
+  audit Audit @relation(fields: [auditId], references: [id])
+  page  Page  @relation(fields: [pageId], references: [id])
+  user  User  @relation(fields: [userId], references: [id])
+
+  // Original content snapshot — captured at generation time, independent of any
+  // later re-crawl of the same Page row.
+  originalTitle           String?
+  originalMetaDescription String?
+  originalH1              String?
+  originalBodyText        String  @db.Text
+
+  // AI-proposed rewrite — suggestion only.
+  optimizedTitle           String?
+  optimizedMetaDescription String?
+  optimizedH1              String?
+  optimizedBodyText        String  @db.Text
+
+  /// Why this page underperforms, per the LLM's diagnosis — explanation only, referencing findings
+  diagnosis String @db.Text
+
+  /// Direct copy of this page's deterministic scores at generation time (never recomputed by the LLM)
+  scoresSnapshot Json @map("scores_snapshot")
+
+  /// Array<{ action, rationale, sourceFindingIds: string[], expectedImpact }> — every entry traces to a real finding
+  recommendations Json
+
+  /// Array<{ engine, likelihood: 'low'|'medium'|'high', reasoning }> — qualitative estimates, not competing deterministic scores
+  citabilityByEngine Json @map("citability_by_engine")
+
+  status      OptimizationSessionStatus @default(draft)
+  publishedAt DateTime?                 @map("published_at")
+  createdAt   DateTime                  @default(now()) @map("created_at")
+  updatedAt   DateTime                  @updatedAt @map("updated_at")
+  archivedAt  DateTime?                 @map("archived_at")
+
+  @@index([auditId])
+  @@index([pageId])
+  @@index([userId])
+  @@map("optimization_sessions")
 }
 
 model CompetitiveSetMember {
