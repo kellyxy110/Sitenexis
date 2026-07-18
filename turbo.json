@@ -9,6 +9,10 @@
       "env": [
         "PRISMA_QUERY_ENGINE_LIBRARY",
         "NODE_ENV",
+        "VERCEL_ENV",
+        "AGNES_API_KEY",
+        "AGNES_BASE_URL",
+        "AGNES_MODEL",
         "DATABASE_URL",
         "DIRECT_URL",
         "SUPABASE_URL",

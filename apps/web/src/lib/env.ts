@@ -1,6 +1,12 @@
 import { z } from 'zod';
 
-const isProd = process.env['NODE_ENV'] === 'production';
+// Next.js always sets NODE_ENV=production for optimized builds, including Vercel
+// Preview deployments — so NODE_ENV alone can't distinguish Preview from Production.
+// VERCEL_ENV does ('production' | 'preview' | 'development'); fall back to NODE_ENV
+// off-Vercel where VERCEL_ENV is unset (e.g. Docker, bare metal).
+const isProd = process.env['VERCEL_ENV']
+  ? process.env['VERCEL_ENV'] === 'production'
+  : process.env['NODE_ENV'] === 'production';
 
 // In production: require a real value. In dev/test: fall back to a placeholder
 // so local development works without all secrets configured.
