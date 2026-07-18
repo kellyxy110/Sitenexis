@@ -1,10 +1,12 @@
 import type { Metadata } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
+import Script from 'next/script';
 import './globals.css';
 import { Providers } from '@/components/Providers';
 import { ThemeProvider } from '@/components/ThemeProvider';
 
 const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://sitenexis.vercel.app';
+const gtmId = process.env.NEXT_PUBLIC_GTM_ID || '';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -277,15 +279,26 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         {/* Theme flash prevention — runs synchronously before paint */}
         <script dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem('sn-theme')||'dark';document.documentElement.setAttribute('data-theme',t);}catch(e){}})();` }} />
-        {/* Google Analytics GA4 — must be in <head> for Search Console verification */}
-        <script async src="https://www.googletagmanager.com/gtag/js?id=G-YQJFVH9VJ7" />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-YQJFVH9VJ7');`,
-          }}
-        />
+        {/* Google Tag Manager — GA4 and all tags are configured inside the GTM container, not hardcoded here */}
+        {gtmId && (
+          <Script id="gtm-init" strategy="afterInteractive">
+            {`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${gtmId}');`}
+          </Script>
+        )}
       </head>
       <body className="antialiased font-sans" suppressHydrationWarning>
+        {/* Google Tag Manager (noscript) — must be immediately after <body> opens */}
+        {gtmId && (
+          <noscript>
+            <iframe
+              src={`https://www.googletagmanager.com/ns.html?id=${gtmId}`}
+              height="0"
+              width="0"
+              style={{ display: 'none', visibility: 'hidden' }}
+              title="gtm"
+            />
+          </noscript>
+        )}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(SITE_SCHEMA) }}

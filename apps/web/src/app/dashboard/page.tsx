@@ -10,6 +10,7 @@ import { IntelligenceHero, type IntelligenceScores } from '@/components/dashboar
 import { InsightGrid, type InsightGridData } from '@/components/dashboard/InsightGrid';
 import { AuditActivityFeed, type AuditFeedItem } from '@/components/dashboard/AuditActivityFeed';
 import { OnboardingHero } from '@/components/dashboard/OnboardingHero';
+import { trackEvent } from '@/lib/analytics/events';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -116,7 +117,9 @@ export default function DashboardPage() {
         body: JSON.stringify({ domain }),
       });
       if (res.ok) {
-        const { auditId } = await res.json() as { auditId: string };
+        const { auditId, executionMode } = await res.json() as { auditId: string; executionMode: 'bullmq' | 'serverless' };
+        trackEvent('website_added', { domain });
+        trackEvent('audit_started', { auditId, domain, executionMode });
         router.push(`/audit/${encodeURIComponent(domain)}?auditId=${auditId}`);
       } else {
         const body = await res.json() as {
@@ -126,7 +129,9 @@ export default function DashboardPage() {
         };
         const stage = body.failed_stage ? ` [${body.failed_stage}]` : '';
         const fix = body.recommended_fix ? ` — ${body.recommended_fix}` : '';
-        setStartError((body.error ?? `Request failed (${res.status})`) + stage + fix);
+        const message = (body.error ?? `Request failed (${res.status})`) + stage + fix;
+        trackEvent('audit_failed', { auditId: '', domain, reason: message.slice(0, 200) });
+        setStartError(message);
       }
     } catch {
       setStartError('Could not reach the server. Check your connection and try again.');

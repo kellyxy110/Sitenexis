@@ -58,6 +58,16 @@ model User {
   ads                Ad[]                @relation("UserAds")
   adGenerations      AdGeneration[]      @relation("UserAdGenerations")
 
+  // AI Visibility Intelligence Center — Google connectors
+  googleConnection         GoogleConnection?
+  dailyTrafficMetrics      DailyTrafficMetric[]
+  acquisitionChannelMetrics AcquisitionChannelMetric[]
+  landingPageMetrics       LandingPageMetric[]
+  searchVisibilityMetrics  SearchVisibilityMetric[]
+  searchQueryMetrics       SearchQueryMetric[]
+  searchPageMetrics        SearchPageMetric[]
+  aiVisibilityInsights     AiVisibilityInsight[]
+
   // AdNexis NextAuth credentials (null for SiteNexis Supabase users)
   passwordHash String? @map("password_hash")
 
@@ -129,6 +139,9 @@ model Audit {
   competitiveSetMembers    CompetitiveSetMember[]
   scoreDeltasFrom          ScoreDelta[] @relation("ScoreDeltaFromAudit")
   scoreDeltasTo            ScoreDelta[] @relation("ScoreDeltaToAudit")
+
+  // AI Visibility Intelligence Center
+  aiVisibilityInsights AiVisibilityInsight[]
 
   @@index([userId])
   @@index([domain])
@@ -1245,6 +1258,235 @@ model MemoryRecord {
   @@index([siteStateId])
   @@index([recordType])
   @@map("memory_records")
+}
+
+// ─── AI Visibility Intelligence Center — Google connectors ───────────────────
+//
+// Design principles:
+//   - Tenant boundary is the existing User model (no separate Organization
+//     table exists) — every row below is scoped directly by userId.
+//   - Tokens are stored pre-encrypted by the application layer (AES-GCM via
+//     GOOGLE_TOKEN_ENCRYPTION_KEY); Prisma only ever sees ciphertext strings.
+//   - Sync is Vercel Cron-triggered (no BullMQ worker is deployed), so there
+//     is no queue/job table here — GoogleSyncLog is the audit trail instead.
+//   - Normalized metric tables are one row per user+date(+dimension), upserted
+//     by the sync routes — never re-derived from raw API responses at query time.
+
+enum GoogleConnectionStatus {
+  connected
+  pending
+  expired
+  error
+}
+
+enum GoogleSyncProvider {
+  ga4
+  search_console
+}
+
+enum GoogleSyncStatus {
+  success
+  failed
+}
+
+enum AiVisibilityInsightType {
+  impressions_falling_on_issue_page
+  high_impressions_low_ctr
+  traffic_without_conversion
+  ai_referral_reaching_page
+  post_recommendation_improvement
+}
+
+model GoogleConnection {
+  id                     String                 @id @default(cuid())
+  userId                 String                 @unique @map("user_id")
+  googleAccountEmail     String                 @map("google_account_email")
+  accessTokenEncrypted   String                 @map("access_token_encrypted") @db.Text
+  refreshTokenEncrypted  String                 @map("refresh_token_encrypted") @db.Text
+  scopes                 String[]
+  tokenExpiresAt         DateTime               @map("token_expires_at")
+  status                 GoogleConnectionStatus @default(pending)
+  lastError              String?                @map("last_error")
+
+  ga4PropertyId   String? @map("ga4_property_id")
+  ga4PropertyName String? @map("ga4_property_name")
+  gscSiteUrl      String? @map("gsc_site_url")
+  gscSiteName     String? @map("gsc_site_name")
+
+  lastSyncedAt DateTime?  @map("last_synced_at")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+  archivedAt   DateTime?  @map("archived_at")
+
+  user     User            @relation(fields: [userId], references: [id])
+  syncLogs GoogleSyncLog[]
+
+  @@map("google_connections")
+}
+
+model GoogleSyncLog {
+  id            String             @id @default(cuid())
+  connectionId  String             @map("connection_id")
+  userId        String             @map("user_id")
+  provider      GoogleSyncProvider
+  status        GoogleSyncStatus
+  recordsSynced Int                @default(0) @map("records_synced")
+  errorMessage  String?            @map("error_message")
+  durationMs    Int?               @map("duration_ms")
+  startedAt     DateTime           @map("started_at")
+  completedAt   DateTime           @map("completed_at")
+  createdAt     DateTime           @default(now()) @map("created_at")
+
+  connection GoogleConnection @relation(fields: [connectionId], references: [id])
+
+  @@index([userId])
+  @@index([connectionId])
+  @@index([createdAt])
+  @@map("google_sync_logs")
+}
+
+/// GA4 — daily site-wide traffic + engagement (Traffic + Engagement + Conversions)
+model DailyTrafficMetric {
+  id                   String   @id @default(cuid())
+  userId               String   @map("user_id")
+  date                 DateTime @db.Date
+  sessions             Int      @default(0)
+  activeUsers          Int      @default(0) @map("active_users")
+  newUsers             Int      @default(0) @map("new_users")
+  engagedSessions      Int      @default(0) @map("engaged_sessions")
+  avgEngagementTimeSec Float    @default(0) @map("avg_engagement_time_sec")
+  keyEvents            Int      @default(0) @map("key_events")
+  deviceBreakdown      Json     @default("{}") @map("device_breakdown")
+  countryBreakdown     Json     @default("{}") @map("country_breakdown")
+  createdAt            DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, date])
+  @@index([userId, date])
+  @@map("daily_traffic_metrics")
+}
+
+/// GA4 — per-channel/source breakdown, flagged for AI-referral traffic (Acquisition + AI referral)
+model AcquisitionChannelMetric {
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+  date         DateTime @db.Date
+  channelGroup String   @map("channel_group")
+  source       String
+  sessions     Int      @default(0)
+  activeUsers  Int      @default(0) @map("active_users")
+  isAiReferral Boolean  @default(false) @map("is_ai_referral")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, date, channelGroup, source])
+  @@index([userId, date])
+  @@index([isAiReferral])
+  @@map("acquisition_channel_metrics")
+}
+
+/// GA4 — per-landing-page engagement, needed for the "traffic without conversion" insight
+model LandingPageMetric {
+  id                   String   @id @default(cuid())
+  userId               String   @map("user_id")
+  date                 DateTime @db.Date
+  pagePath             String   @map("page_path")
+  sessions             Int      @default(0)
+  activeUsers          Int      @default(0) @map("active_users")
+  avgEngagementTimeSec Float    @default(0) @map("avg_engagement_time_sec")
+  keyEvents            Int      @default(0) @map("key_events")
+  createdAt            DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, date, pagePath])
+  @@index([userId, date])
+  @@map("landing_page_metrics")
+}
+
+/// GSC — daily site-wide search visibility
+model SearchVisibilityMetric {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  date        DateTime @db.Date
+  clicks      Int      @default(0)
+  impressions Int      @default(0)
+  ctr         Float    @default(0)
+  avgPosition Float    @default(0) @map("avg_position")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, date])
+  @@index([userId, date])
+  @@map("search_visibility_metrics")
+}
+
+/// GSC — top queries (site-wide, not cross-joined with page)
+model SearchQueryMetric {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  date        DateTime @db.Date
+  query       String
+  clicks      Int      @default(0)
+  impressions Int      @default(0)
+  ctr         Float    @default(0)
+  avgPosition Float    @default(0) @map("avg_position")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, date, query])
+  @@index([userId, date])
+  @@index([query])
+  @@map("search_query_metrics")
+}
+
+/// GSC — top pages
+model SearchPageMetric {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  date        DateTime @db.Date
+  page        String
+  clicks      Int      @default(0)
+  impressions Int      @default(0)
+  ctr         Float    @default(0)
+  avgPosition Float    @default(0) @map("avg_position")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, date, page])
+  @@index([userId, date])
+  @@map("search_page_metrics")
+}
+
+/// Deterministic insights connecting audit findings to real GA4/GSC outcomes.
+/// Every row must carry evidence + affectedPage + confidence + recommendedAction +
+/// verificationMethod — no insight is stored without all five (see analytics/insights).
+model AiVisibilityInsight {
+  id                 String                  @id @default(cuid())
+  userId             String                  @map("user_id")
+  auditId            String?                 @map("audit_id")
+  type               AiVisibilityInsightType
+  affectedPage       String                  @map("affected_page")
+  evidence           Json
+  confidence         Float
+  recommendedAction  String                  @map("recommended_action") @db.Text
+  verificationMethod String                  @map("verification_method") @db.Text
+  severity           IssueSeverity           @default(info)
+  createdAt          DateTime                @default(now()) @map("created_at")
+  archivedAt         DateTime?               @map("archived_at")
+
+  user  User   @relation(fields: [userId], references: [id])
+  audit Audit? @relation(fields: [auditId], references: [id])
+
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
+  @@map("ai_visibility_insights")
 }
 
 model CompetitiveSetMember {

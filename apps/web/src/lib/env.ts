@@ -78,12 +78,27 @@ const envSchema = z.object({
 
   NEXT_PUBLIC_APP_URL: z.string().default('http://localhost:3000'),
 
+  // Google Tag Manager + GA4 — public, safe for the browser bundle
+  NEXT_PUBLIC_GTM_ID: z.string().default(''),
+  NEXT_PUBLIC_GA_MEASUREMENT_ID: z.string().default(''),
+
   PROVIDER_WEIGHTS_CONFIG: z.string().optional(),
   TRUST_DECAY_CONFIG: z.string().optional(),
   SYNTHETIC_DETECTION_CONFIG: z.string().optional(),
 
   RESEND_API_KEY: z.string().default(''),
   RESEND_FROM_EMAIL: z.string().default('SiteNexis <noreply@sitenexis.com>'),
+
+  // Google OAuth — AI Visibility Intelligence Center (GA4 + Search Console connectors).
+  // Optional like CRAWL4AI_URL/AGNES_*: the feature checks isGoogleOAuthConfigured()
+  // before use and fails gracefully rather than blocking the whole production build
+  // while the Google Cloud OAuth app is still being set up.
+  GOOGLE_CLIENT_ID: z.string().default(''),
+  GOOGLE_CLIENT_SECRET: z.string().default(''),
+  GOOGLE_OAUTH_REDIRECT_URI: z.string().default(''),
+  // 32-byte key (64 hex chars) for AES-256-GCM token encryption. Generate with:
+  // openssl rand -hex 32
+  GOOGLE_TOKEN_ENCRYPTION_KEY: z.string().default(''),
 
   // Crawl4AI — Python extraction microservice (primary web extraction provider when set)
   CRAWL4AI_URL: z.string().default(''),

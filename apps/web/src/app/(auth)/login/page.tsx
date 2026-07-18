@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
 import { Eye, EyeOff, Mail, Lock, Brain, Shield, Network, Zap, CheckCircle2 } from 'lucide-react'
 import { createSupabaseBrowserClient, isSupabaseConfigured } from '@/lib/supabase/client'
+import { trackEvent } from '@/lib/analytics/events'
 
 // ── SVG icons ─────────────────────────────────────────────────────────────────
 
@@ -190,6 +191,7 @@ function LoginForm() {
       const supabase = createSupabaseBrowserClient()
       const { error: err } = await supabase.auth.signInWithPassword({ email, password })
       if (err) throw err
+      trackEvent('login', { method: 'email' })
       router.push(redirectTo)
       router.refresh()
     } catch (err: unknown) {

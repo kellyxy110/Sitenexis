@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Eye, EyeOff, Mail, Lock, Check, Brain, Network, Shield, Zap } from 'lucide-react'
 import { createSupabaseBrowserClient, isSupabaseConfigured } from '@/lib/supabase/client'
+import { trackEvent } from '@/lib/analytics/events'
 
 // ── SVG icons ─────────────────────────────────────────────────────────────────
 
@@ -214,6 +215,8 @@ function SignupForm() {
       }
       return
     }
+
+    trackEvent('signup', { method: 'email' })
 
     if (data.session) {
       router.push('/dashboard')
