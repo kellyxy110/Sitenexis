@@ -8,8 +8,10 @@ const h = vi.hoisted(() => ({
   getAuditWithResults: vi.fn(),
   getIssuesByAudit: vi.fn(),
   logUsage: vi.fn(),
-  complete: vi.fn(),
-  isConfigured: vi.fn(),
+  groqComplete: vi.fn(),
+  groqIsConfigured: vi.fn(),
+  openrouterComplete: vi.fn(),
+  openrouterIsConfigured: vi.fn(),
 }));
 
 vi.mock('@/lib/auth', () => ({
@@ -20,7 +22,7 @@ vi.mock('@/lib/auth', () => ({
 vi.mock('@/lib/rate-limit', () => ({ rateLimit: h.rateLimit }));
 vi.mock('@/lib/logger', () => ({ logger: { warn: vi.fn(), error: vi.fn(), info: vi.fn() } }));
 vi.mock('@/lib/env', () => ({
-  env: { AGNES_API_KEY: 'sk-agnes-mock-key-longer-than-10', AGNES_MODEL: 'agnes-2.0-flash', AGNES_BASE_URL: 'https://apihub.agnes-ai.com/v1' },
+  env: { OPENROUTER_HERMES_KEY: 'sk-or-mock-hermes-key-longer-than-10', OPENROUTER_API_KEY: 'sk-or-mock-fallback-key' },
 }));
 vi.mock('@sitenexis/db', () => ({
   getAuditWithResults: h.getAuditWithResults,
@@ -28,7 +30,8 @@ vi.mock('@sitenexis/db', () => ({
   logUsage: h.logUsage,
 }));
 vi.mock('@sitenexis/adapters', () => ({
-  getAgnesAdapter: () => ({ isConfigured: h.isConfigured, complete: h.complete }),
+  getGroqAdapter: () => ({ provider: 'groq', isConfigured: h.groqIsConfigured, complete: h.groqComplete }),
+  getOpenRouterAdapter: () => ({ provider: 'openrouter', isConfigured: h.openrouterIsConfigured, complete: h.openrouterComplete }),
 }));
 
 const { POST } = await import('../route');
@@ -49,8 +52,10 @@ beforeEach(() => {
   h.getAuditWithResults.mockResolvedValue(completeAudit);
   h.getIssuesByAudit.mockResolvedValue([]);
   h.logUsage.mockResolvedValue(undefined);
-  h.isConfigured.mockReturnValue(true);
-  h.complete.mockResolvedValue({ content: 'Here is your action plan.', model: 'agnes-2.0-flash', provider: 'agnes', latencyMs: 120, inputTokens: 200, outputTokens: 60 });
+  h.groqIsConfigured.mockReturnValue(true);
+  h.openrouterIsConfigured.mockReturnValue(true);
+  h.groqComplete.mockResolvedValue({ content: 'Here is your action plan.', model: 'llama-3.3-70b-versatile', provider: 'groq', latencyMs: 120, inputTokens: 200, outputTokens: 60 });
+  h.openrouterComplete.mockResolvedValue({ content: 'Fallback answer.', model: 'nousresearch/hermes-3-llama-3.1-405b:free', provider: 'openrouter', latencyMs: 90 });
 });
 
 describe('POST /api/audit/[id]/intelligence', () => {
@@ -89,46 +94,53 @@ describe('POST /api/audit/[id]/intelligence', () => {
     expect(res.status).toBe(429);
   });
 
-  it('503 when Agnes is not configured', async () => {
-    h.isConfigured.mockReturnValueOnce(false);
+  it('503 when no provider is configured', async () => {
+    h.groqIsConfigured.mockReturnValueOnce(false);
+    h.openrouterIsConfigured.mockReturnValueOnce(false);
     const res = await POST(req({ question: 'hi' }), params);
     expect(res.status).toBe(503);
   });
 
-  it('200 on success — returns the answer, logs usage, never leaks the key', async () => {
+  it('200 on success — Groq answers first, logs usage, never leaks the key', async () => {
     const res = await POST(req({ question: 'what should I fix first?' }), params);
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.answer).toContain('action plan');
-    expect(json.provider).toBe('agnes');
+    expect(json.provider).toBe('groq');
     expect(h.logUsage).toHaveBeenCalledTimes(1);
+    expect(h.openrouterComplete).not.toHaveBeenCalled(); // Groq succeeded — no fallback needed
     // usage metadata must not carry the API key
     const meta = h.logUsage.mock.calls[0][0];
-    expect(JSON.stringify(meta)).not.toMatch(/sk-agnes/);
+    expect(JSON.stringify(meta)).not.toMatch(/sk-or-mock/);
     // response body must never contain the key
-    expect(JSON.stringify(json)).not.toMatch(/sk-agnes/);
+    expect(JSON.stringify(json)).not.toMatch(/sk-or-mock/);
   });
 
-  it('504 on provider timeout (AbortError)', async () => {
+  it('falls back to the second provider when the first fails', async () => {
+    h.groqComplete.mockRejectedValue(new Error('groq unavailable'));
+    const res = await POST(req({ question: 'hi' }), params);
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.answer).toBe('Fallback answer.');
+    expect(json.provider).toBe('openrouter');
+    expect(h.groqComplete).toHaveBeenCalledTimes(1);
+    expect(h.openrouterComplete).toHaveBeenCalledTimes(1);
+  });
+
+  it('504 on provider timeout (AbortError) when every provider times out', async () => {
     const abort = new Error('aborted'); abort.name = 'AbortError';
-    h.complete.mockRejectedValue(abort);
+    h.groqComplete.mockRejectedValue(abort);
+    h.openrouterComplete.mockRejectedValue(abort);
     const res = await POST(req({ question: 'hi' }), params);
     expect(res.status).toBe(504);
   });
 
-  it('502 on non-transient provider failure', async () => {
-    h.complete.mockRejectedValue(new Error('bad request 400'));
+  it('502 when every configured provider fails (non-transient)', async () => {
+    h.groqComplete.mockRejectedValue(new Error('bad request 400'));
+    h.openrouterComplete.mockRejectedValue(new Error('bad request 400'));
     const res = await POST(req({ question: 'hi' }), params);
     expect(res.status).toBe(502);
-    expect(h.complete).toHaveBeenCalledTimes(1); // non-transient → no retry
-  });
-
-  it('retries once on a transient failure then succeeds', async () => {
-    h.complete
-      .mockRejectedValueOnce(new Error('503 temporarily unavailable'))
-      .mockResolvedValueOnce({ content: 'recovered', model: 'agnes-2.0-flash', provider: 'agnes', latencyMs: 90 });
-    const res = await POST(req({ question: 'hi' }), params);
-    expect(res.status).toBe(200);
-    expect(h.complete).toHaveBeenCalledTimes(2);
+    expect(h.groqComplete).toHaveBeenCalledTimes(1);
+    expect(h.openrouterComplete).toHaveBeenCalledTimes(1);
   });
 });

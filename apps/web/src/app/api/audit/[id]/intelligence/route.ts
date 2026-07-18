@@ -15,7 +15,7 @@ interface Params { params: Promise<{ id: string }> }
 const RATE_LIMIT = 30;
 const RATE_WINDOW_SEC = 3_600;
 const AGNES_TIMEOUT_MS = 30_000;
-const MAX_ATTEMPTS = 2; // 1 retry on transient provider failure
+const HERMES_MODEL = 'nousresearch/hermes-3-llama-3.1-405b:free';
 
 const BodySchema = z.object({
   question: z.string().min(1, 'question is required').max(2_000),
@@ -24,11 +24,6 @@ const BodySchema = z.object({
     .max(20)
     .optional(),
 });
-
-function isTransient(err: unknown): boolean {
-  const msg = err instanceof Error ? err.message.toLowerCase() : String(err).toLowerCase();
-  return /timeout|aborted|429|5\d\d|econnreset|network|temporarily/.test(msg);
-}
 
 export async function POST(req: NextRequest, { params }: Params): Promise<NextResponse> {
   // ── Auth ───────────────────────────────────────────────────────────────────
@@ -76,12 +71,20 @@ export async function POST(req: NextRequest, { params }: Params): Promise<NextRe
     );
   }
 
-  // ── Provider availability (graceful fallback if unconfigured) ────────────────
-  const { getAgnesAdapter } = await import('@sitenexis/adapters');
-  const agnes = getAgnesAdapter(env.AGNES_API_KEY, env.AGNES_MODEL, env.AGNES_BASE_URL);
-  if (!agnes.isConfigured()) {
+  // ── Providers — Groq primary, Hermes 3 (OpenRouter) fallback ─────────────────
+  // Agnes (apihub.agnes-ai.com) is deliberately not used here — it is a single,
+  // independently-hosted provider with no fallback of its own, and outages there
+  // took this feature down entirely. Groq + an OpenRouter model are both already
+  // relied on elsewhere in the app, so a failure of either is independent of the other.
+  const { getGroqAdapter, getOpenRouterAdapter } = await import('@sitenexis/adapters');
+  const providers = [
+    { adapter: getGroqAdapter(), model: 'llama-3.3-70b-versatile' },
+    { adapter: getOpenRouterAdapter(HERMES_MODEL, env.OPENROUTER_HERMES_KEY || env.OPENROUTER_API_KEY), model: HERMES_MODEL },
+  ].filter((p) => p.adapter.isConfigured());
+
+  if (providers.length === 0) {
     return NextResponse.json(
-      { error: 'The Intelligence assistant is not currently available.', reason: 'agnes_unconfigured' },
+      { error: 'The Intelligence assistant is not currently available.', reason: 'no_provider_configured' },
       { status: 503 },
     );
   }
@@ -100,14 +103,14 @@ export async function POST(req: NextRequest, { params }: Params): Promise<NextRe
 
   const userPrompt = buildAgnesUserPrompt(summary, question, history as ChatTurn[]);
 
-  // ── Call Agnes with a bounded retry on transient failures ────────────────────
+  // ── Try each provider in order — independent failures, not retries of the same one ──
   let lastErr: unknown;
-  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+  for (const p of providers) {
     try {
-      const out = await agnes.complete({
+      const out = await p.adapter.complete({
         systemPrompt: AGNES_SYSTEM_PROMPT,
         userPrompt,
-        model: env.AGNES_MODEL,
+        model: p.model,
         temperature: 0.3,
         maxTokens: 1_024,
         ctx: { auditId: id, timeoutMs: AGNES_TIMEOUT_MS },
@@ -124,7 +127,6 @@ export async function POST(req: NextRequest, { params }: Params): Promise<NextRe
           latencyMs: out.latencyMs,
           inputTokens: out.inputTokens ?? null,
           outputTokens: out.outputTokens ?? null,
-          attempt,
         },
       }).catch((e) => logger.warn({ err: e }, 'agnes usage log failed'));
 
@@ -137,12 +139,15 @@ export async function POST(req: NextRequest, { params }: Params): Promise<NextRe
       });
     } catch (err) {
       lastErr = err;
-      if (attempt < MAX_ATTEMPTS && isTransient(err)) continue;
-      break;
+      logger.warn(
+        { auditId: id, provider: p.adapter.provider, err: err instanceof Error ? err.message : String(err) },
+        'Intelligence provider failed — trying next provider',
+      );
+      continue;
     }
   }
 
-  // ── Graceful failure — no key, no stack, clear message ───────────────────────
+  // ── Graceful failure — every provider failed; no key, no stack, clear message ─
   logger.error({ auditId: id, err: lastErr instanceof Error ? lastErr.message : String(lastErr) }, 'Agnes intelligence call failed');
   const timedOut = lastErr instanceof Error && lastErr.name === 'AbortError';
   return NextResponse.json(
