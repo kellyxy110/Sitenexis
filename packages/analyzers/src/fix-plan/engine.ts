@@ -183,7 +183,16 @@ export function buildFixPlan(input: FixPlanInput): FixPlan {
   // text on 40 URLs). Emitting one action per row produces a repetitive plan, so
   // collapse by (module, type, recommendation), keep the most-severe representative,
   // and record how many pages the fix spans.
-  const items = dedupeItems(rawItems);
+  const exactDeduped = dedupeItems(rawItems);
+
+  // ── Step 1c: Collapse the same real-world fix raised by different modules ──
+  // Entity Intelligence, Machine Trust, Synthetic Entity, and Citation each run
+  // their own analysis and independently detect gaps like "no sameAs links" or
+  // "no Organization schema" — each with its own module/type/wording. Step 1b's
+  // exact-match key can't catch these because the module and type genuinely
+  // differ. Without this pass the same audit surfaces 3-5 near-identical
+  // "add sameAs links" actions instead of one.
+  const items = collapseCanonicalTopics(exactDeduped);
 
   // ── Step 2: Apply dependency mapping ──────────────────────────────────────
   applyDependencies(items);
@@ -301,6 +310,79 @@ function dedupeItems(items: FixPlanItem[]): FixPlanItem[] {
         : rep,
     );
   }
+  return result;
+}
+
+/**
+ * Cross-module fix topics. Each entry recognises a real-world fix that multiple
+ * independent analyzer modules detect on their own (different module, different
+ * type, different wording) but which resolves to a single action for the site
+ * owner. Matching is conservative and text-based, on the combination of module
+ * signal + recommendation content — precise enough to avoid merging unrelated
+ * issues that happen to mention a shared keyword (e.g. "schema" alone is never
+ * sufficient; the test requires the specific fix content too).
+ */
+const CANONICAL_TOPICS: { id: string; label: string; test: (item: FixPlanItem) => boolean }[] = [
+  {
+    id: 'external-validation-sameas',
+    label: 'Add sameAs links for external entity validation',
+    test: (item) => {
+      const text = `${item.recommendation} ${item.message}`.toLowerCase();
+      return /same\s*as/.test(text) && /(wikipedia|wikidata|linkedin|crunchbase)/.test(text);
+    },
+  },
+  {
+    id: 'missing-organization-schema',
+    label: 'Add Organization schema to the homepage',
+    test: (item) => {
+      const text = `${item.recommendation} ${item.message}`.toLowerCase();
+      return /organi[sz]ation schema/.test(text) && /(add|missing|no organi[sz]ation)/.test(text);
+    },
+  },
+  {
+    id: 'missing-faq-schema',
+    label: 'Add FAQPage schema',
+    test: (item) => {
+      const text = `${item.recommendation} ${item.message}`.toLowerCase();
+      return /faqpage schema/.test(text) && /(add|missing|no faqpage)/.test(text);
+    },
+  },
+];
+
+/**
+ * Second dedup pass, run after the exact-match collapse in {@link dedupeItems}.
+ * Groups items across module/type boundaries by canonical fix topic, keeping the
+ * same most-severe/most-detailed representative selection rule, and folds the
+ * discarded items' module names into the survivor's message so the coverage
+ * information (which checks flagged this) is preserved rather than silently lost.
+ */
+function collapseCanonicalTopics(items: FixPlanItem[]): FixPlanItem[] {
+  const claimed = new Set<string>();
+  const result: FixPlanItem[] = [];
+
+  for (const topic of CANONICAL_TOPICS) {
+    const matches = items.filter((item) => !claimed.has(item.id) && topic.test(item));
+    if (matches.length === 0) continue;
+    for (const m of matches) claimed.add(m.id);
+    if (matches.length === 1) { result.push(matches[0]!); continue; }
+
+    const rep = [...matches].sort((a, b) =>
+      ((SEVERITY_RANK[a.severity] ?? 2) - (SEVERITY_RANK[b.severity] ?? 2))
+      || ((a.fixCode ? 0 : 1) - (b.fixCode ? 0 : 1))
+      || (b.recommendation.length - a.recommendation.length),
+    )[0]!;
+    const otherModules = [...new Set(matches.map((m) => m.module).filter((mod) => mod !== rep.module))];
+    result.push(
+      otherModules.length > 0
+        ? { ...rep, message: `${rep.message} (also flagged by ${otherModules.join(', ')})` }
+        : rep,
+    );
+  }
+
+  for (const item of items) {
+    if (!claimed.has(item.id)) result.push(item);
+  }
+
   return result;
 }
 

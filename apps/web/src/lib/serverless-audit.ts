@@ -246,7 +246,7 @@ Be specific and differentiated. Do not cluster scores around 50. Return ONLY val
       userPrompt,
       model: 'llama-3.3-70b-versatile',
       maxTokens: 256,
-      temperature: 0.1,
+      temperature: 0,
       jsonMode: true,
     });
 
@@ -723,7 +723,7 @@ Return ONLY valid JSON.`;
       userPrompt,
       model: 'llama-3.3-70b-versatile',
       maxTokens: 1024,
-      temperature: 0.2,
+      temperature: 0,
       jsonMode: true,
     });
 
