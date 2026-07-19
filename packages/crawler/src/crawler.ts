@@ -13,6 +13,22 @@ const DEFAULT_TIMEOUT_MS = 15_000;
 const NETWORK_IDLE_TIMEOUT_MS = 8_000;
 const MAX_REDIRECT_HOPS = 5;
 
+// Flattens @graph-wrapped JSON-LD (multiple entities in one <script> tag) into
+// individual entity objects, so downstream schema checks (sameAs, @type, etc.)
+// see each entity instead of one opaque { @context, @graph: [...] } wrapper.
+function flattenJsonLd(parsed: unknown): unknown[] {
+  if (Array.isArray(parsed)) {
+    return parsed.flatMap((item) => flattenJsonLd(item));
+  }
+  if (parsed && typeof parsed === 'object') {
+    const graph = (parsed as Record<string, unknown>)['@graph'];
+    if (Array.isArray(graph)) {
+      return graph;
+    }
+  }
+  return [parsed];
+}
+
 export interface CrawlOptions {
   maxPages?: number;
   concurrency?: number;
@@ -264,7 +280,7 @@ function parseHtml(
       const raw = $(el).html() ?? '';
       if (raw.trim()) {
         const parsed: unknown = JSON.parse(raw);
-        schemaMarkup.push(parsed);
+        schemaMarkup.push(...flattenJsonLd(parsed));
       }
     } catch {
       // ignore invalid JSON-LD

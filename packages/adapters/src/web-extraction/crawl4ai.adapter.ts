@@ -17,6 +17,7 @@ import type {
   ExtractionAdapterHealth,
 } from './interface';
 import { validateExtractionUrl } from './security';
+import { flattenJsonLd } from './schema-utils';
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 const DOMAIN_CRAWL_TIMEOUT_MULTIPLIER = 10;
@@ -65,7 +66,7 @@ function mapResult(r: Crawl4aiPageResult, crawledAt: Date): CrawledPage {
     images: [],
     canonicalUrl: r.canonical_url ?? null,
     robotsDirectives: r.robots_directives ?? [],
-    schemaMarkup: r.schema_markup ?? [],
+    schemaMarkup: (r.schema_markup ?? []).flatMap((parsed) => flattenJsonLd(parsed)),
     schemaTypes: r.schema_types ?? [],
     hasStructuredData: r.has_structured_data ?? false,
     responseTimeMs: r.response_time_ms ?? 0,

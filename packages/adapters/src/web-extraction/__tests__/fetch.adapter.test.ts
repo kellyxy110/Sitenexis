@@ -177,6 +177,23 @@ describe('FetchExtractionAdapter', () => {
     expect(page.schemaTypes).toContain('WebSite');
   });
 
+  it('flattens @graph-wrapped JSON-LD into individual entities', async () => {
+    mockFetch(FIXTURE('graph-schema.html'));
+    const { page } = await adapter.extractPage('https://acme.example.com/');
+
+    // Two entities inside one @graph script tag must become two schemaMarkup entries,
+    // not one opaque { @context, @graph: [...] } wrapper.
+    expect(page.schemaMarkup.length).toBe(2);
+    expect(page.schemaTypes).toContain('Organization');
+    expect(page.schemaTypes).toContain('WebSite');
+
+    const org = page.schemaMarkup.find(
+      (s): s is Record<string, unknown> => typeof s === 'object' && s !== null && (s as Record<string, unknown>)['@type'] === 'Organization'
+    );
+    expect(org).toBeDefined();
+    expect(org!.sameAs).toEqual(['https://x.com/acme', 'https://www.linkedin.com/company/acme']);
+  });
+
   it('skips javascript: and mailto: links', async () => {
     mockFetch(FIXTURE('broken-fields.html'));
     const { page } = await adapter.extractPage('https://broken.example.com/');

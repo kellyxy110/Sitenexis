@@ -12,6 +12,7 @@ import type {
   ExtractionAdapterHealth,
 } from './interface';
 import { validateExtractionUrl } from './security';
+import { flattenJsonLd } from './schema-utils';
 
 const DEFAULT_TIMEOUT_MS = 12_000;
 // The homepage decides the whole audit — give it more room and a retry, since large
@@ -85,7 +86,8 @@ function parseHtml(
     .map((m) => {
       try { return JSON.parse(m[1]!) as unknown; } catch { return null; }
     })
-    .filter(Boolean) as unknown[];
+    .filter((s): s is object => s !== null)
+    .flatMap((parsed) => flattenJsonLd(parsed));
 
   const schemaTypes = schemaMarkup
     .map((s) => {
