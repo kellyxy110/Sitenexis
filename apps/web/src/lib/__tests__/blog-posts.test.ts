@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { BLOG_POSTS, CATEGORIES, getPost, getRelatedPosts } from '../blog-posts'
+import { BLOG_POSTS, CATEGORIES, getPost, getRelatedPosts, getSeriesInfo } from '../blog-posts'
 
 describe('blog internal linking', () => {
   const allSlugs = new Set(BLOG_POSTS.map(p => p.slug))
@@ -88,6 +88,59 @@ describe('blog internal linking', () => {
           expect(getPost(slug)).toBeDefined()
         }
       }
+    }
+  })
+})
+
+describe('authored series navigation', () => {
+  const allSlugs = new Set(BLOG_POSTS.map(p => p.slug))
+
+  it('returns null for a post that is not part of any authored series', () => {
+    expect(getSeriesInfo('why-ai-systems-ignore-70-percent-of-your-content')).toBeNull()
+  })
+
+  it('every series post has a defined position, correct total, and resolvable prev/next slugs', () => {
+    for (const post of BLOG_POSTS) {
+      const info = getSeriesInfo(post.slug)
+      if (!info) continue
+
+      expect(info.position).toBeGreaterThanOrEqual(1)
+      expect(info.position).toBeLessThanOrEqual(info.total)
+
+      if (info.prevSlug) {
+        expect(allSlugs.has(info.prevSlug)).toBe(true)
+        expect(info.prevTitle).toBeTruthy()
+      } else {
+        expect(info.position).toBe(1)
+      }
+
+      if (info.nextSlug) {
+        expect(allSlugs.has(info.nextSlug)).toBe(true)
+        expect(info.nextTitle).toBeTruthy()
+      } else {
+        expect(info.position).toBe(info.total)
+      }
+    }
+  })
+
+  it('walking next from the first post in a series reaches every other post exactly once', () => {
+    // Regression guard: catches a typo'd or duplicated slug in the SERIES registry
+    // that would otherwise silently break the chain (skip a post, loop early, etc).
+    const seenSeriesIds = new Set<string>()
+    for (const post of BLOG_POSTS) {
+      const info = getSeriesInfo(post.slug)
+      if (!info || info.position !== 1 || seenSeriesIds.has(info.seriesId)) continue
+      seenSeriesIds.add(info.seriesId)
+
+      const walked: string[] = [post.slug]
+      let cursor = info.nextSlug
+      while (cursor) {
+        walked.push(cursor)
+        cursor = getSeriesInfo(cursor)?.nextSlug ?? null
+      }
+
+      expect(walked.length).toBe(info.total)
+      expect(new Set(walked).size).toBe(walked.length)
     }
   })
 })

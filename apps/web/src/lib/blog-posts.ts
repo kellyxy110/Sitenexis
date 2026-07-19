@@ -5551,3 +5551,123 @@ export function getRelatedPosts(current: BlogPost, limit = 4): BlogPost[] {
     .filter((p): p is BlogPost => !!p && !base.some(b => b.slug === p.slug))
   return [...base, ...extra]
 }
+
+// ─── Authored series ──────────────────────────────────────────────────────────
+// A handful of categories were written as genuine ordered sequences — same
+// publish date, sequential array order, each post building on the previous
+// one (intro → mechanics → edge cases → capstone). Unlike getRelatedPosts,
+// which is an algorithmic tag/category match, this is a hand-verified reading
+// order and only covers posts that are actually part of one of these runs.
+const SERIES: { id: string; name: string; slugs: string[] }[] = [
+  {
+    id: 'gtl-systems',
+    name: 'GTL Systems',
+    slugs: [
+      'gtl-what-is-graceful-truth-layer',
+      'gtl-state-envelopes-complete-partial-empty',
+      'gtl-null-vs-zero-data-integrity',
+      'gtl-state-aware-ui-design',
+      'gtl-partial-results-architecture',
+      'gtl-api-honesty-contracts',
+      'gtl-baseline-first-audits',
+      'gtl-temporal-data-integrity',
+      'gtl-agent-trust-and-data-state',
+      'gtl-vs-loading-spinners',
+    ],
+  },
+  {
+    id: 'link-graph-intelligence',
+    name: 'Link Graph Intelligence',
+    slugs: [
+      'link-graph-internal-topology',
+      'link-graph-pagerank-ai',
+      'link-graph-anchor-text-entity-signal',
+      'link-graph-orphaned-pages',
+      'link-graph-fact-edges',
+      'link-graph-hub-pages',
+      'link-graph-crawl-depth-and-discovery',
+      'link-graph-reciprocal-links',
+      'link-graph-cross-page-entity-continuity',
+      'link-graph-link-strength-score',
+    ],
+  },
+  {
+    id: 'ai-visibility-engineering',
+    name: 'AI Visibility Engineering',
+    slugs: [
+      'aive-chunk-engineering',
+      'aive-boilerplate-detection',
+      'aive-embedding-pipeline',
+      'aive-retrieval-simulation',
+      'aive-chunk-stability-index',
+      'aive-context-window-truncation',
+      'aive-summarization-loss',
+      'aive-query-type-alignment',
+      'aive-signal-to-noise-ratio',
+      'aive-retrieval-readiness-checklist',
+    ],
+  },
+  {
+    id: 'dom-forensics',
+    name: 'DOM Forensics',
+    slugs: [
+      'dom-crawling-methodology',
+      'dom-js-rendering-blindness',
+      'dom-shadow-dom-and-ai',
+      'dom-boilerplate-ratio',
+      'dom-crawl-fidelity',
+      'dom-robots-txt-audit',
+      'dom-reading-order-consistency',
+      'dom-rendered-vs-source-html',
+      'dom-heading-hierarchy-extraction',
+      'dom-link-anchor-quality',
+    ],
+  },
+  {
+    id: 'perception-vs-fact-layer',
+    name: 'Perception vs Fact Layer',
+    slugs: [
+      'pvf-fact-vs-perception-graph',
+      'pvf-entity-perception-confidence',
+      'pvf-pce-perception-confidence-engine',
+      'pvf-entity-disambiguation',
+      'pvf-relationship-types',
+      'pvf-citation-readiness-vs-retrieval',
+      'pvf-one-directional-derivation',
+      'pvf-confidence-scoring-perception',
+      'pvf-topical-clusters-in-perception',
+      'pvf-cross-page-entity-resolution',
+    ],
+  },
+]
+
+export type SeriesInfo = {
+  seriesId: string
+  seriesName: string
+  position: number
+  total: number
+  prevSlug: string | null
+  prevTitle: string | null
+  nextSlug: string | null
+  nextTitle: string | null
+}
+
+export function getSeriesInfo(slug: string): SeriesInfo | null {
+  const series = SERIES.find(s => s.slugs.includes(slug))
+  if (!series) return null
+
+  const idx = series.slugs.indexOf(slug)
+  const prevSlug = idx > 0 ? series.slugs[idx - 1]! : null
+  const nextSlug = idx < series.slugs.length - 1 ? series.slugs[idx + 1]! : null
+
+  return {
+    seriesId: series.id,
+    seriesName: series.name,
+    position: idx + 1,
+    total: series.slugs.length,
+    prevSlug,
+    prevTitle: prevSlug ? getPost(prevSlug)?.title ?? null : null,
+    nextSlug,
+    nextTitle: nextSlug ? getPost(nextSlug)?.title ?? null : null,
+  }
+}

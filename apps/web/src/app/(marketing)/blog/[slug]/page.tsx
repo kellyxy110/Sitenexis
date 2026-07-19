@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import { ArrowLeft, ArrowRight, Clock, Tag } from 'lucide-react'
-import { BLOG_POSTS, getPost, getRelatedPosts, type ContentBlock } from '@/lib/blog-posts'
+import { BLOG_POSTS, getPost, getRelatedPosts, getSeriesInfo, type ContentBlock, type SeriesInfo } from '@/lib/blog-posts'
 import { MarketingNav } from '@/components/marketing/MarketingNav'
 import { Footer } from '@/components/marketing/Footer'
 import { ShareButtons } from '@/components/ShareButtons'
@@ -182,6 +182,55 @@ function RenderBlock({ block, allPosts }: { block: ContentBlock; allPosts: Retur
   }
 }
 
+// ── Series badge + prev/next nav ──────────────────────────────────────────────
+// Distinct from the algorithmic "Related Articles" sidebar: this only renders
+// for posts that are part of a hand-verified authored sequence (see
+// getSeriesInfo in lib/blog-posts.ts) and links to the actual next/previous
+// installment, not a tag/category guess.
+
+function SeriesBadge({ info }: { info: SeriesInfo }) {
+  return (
+    <div className="mb-7 flex items-center gap-3 rounded-xl border border-cyan-500/[0.15] bg-cyan-500/[0.04] px-4 py-2.5">
+      <span className="shrink-0 rounded-full border border-cyan-500/25 bg-cyan-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-cyan-400">
+        Part {info.position} of {info.total}
+      </span>
+      <span className="text-[12px] text-slate-400">{info.seriesName} series</span>
+    </div>
+  )
+}
+
+function SeriesNav({ info }: { info: SeriesInfo }) {
+  return (
+    <div className="mt-10 rounded-2xl border border-white/[0.06] bg-white/[0.015] p-5">
+      <p className="mb-4 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+        {info.seriesName} — Part {info.position} of {info.total}
+      </p>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {info.prevSlug ? (
+          <Link href={`/blog/${info.prevSlug}`}
+            className="group flex items-center gap-3 rounded-xl border border-white/[0.06] px-4 py-3 transition-colors hover:border-white/[0.14] hover:bg-white/[0.03]">
+            <ArrowLeft size={14} className="shrink-0 text-slate-600 transition-colors group-hover:text-teal-400" />
+            <span className="min-w-0">
+              <span className="block text-[10px] uppercase tracking-wider text-slate-600">Previous</span>
+              <span className="block truncate text-[13px] text-slate-300 group-hover:text-white">{info.prevTitle}</span>
+            </span>
+          </Link>
+        ) : <span aria-hidden />}
+        {info.nextSlug ? (
+          <Link href={`/blog/${info.nextSlug}`}
+            className="group flex items-center justify-end gap-3 rounded-xl border border-white/[0.06] px-4 py-3 text-right transition-colors hover:border-white/[0.14] hover:bg-white/[0.03]">
+            <span className="min-w-0">
+              <span className="block text-[10px] uppercase tracking-wider text-slate-600">Next</span>
+              <span className="block truncate text-[13px] text-slate-300 group-hover:text-white">{info.nextTitle}</span>
+            </span>
+            <ArrowRight size={14} className="shrink-0 text-slate-600 transition-colors group-hover:text-teal-400" />
+          </Link>
+        ) : <span aria-hidden />}
+      </div>
+    </div>
+  )
+}
+
 // ── Related post card ─────────────────────────────────────────────────────────
 
 function RelatedCard({ post }: { post: ReturnType<typeof getPost> & object }) {
@@ -250,6 +299,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   if (!post) notFound()
 
   const related = getRelatedPosts(post)
+  const seriesInfo = getSeriesInfo(post.slug)
   const style = getStyle(post.category)
   const allPosts = BLOG_POSTS.map(p => getPost(p.slug))
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://sitenexis.vercel.app'
@@ -319,6 +369,9 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                 <span className="text-[12px] text-slate-500">{post.publishedAt}</span>
               </div>
 
+              {/* Series badge */}
+              {seriesInfo && <SeriesBadge info={seriesInfo} />}
+
               {/* Title */}
               <h1 className="text-[clamp(1.75rem,4vw,2.75rem)] font-bold leading-[1.1] tracking-[-0.03em] text-white text-balance">
                 {post.title}
@@ -345,6 +398,9 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                   <RenderBlock key={i} block={block} allPosts={allPosts} />
                 ))}
               </div>
+
+              {/* Series prev/next */}
+              {seriesInfo && <SeriesNav info={seriesInfo} />}
 
               {/* Tags + bottom share */}
               <div className="mt-14 border-t border-white/[0.05] pt-8">
