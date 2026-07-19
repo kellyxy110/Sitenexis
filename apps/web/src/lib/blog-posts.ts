@@ -2201,7 +2201,7 @@ export const BLOG_POSTS: BlogPost[] = [
     title: 'How Emerging Topics Become Visible Before Search Volume Exists',
     excerpt: 'Search volume is a lagging indicator. By the time a topic has measurable volume, the window for establishing topical authority is often closing. This article examines how emerging topics first become detectable — and which signals appear earliest in the cycle.',
     category: 'Strategy',
-    publishedAt: 'Jul 20, 2026',
+    publishedAt: 'July 19, 2026',
     readTime: 8,
     tags: ['Strategy', 'Content', 'SEO', 'AI Visibility', 'Entity SEO'],
     content: [
@@ -2230,7 +2230,7 @@ export const BLOG_POSTS: BlogPost[] = [
     title: 'A Technical SEO Audit in 2026: What to Check, Why Each Check Matters, and What Most Audits Miss',
     excerpt: 'Technical SEO audits have a well-established checklist. What is less well-established is which checks on that list actually matter for AI-era visibility — and which new checks are now required that most audit frameworks have not yet incorporated.',
     category: 'SEO',
-    publishedAt: 'Jul 21, 2026',
+    publishedAt: 'July 19, 2026',
     readTime: 11,
     tags: ['Technical SEO', 'SEO Audit', 'AI Visibility', 'Machine Trust', 'Strategy'],
     content: [
@@ -2285,7 +2285,7 @@ export const BLOG_POSTS: BlogPost[] = [
     title: 'How AI Search Changes Keyword Research: The Mechanism, Not Just the Conclusion',
     excerpt: 'The claim that "keyword research is dead" is imprecise. Keywords remain useful — but the role they play in content strategy has changed structurally. This article examines why, specifically what changed in the retrieval mechanism, and what keyword research looks like when adjusted for it.',
     category: 'SEO',
-    publishedAt: 'Jul 22, 2026',
+    publishedAt: 'July 19, 2026',
     readTime: 8,
     tags: ['SEO', 'Keyword Research', 'AI Search', 'AI Visibility', 'Entity SEO', 'Strategy'],
     content: [
@@ -2308,7 +2308,7 @@ export const BLOG_POSTS: BlogPost[] = [
     title: 'AnswerThePublic, AlsoAsked, and SiteNexis: Three Tools, Three Layers of Search Intent',
     excerpt: 'These three tools are often mentioned together as "search intent research tools." They are not interchangeable — each addresses a different layer of the intent analysis problem. Using all three and understanding their relationship produces more complete coverage than any single tool can provide.',
     category: 'Strategy',
-    publishedAt: 'Jul 23, 2026',
+    publishedAt: 'July 19, 2026',
     readTime: 7,
     tags: ['SEO', 'Strategy', 'AI Visibility', 'Tools', 'Content'],
     content: [
@@ -2331,7 +2331,7 @@ export const BLOG_POSTS: BlogPost[] = [
     title: 'Backlinks Are Still a Trust Signal. They Are No Longer the Primary One',
     excerpt: 'The decline of backlinks as the dominant ranking factor is not a single event — it is a gradual reweighting driven by detectable changes in how search systems model authority. This article examines the mechanism of that reweighting and what it means for link-building strategy.',
     category: 'SEO',
-    publishedAt: 'Jul 24, 2026',
+    publishedAt: 'July 19, 2026',
     readTime: 8,
     tags: ['SEO', 'Backlinks', 'AI Visibility', 'Entity SEO', 'Machine Trust', 'Strategy'],
     content: [
@@ -2354,7 +2354,7 @@ export const BLOG_POSTS: BlogPost[] = [
     title: 'From Keywords to Entities: Why the Abstraction Layer Matters',
     excerpt: 'The shift from keyword optimisation to entity optimisation is described as a strategic change. It is more precisely a change in abstraction layer — entity-based frameworks model what content is about, rather than what words it contains. That distinction has specific practical consequences.',
     category: 'AI Visibility',
-    publishedAt: 'Jul 25, 2026',
+    publishedAt: 'July 19, 2026',
     readTime: 9,
     tags: ['Entity SEO', 'AI Visibility', 'SEO', 'Machine Trust', 'Strategy'],
     content: [
@@ -2382,7 +2382,7 @@ export const BLOG_POSTS: BlogPost[] = [
     title: 'How to Improve Your Chances of Being Cited by ChatGPT and Perplexity',
     excerpt: 'Being cited by AI assistants is not a matter of luck or domain authority alone. Citation selection follows a specific decision process with measurable inputs. This article examines that process for ChatGPT and Perplexity specifically, and identifies the interventions with the highest expected impact.',
     category: 'AI Visibility',
-    publishedAt: 'Jul 26, 2026',
+    publishedAt: 'July 19, 2026',
     readTime: 9,
     tags: ['AI Visibility', 'Citation Systems', 'ChatGPT', 'Perplexity', 'Machine Trust', 'Strategy'],
     content: [
@@ -2417,7 +2417,7 @@ export const BLOG_POSTS: BlogPost[] = [
     title: 'AI Visibility and Google Rankings Are Measuring Different Things. Both Still Matter',
     excerpt: 'AI visibility is not a replacement for search rankings — it is a separate measurement of a separate system that now accounts for a meaningful share of content discovery. Understanding the relationship between the two is more useful than treating them as competitors.',
     category: 'AI Visibility',
-    publishedAt: 'Jul 27, 2026',
+    publishedAt: 'July 19, 2026',
     readTime: 8,
     tags: ['AI Visibility', 'SEO', 'Google Rankings', 'Machine Trust', 'Strategy'],
     content: [
@@ -2441,7 +2441,7 @@ export const BLOG_POSTS: BlogPost[] = [
     title: 'What AI Sees When It Reads Your Website',
     excerpt: 'When a human reads your website, they follow narrative, context, and intent. When an AI system reads it, something fundamentally different happens. Understanding the exact difference is the starting point for everything in AI visibility strategy.',
     category: 'AI Visibility',
-    publishedAt: 'Jul 28, 2026',
+    publishedAt: 'July 19, 2026',
     readTime: 10,
     tags: ['AI Visibility', 'Machine Trust', 'Entity SEO', 'AI Search', 'Strategy'],
     content: [
@@ -2469,7 +2469,7 @@ export const BLOG_POSTS: BlogPost[] = [
     title: 'The End of Rankings as the Primary Visibility Metric',
     excerpt: 'Rankings remain useful. They are no longer sufficient as a primary visibility metric. The AI citation is becoming the unit of measurement that rankings were in traditional search — and it is determined by a different set of signals.',
     category: 'AI Visibility',
-    publishedAt: 'Jul 29, 2026',
+    publishedAt: 'July 19, 2026',
     readTime: 9,
     tags: ['AI Visibility', 'Citation Systems', 'SEO', 'Strategy', 'Machine Trust'],
     content: [
@@ -2493,7 +2493,7 @@ export const BLOG_POSTS: BlogPost[] = [
     title: 'The Universal SERP Is Ending. What Replaces It Is More Complex',
     excerpt: 'For most of search history, every user saw approximately the same results for the same query. That era is ending. The mechanism driving the change, what replaces universal results, and what it means for visibility strategy are all worth examining carefully.',
     category: 'Strategy',
-    publishedAt: 'Jul 30, 2026',
+    publishedAt: 'July 19, 2026',
     readTime: 9,
     tags: ['AI Visibility', 'Personalized Search', 'AI Search', 'Strategy', 'Future of Search'],
     content: [
@@ -2517,7 +2517,7 @@ export const BLOG_POSTS: BlogPost[] = [
     title: 'Citation Engineering: Designing Content for AI Reference Selection',
     excerpt: 'Citation engineering is the practice of structuring content to satisfy the specific criteria AI systems apply when selecting sources for generated responses. This article examines what those criteria are and how content can be designed to meet them without compromising quality.',
     category: 'AI Visibility',
-    publishedAt: 'Jul 31, 2026',
+    publishedAt: 'July 19, 2026',
     readTime: 8,
     tags: ['AI Visibility', 'Citation Systems', 'Content', 'Strategy', 'Machine Trust'],
     content: [
@@ -2538,7 +2538,7 @@ export const BLOG_POSTS: BlogPost[] = [
     title: 'Why ChatGPT, Gemini, and Perplexity Choose Some Brands and Ignore Others',
     excerpt: 'The source selection behaviour of major AI assistants is not random or entirely opaque. Observable patterns in which brands get cited and which do not reveal specific content and entity properties that influence selection. This article examines those patterns.',
     category: 'AI Visibility',
-    publishedAt: 'Aug 1, 2026',
+    publishedAt: 'July 19, 2026',
     readTime: 9,
     tags: ['AI Visibility', 'Citation Systems', 'ChatGPT', 'Perplexity', 'Gemini', 'Strategy'],
     content: [
@@ -2559,7 +2559,7 @@ export const BLOG_POSTS: BlogPost[] = [
     title: 'The AI Visibility Score: What It Measures and Why Each Component Matters',
     excerpt: 'SiteNexis\'s AI Visibility Score is a composite of six sub-scores, each measuring a distinct dimension of how AI systems perceive and retrieve web content. This article explains each component, the formula, and why the weights are set as they are.',
     category: 'AI Visibility',
-    publishedAt: 'Aug 2, 2026',
+    publishedAt: 'July 19, 2026',
     readTime: 8,
     tags: ['AI Visibility', 'Machine Trust', 'Entity SEO', 'Citation Systems', 'Measurement'],
     content: [
@@ -2581,7 +2581,7 @@ export const BLOG_POSTS: BlogPost[] = [
     title: 'What Makes Content AI-Citable: The Structural Properties That Matter',
     excerpt: 'Not all good content is AI-citable. The properties that make content valuable for human readers and the properties that make it eligible for AI citation selection overlap significantly — but not completely. The gap between them is where most AI citation failures occur.',
     category: 'AI Visibility',
-    publishedAt: 'Aug 3, 2026',
+    publishedAt: 'July 19, 2026',
     readTime: 8,
     tags: ['AI Visibility', 'Citation Systems', 'Content', 'Machine Trust', 'Entity SEO'],
     content: [
@@ -2602,7 +2602,7 @@ export const BLOG_POSTS: BlogPost[] = [
     title: 'AI Perception: The Visibility Metric Most Companies Are Not Tracking',
     excerpt: 'AI perception is the machine\'s model of your brand: what it believes your entity is, what it attributes to you, and how confident it is in those attributions. It is distinct from both search ranking and AI citation rate — and it influences both.',
     category: 'AI Visibility',
-    publishedAt: 'Aug 4, 2026',
+    publishedAt: 'July 19, 2026',
     readTime: 8,
     tags: ['AI Visibility', 'Machine Trust', 'Entity SEO', 'Measurement', 'Strategy'],
     content: [
@@ -2623,7 +2623,7 @@ export const BLOG_POSTS: BlogPost[] = [
     title: 'How AI Builds a Mental Model of Your Business Before Recommending It',
     excerpt: 'Before recommending a brand in a generated response, AI systems build an internal model of what that brand is, what it offers, and how trustworthy it is as a source. Understanding how that model is built — and what damages it — is the foundation of AI visibility strategy.',
     category: 'AI Visibility',
-    publishedAt: 'Aug 5, 2026',
+    publishedAt: 'July 19, 2026',
     readTime: 8,
     tags: ['AI Visibility', 'Machine Trust', 'Entity SEO', 'Strategy', 'AI Search'],
     content: [
@@ -2644,7 +2644,7 @@ export const BLOG_POSTS: BlogPost[] = [
     title: 'Why Your Competitor Appears in AI Answers More Often Than You Do',
     excerpt: 'When a competitor appears in AI-generated responses more frequently than you do for relevant queries, the cause is specific and identifiable. This article examines the most common structural reasons for the gap and what closing each one requires.',
     category: 'Strategy',
-    publishedAt: 'Aug 6, 2026',
+    publishedAt: 'July 19, 2026',
     readTime: 8,
     tags: ['AI Visibility', 'Strategy', 'Machine Trust', 'Entity SEO', 'Citation Systems'],
     content: [
@@ -2667,7 +2667,7 @@ export const BLOG_POSTS: BlogPost[] = [
     title: 'AI Blind Spots: The Specific Visibility Gaps That Standard Audits Cannot Find',
     excerpt: 'An AI blind spot is a visibility failure that produces no signal in traditional SEO audits — the technical scores are healthy, the rankings are strong, but AI systems are not citing the content. This article identifies the most common AI blind spots and how to detect them.',
     category: 'AI Visibility',
-    publishedAt: 'Aug 7, 2026',
+    publishedAt: 'July 19, 2026',
     readTime: 8,
     tags: ['AI Visibility', 'Technical SEO', 'Machine Trust', 'Entity SEO', 'Measurement'],
     content: [
@@ -2690,7 +2690,7 @@ export const BLOG_POSTS: BlogPost[] = [
     title: 'From Audit to Intelligence: Why Static Audits Are No Longer Sufficient',
     excerpt: 'A static SEO audit tells you what is wrong right now. AI visibility intelligence tells you what is changing, why, and where the trend is heading. The distinction matters because AI visibility failures often accumulate gradually — they are invisible in snapshots and visible in trends.',
     category: 'Strategy',
-    publishedAt: 'Aug 8, 2026',
+    publishedAt: 'July 19, 2026',
     readTime: 7,
     tags: ['AI Visibility', 'Strategy', 'Measurement', 'Machine Trust', 'SEO'],
     content: [
@@ -2711,7 +2711,7 @@ export const BLOG_POSTS: BlogPost[] = [
     title: 'The AI Visibility Gap: Measuring the Distance Between You and Your Competitors',
     excerpt: 'AI visibility gap analysis is a specific type of competitive analysis: measuring not where you rank relative to competitors, but how the AI ecosystem perceives, trusts, and recommends you versus them. The gap has measurable dimensions and a specific closure sequence.',
     category: 'Strategy',
-    publishedAt: 'Aug 9, 2026',
+    publishedAt: 'July 19, 2026',
     readTime: 8,
     tags: ['AI Visibility', 'Strategy', 'Measurement', 'Machine Trust', 'Competitive Analysis'],
     content: [
@@ -2732,7 +2732,7 @@ export const BLOG_POSTS: BlogPost[] = [
     title: 'How SiteNexis Models AI Recommendation Probability',
     excerpt: 'Recommendation Confidence is SiteNexis\'s estimate of the probability that an AI system will reference your brand in a generated response on a relevant topic. This article explains the model, its inputs, and what improving each input actually changes in practice.',
     category: 'AI Visibility',
-    publishedAt: 'Aug 10, 2026',
+    publishedAt: 'July 19, 2026',
     readTime: 7,
     tags: ['AI Visibility', 'Machine Trust', 'Strategy', 'Citation Systems', 'Measurement'],
     content: [
@@ -2753,7 +2753,7 @@ export const BLOG_POSTS: BlogPost[] = [
     title: 'Trust as Infrastructure: How Google\'s Quality Framework Is Reshaping Source Selection',
     excerpt: 'Google\'s E-E-A-T framework and the AEO/GEO documentation updates represent a gradual shift in how Google\'s systems evaluate sources for high-quality surfaces. Understanding the shift precisely — not as a vague "trust matters more" claim — is what makes it actionable.',
     category: 'Strategy',
-    publishedAt: 'Aug 11, 2026',
+    publishedAt: 'July 19, 2026',
     readTime: 8,
     tags: ['SEO', 'Strategy', 'AI Visibility', 'Machine Trust', 'Google'],
     content: [
@@ -2774,7 +2774,7 @@ export const BLOG_POSTS: BlogPost[] = [
     title: 'Where Traditional SEO Metrics Still Matter and Where They Fall Short in the AI Era',
     excerpt: 'The debate about whether traditional SEO metrics are still relevant tends toward two unproductive extremes: "rankings are dead" or "nothing has changed." The accurate picture is more specific — certain traditional metrics remain highly predictive, others have significantly reduced predictive value, and new metrics are required for AI visibility.',
     category: 'Strategy',
-    publishedAt: 'Aug 12, 2026',
+    publishedAt: 'July 19, 2026',
     readTime: 8,
     tags: ['SEO', 'AI Visibility', 'Measurement', 'Strategy', 'AI Search'],
     content: [
@@ -2801,7 +2801,7 @@ export const BLOG_POSTS: BlogPost[] = [
     title: 'Recommendation-Based Discovery and What It Means for Content Strategy',
     excerpt: 'Discovery through ranked search results and discovery through AI-generated recommendations operate on different models. As recommendation-based discovery grows, the content architecture required to succeed in each model diverges. Understanding the divergence is more useful than debating which model is dominant.',
     category: 'Strategy',
-    publishedAt: 'Aug 13, 2026',
+    publishedAt: 'July 19, 2026',
     readTime: 8,
     tags: ['AI Visibility', 'Strategy', 'AI Search', 'Recommendation Engines', 'Future of Search'],
     content: [
@@ -2822,7 +2822,7 @@ export const BLOG_POSTS: BlogPost[] = [
     title: 'The Operating System for AI Visibility: What It Means to Build a Brand AI Systems Understand',
     excerpt: 'An operating system is the infrastructure layer that makes everything else possible. AI visibility — as an infrastructure layer for the web — functions similarly: it is not a feature you add to a brand, it is the foundation that determines whether AI systems can find, understand, trust, and recommend everything else you build.',
     category: 'AI Visibility',
-    publishedAt: 'Aug 14, 2026',
+    publishedAt: 'July 19, 2026',
     readTime: 9,
     tags: ['AI Visibility', 'Machine Trust', 'Strategy', 'Entity SEO', 'Future of Search'],
     content: [
@@ -2845,7 +2845,7 @@ export const BLOG_POSTS: BlogPost[] = [
     title: 'Machine Trust Score: Why It Matters More Than Domain Authority in the AI Era',
     excerpt: 'Domain authority measures how many sites link to you. Machine Trust measures whether AI systems believe what you say. These are fundamentally different signals — and only one of them determines AI recommendation eligibility.',
     category: 'Machine Trust',
-    publishedAt: 'Aug 16, 2026',
+    publishedAt: 'July 19, 2026',
     readTime: 8,
     tags: ['Machine Trust', 'AI Visibility', 'Entity SEO', 'Trust Signals'],
     content: [
@@ -2879,7 +2879,7 @@ export const BLOG_POSTS: BlogPost[] = [
     title: 'Retrieval Simulation: How to Model AI Visibility Before You Publish',
     excerpt: 'Publishing content and waiting to see if AI systems cite it is the wrong sequence. Retrieval simulation lets you model retrieval probability from content signals before publication — and identify failure points before they cost you visibility.',
     category: 'AI Visibility',
-    publishedAt: 'Aug 18, 2026',
+    publishedAt: 'July 19, 2026',
     readTime: 7,
     tags: ['Retrieval Simulation', 'AI SEO', 'Content Strategy', 'Machine Readability'],
     content: [
@@ -2900,7 +2900,7 @@ export const BLOG_POSTS: BlogPost[] = [
     title: 'Temporal Authority: Why AI Systems Down-Weight Content That Stops Updating',
     excerpt: 'AI retrieval is not a static snapshot. It is a trust model with a time dimension. Content that was highly authoritative eighteen months ago is not equally authoritative today — and the decay curve is steeper than most marketers expect.',
     category: 'Machine Trust',
-    publishedAt: 'Aug 20, 2026',
+    publishedAt: 'July 19, 2026',
     readTime: 7,
     tags: ['Temporal Authority', 'Machine Trust', 'Content Freshness', 'AI SEO'],
     content: [
@@ -2932,7 +2932,7 @@ export const BLOG_POSTS: BlogPost[] = [
     title: 'The Four Recommendation Surfaces: Where AI Systems Actually Mention Your Brand',
     excerpt: 'AI recommendations do not happen in one place. They happen across four distinct surfaces — AI Overviews, chat assistants, voice retrieval, and autonomous agents — each with different content requirements. Visibility on one surface does not guarantee visibility on any other.',
     category: 'AI Visibility',
-    publishedAt: 'Aug 22, 2026',
+    publishedAt: 'July 19, 2026',
     readTime: 8,
     tags: ['Recommendation Surfaces', 'AI Visibility', 'AI Overviews', 'Voice Search', 'AI Agents'],
     content: [
@@ -2953,7 +2953,7 @@ export const BLOG_POSTS: BlogPost[] = [
     title: 'Synthetic Entity Detection: How AI Systems Identify Manufactured Authority',
     excerpt: 'AI systems are increasingly sophisticated at detecting entity signals that appear constructed rather than organic. Understanding the detection patterns they use is the first step toward ensuring your own legitimate signals do not inadvertently trigger them.',
     category: 'Machine Trust',
-    publishedAt: 'Aug 25, 2026',
+    publishedAt: 'July 19, 2026',
     readTime: 7,
     tags: ['Synthetic Entity Detection', 'Machine Trust', 'Entity SEO', 'AI Trust Signals'],
     content: [
@@ -2980,7 +2980,7 @@ export const BLOG_POSTS: BlogPost[] = [
     title: 'Schema Accuracy vs. Schema Completeness: Why Over-Claiming Backfires with AI Systems',
     excerpt: 'More schema is not always better. AI systems cross-reference schema claims against page content — and markup that claims more than the page body can support is treated as a trust signal failure, not a trust signal addition.',
     category: 'Technical SEO',
-    publishedAt: 'Aug 27, 2026',
+    publishedAt: 'July 19, 2026',
     readTime: 6,
     tags: ['Schema', 'Technical SEO', 'Machine Trust', 'Structured Data'],
     content: [
@@ -3009,7 +3009,7 @@ export const BLOG_POSTS: BlogPost[] = [
     title: 'The Trust Decay Curve: How AI Confidence in Your Content Erodes Over Time',
     excerpt: 'AI trust is not a static assessment. It decays. Understanding the decay curve — what accelerates it, what slows it, and what resets it — is the difference between a visibility strategy that compounds and one that silently erodes.',
     category: 'Machine Trust',
-    publishedAt: 'Aug 29, 2026',
+    publishedAt: 'July 19, 2026',
     readTime: 8,
     tags: ['Machine Trust', 'Temporal Authority', 'Trust Decay', 'AI SEO', 'Content Strategy'],
     content: [
@@ -3036,7 +3036,7 @@ export const BLOG_POSTS: BlogPost[] = [
     title: 'Building a Machine-Readable Content System from Scratch',
     excerpt: 'A machine-readable content system is not a set of technical fixes applied to existing content. It is an architectural commitment that determines how content is structured from the first sentence. Here is what that architecture looks like in practice.',
     category: 'Strategy',
-    publishedAt: 'Sep 1, 2026',
+    publishedAt: 'July 19, 2026',
     readTime: 9,
     tags: ['Content Strategy', 'Machine Readability', 'AI SEO', 'Entity SEO', 'Retrieval Simulation'],
     content: [
@@ -3063,7 +3063,7 @@ export const BLOG_POSTS: BlogPost[] = [
     title: 'Why Your Ad Hook Fails in the First 3 Seconds — And How AI Spots It',
     excerpt: 'The hook is the most important three seconds of any ad. AI analysis can now tell you exactly why yours loses attention before the message lands.',
     category: 'Strategy',
-    publishedAt: 'Sep 4, 2026',
+    publishedAt: 'July 19, 2026',
     readTime: 6,
     tags: ['Ad Creative', 'Hook Strategy', 'AI Creative Analysis', 'AdNexis'],
     content: [
@@ -3098,7 +3098,7 @@ export const BLOG_POSTS: BlogPost[] = [
     title: 'Ad Fatigue: How AI Detects Creative Decay Before Your ROAS Drops',
     excerpt: 'Ad fatigue is invisible until the damage is done. AI creative analysis can identify the early signals of creative decay and tell you when to rotate before performance falls.',
     category: 'Strategy',
-    publishedAt: 'Sep 8, 2026',
+    publishedAt: 'July 19, 2026',
     readTime: 7,
     tags: ['Ad Fatigue', 'ROAS', 'Creative Rotation', 'AI Creative Analysis', 'AdNexis'],
     content: [
@@ -3133,7 +3133,7 @@ export const BLOG_POSTS: BlogPost[] = [
     title: 'Platform-Specific Ad Copy: Why Meta, TikTok, and YouTube Need Different Scripts',
     excerpt: 'Copy that converts on Meta will often fail on TikTok. The platforms have different attention patterns, consumption contexts, and audience expectations. AI can generate the right version for each.',
     category: 'Strategy',
-    publishedAt: 'Sep 12, 2026',
+    publishedAt: 'July 19, 2026',
     readTime: 8,
     tags: ['Ad Copy', 'Meta Ads', 'TikTok Ads', 'YouTube Ads', 'Platform Strategy', 'AdNexis'],
     content: [
@@ -3163,7 +3163,7 @@ export const BLOG_POSTS: BlogPost[] = [
     title: 'The Anatomy of a High-Converting Ad Script: Hook, Body, CTA',
     excerpt: 'Every effective ad script follows the same three-part structure. Understanding what each part needs to accomplish — and how AI scores each component — is the foundation of systematic creative improvement.',
     category: 'Strategy',
-    publishedAt: 'Sep 16, 2026',
+    publishedAt: 'July 19, 2026',
     readTime: 7,
     tags: ['Ad Copy', 'Copywriting', 'Hook Body CTA', 'Creative Framework', 'AdNexis'],
     content: [
@@ -3199,7 +3199,7 @@ export const BLOG_POSTS: BlogPost[] = [
     title: 'SiteNexis + AdNexis: The Full Loop from AI Discovery to Creative Conversion',
     excerpt: 'SiteNexis tells AI systems how to find and trust your brand. AdNexis tells you what creative converts once they do. Together they form the only complete intelligence stack for the AI-native marketing era.',
     category: 'Strategy',
-    publishedAt: 'Sep 20, 2026',
+    publishedAt: 'July 19, 2026',
     readTime: 8,
     tags: ['SiteNexis', 'AdNexis', 'AI Marketing', 'Intelligence Suite', 'Strategy'],
     content: [

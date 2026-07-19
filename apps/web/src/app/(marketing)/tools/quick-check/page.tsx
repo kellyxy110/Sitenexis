@@ -7,6 +7,7 @@ import {
   ArrowRight, Clock, FileText, Hash, Code2, Globe,
   Loader2, BarChart3,
 } from 'lucide-react';
+import { Footer } from '@/components/marketing/Footer';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -479,6 +480,7 @@ export default function QuickCheckPage() {
           </Link>
         </p>
       </div>
+      <Footer />
     </main>
   );
 }

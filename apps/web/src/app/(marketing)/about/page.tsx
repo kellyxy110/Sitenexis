@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { MarketingNav } from '@/components/marketing/MarketingNav';
+import { Footer } from '@/components/marketing/Footer';
 import { ArrowRight } from 'lucide-react';
 
 const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://sitenexis.vercel.app';
@@ -12,7 +13,7 @@ const FOUNDER_SCHEMA = {
   '@id': `${appUrl}/#founder`,
   name: 'Ekeleme David Kelechi',
   alternateName: ['Kellyxyhub', 'kellyxy110'],
-  url: `${appUrl}/about`,
+  url: `${appUrl}/founder`,
   jobTitle: 'Founder & CEO',
   description: 'Founder and CEO of SiteNexis. Builder of AI retrieval and machine trust intelligence systems. Expert in entity SEO, knowledge graph optimization, and how AI systems retrieve and recommend web content.',
   worksFor: {
@@ -38,7 +39,8 @@ const FOUNDER_SCHEMA = {
   sameAs: [
     'https://github.com/kellyxy110',
     'https://x.com/Sitenexis',
-    'https://www.linkedin.com/in/sitenexis',
+    'https://www.linkedin.com/in/ekeleme-kelechi-18b56a340/',
+    'https://web.facebook.com/david.k.ekeleme',
     'https://www.reddit.com/user/Sitenexis',
   ],
 };
@@ -285,6 +287,7 @@ export default function AboutPage() {
           </div>
         </div>
       </section>
+      <Footer />
     </div>
   );
 }

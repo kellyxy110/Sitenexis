@@ -120,7 +120,7 @@ const SITE_SCHEMA = {
       '@id': `${appUrl}/#founder`,
       name: 'Ekeleme David Kelechi',
       alternateName: ['Kellyxyhub', 'kellyxy110'],
-      url: `${appUrl}/about`,
+      url: `${appUrl}/founder`,
       jobTitle: 'Founder & CEO',
       worksFor: { '@id': `${appUrl}/#organization` },
       knowsAbout: [

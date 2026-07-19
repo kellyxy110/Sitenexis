@@ -1,5 +1,6 @@
 import { type Metadata } from 'next';
 import Link from 'next/link';
+import { Footer } from '@/components/marketing/Footer';
 
 export const metadata: Metadata = {
   title: 'AI Visibility Knowledge Graph — SiteNexis Content Map',
@@ -314,6 +315,7 @@ export default function ContentMapPage() {
           </div>
         </div>
       </main>
+      <Footer />
     </>
   );
 }

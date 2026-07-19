@@ -9,23 +9,9 @@ import {
   ArrowRight, ChevronRight,
 } from 'lucide-react'
 import { MarketingNav } from '@/components/marketing/MarketingNav'
+import { Footer } from '@/components/marketing/Footer'
 
 // ── Shared primitives ─────────────────────────────────────────────────────────
-
-function PentagonMark({ size = 16 }: { size?: number }) {
-  const cx = size / 2, cy = size / 2, r = size * 0.42
-  const pts = Array.from({ length: 5 }, (_, i) => {
-    const a = (Math.PI * 2 * i) / 5 - Math.PI / 2
-    return `${cx + r * Math.cos(a)},${cy + r * Math.sin(a)}`
-  }).join(' ')
-  return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} fill="none" aria-hidden>
-      <polygon points={pts} stroke="rgba(255,255,255,0.5)" strokeWidth="1.2" fill="rgba(255,255,255,0.04)" />
-      <polygon points={pts} stroke="rgba(11,206,188,0.35)" strokeWidth="0.6" fill="none"
-        style={{ transform: `scale(0.55) translate(${size * 0.45}px, ${size * 0.45}px)` }} />
-    </svg>
-  )
-}
 
 function Reveal({ children, className = '', delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
   const ref = useRef<HTMLDivElement>(null)
@@ -117,11 +103,39 @@ const TIER_COLORS: Record<string, string> = {
   'Tier 4': 'text-amber-400 bg-amber-500/10 border-amber-500/20',
 }
 
+const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://sitenexis.vercel.app'
+
+const PLATFORM_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'WebPage',
+      '@id': `${appUrl}/platform#webpage`,
+      url: `${appUrl}/platform`,
+      name: 'Platform — SiteNexis',
+      isPartOf: { '@id': `${appUrl}/#website` },
+      about: { '@id': `${appUrl}/#app` },
+      description: 'The SiteNexis platform: 16 intelligence agents across 4 layers, producing 12 explainable scores that model how AI systems retrieve, trust, and recommend a site.',
+    },
+    {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home', item: appUrl },
+        { '@type': 'ListItem', position: 2, name: 'Platform', item: `${appUrl}/platform` },
+      ],
+    },
+  ],
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function PlatformPage() {
   return (
     <div className="min-h-screen bg-midnight font-ui text-white antialiased">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(PLATFORM_SCHEMA) }}
+      />
       <MarketingNav />
 
       {/* ── Hero ── */}
@@ -299,24 +313,7 @@ export default function PlatformPage() {
       </section>
 
       {/* ── Footer ── */}
-      <footer className="border-t border-white/[0.05] py-10">
-        <div className="mx-auto max-w-7xl px-6 md:px-10">
-          <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-6 w-6 items-center justify-center rounded-md border border-white/[0.08] bg-white/[0.03]">
-                <PentagonMark size={14} />
-              </div>
-              <span className="text-[13px] font-semibold text-white">SiteNexis</span>
-            </div>
-            <p className="text-[12px] text-slate-600">© {new Date().getFullYear()} SiteNexis. Machine Trust Intelligence.</p>
-            <div className="flex items-center gap-6">
-              {[['Privacy', '/privacy'], ['Terms', '/terms'], ['Blog', '/blog']].map(([l, h]) => (
-                <Link key={l} href={h} className="text-[12px] text-slate-600 hover:text-slate-400">{l}</Link>
-              ))}
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   )
 }

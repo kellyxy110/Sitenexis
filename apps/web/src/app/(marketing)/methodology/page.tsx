@@ -3,6 +3,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { MarketingNav } from '@/components/marketing/MarketingNav';
+import { Footer } from '@/components/marketing/Footer';
 
 export const metadata: Metadata = {
   title: 'SiteNexis Methodology — How We Measure AI Visibility',
@@ -788,6 +789,7 @@ export default function MethodologyPage() {
           </div>
         </div>
       </section>
+      <Footer />
     </div>
   );
 }

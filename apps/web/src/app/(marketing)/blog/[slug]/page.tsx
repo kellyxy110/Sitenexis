@@ -4,6 +4,7 @@ import type { Metadata } from 'next'
 import { ArrowLeft, ArrowRight, Clock, Tag } from 'lucide-react'
 import { BLOG_POSTS, getPost, getRelatedPosts, type ContentBlock } from '@/lib/blog-posts'
 import { MarketingNav } from '@/components/marketing/MarketingNav'
+import { Footer } from '@/components/marketing/Footer'
 import { ShareButtons } from '@/components/ShareButtons'
 
 // ── Static generation ─────────────────────────────────────────────────────────
@@ -40,19 +41,6 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-function PentagonMark({ size = 20 }: { size?: number }) {
-  const cx = size / 2, cy = size / 2, r = size * 0.42
-  const pts = Array.from({ length: 5 }, (_, i) => {
-    const a = (Math.PI * 2 * i) / 5 - Math.PI / 2
-    return `${cx + r * Math.cos(a)},${cy + r * Math.sin(a)}`
-  }).join(' ')
-  return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} fill="none" aria-hidden>
-      <polygon points={pts} stroke="rgba(255,255,255,0.5)" strokeWidth="1.2" fill="rgba(255,255,255,0.04)" />
-    </svg>
-  )
-}
 
 const CAT_COLORS: Record<string, { text: string; bg: string; border: string }> = {
   'AI Visibility':  { text: 'text-cyan-400',   bg: 'bg-cyan-500/10',   border: 'border-cyan-500/20'   },
@@ -423,36 +411,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
       </article>
 
       {/* ── Footer ───────────────────────────────────────────────────────── */}
-      <footer className="border-t border-white/[0.05] bg-[#07111F] px-6 py-12">
-        <div className="mx-auto max-w-7xl flex flex-col items-center justify-between gap-6 md:flex-row">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-6 w-6 items-center justify-center rounded-md border border-white/[0.08] bg-white/[0.03]">
-              <PentagonMark size={14} />
-            </div>
-            <span className="text-[14px] font-semibold text-white">SiteNexis</span>
-          </div>
-          <p className="text-[12px] text-slate-400">© {new Date().getFullYear()} SiteNexis. Built for the machine-first web.</p>
-          <div className="flex items-center gap-5 text-[12px] text-slate-400">
-            <a
-              href="https://twitter.com/Sitenexis"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 hover:text-slate-400 transition-colors"
-              aria-label="SiteNexis on X"
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.748l7.73-8.835L1.254 2.25H8.08l4.261 5.633 5.902-5.633zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-              </svg>
-              @Sitenexis
-            </a>
-            <a href="mailto:sitenexisintel@gmail.com" className="hover:text-slate-400 transition-colors">
-              sitenexisintel@gmail.com
-            </a>
-            <Link href="/privacy" className="hover:text-slate-400 transition-colors">Privacy</Link>
-            <Link href="/terms" className="hover:text-slate-400 transition-colors">Terms</Link>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </main>
   )
 }

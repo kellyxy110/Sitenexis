@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { Check, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
+import { Footer } from '@/components/marketing/Footer';
 
 // ── Checklist data (mirrors Citation Probability Score formula) ───────────────
 
@@ -380,6 +381,7 @@ export default function CitationChecklistPage() {
           </p>
         </div>
       </div>
+      <Footer />
     </main>
   );
 }

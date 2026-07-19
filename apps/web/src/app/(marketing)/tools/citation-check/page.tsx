@@ -7,6 +7,7 @@ import {
   MessageSquare, Search, AlertTriangle, Zap,
 } from 'lucide-react';
 import type { CitationCheckResult, CitationQuery } from '@/app/api/citation-check/route';
+import { Footer } from '@/components/marketing/Footer';
 
 export default function CitationCheckPage() {
   const [domain, setDomain] = useState('');
@@ -252,6 +253,7 @@ export default function CitationCheckPage() {
           </div>
         </section>
       )}
+      <Footer />
     </main>
   );
 }

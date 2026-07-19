@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { MarketingNav } from '@/components/marketing/MarketingNav';
+import { Footer } from '@/components/marketing/Footer';
 
 export const metadata: Metadata = {
   title: 'Terms of Service — SiteNexis',
@@ -56,7 +57,7 @@ export default function TermsPage() {
       <MarketingNav />
       <div className="mx-auto max-w-3xl px-6 pb-24 pt-32">
         <h1 className="mb-2 text-[36px] font-bold tracking-[-0.02em] text-white">Terms of Service</h1>
-        <p className="mb-12 text-[14px] text-slate-500">Last updated: May 2025</p>
+        <p className="mb-12 text-[14px] text-slate-500">Last updated: July 2026</p>
         <div className="space-y-8">
           {SECTIONS.map((s) => (
             <section key={s.title}>
@@ -68,12 +69,13 @@ export default function TermsPage() {
         <div className="mt-12 rounded-xl border border-white/[0.06] bg-white/[0.02] p-6">
           <p className="text-[14px] text-slate-400">
             Questions about these terms? Contact us at{' '}
-            <a href="mailto:legal@sitenexis.com" className="text-cyan hover:underline">
-              legal@sitenexis.com
+            <a href="mailto:sitenexisintel@gmail.com" className="text-cyan hover:underline">
+              sitenexisintel@gmail.com
             </a>
           </p>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

@@ -3,6 +3,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight, ExternalLink } from 'lucide-react';
 import { MarketingNav } from '@/components/marketing/MarketingNav';
+import { Footer } from '@/components/marketing/Footer';
 
 export const metadata: Metadata = {
   title: 'Ekeleme David Kelechi — Founder of SiteNexis',
@@ -40,7 +41,13 @@ const FOUNDER_PERSON_SCHEMA = {
     'AI Search',
     'Semantic SEO',
   ],
-  sameAs: ['https://github.com/kellyxy110'],
+  sameAs: [
+    'https://github.com/kellyxy110',
+    'https://x.com/Sitenexis',
+    'https://www.linkedin.com/in/ekeleme-kelechi-18b56a340/',
+    'https://web.facebook.com/david.k.ekeleme',
+    'https://www.reddit.com/user/Sitenexis',
+  ],
 };
 
 function PentagonMark({ size = 20 }: { size?: number }) {
@@ -430,6 +437,7 @@ export default function FounderPage() {
           </div>
         </div>
       </section>
+      <Footer />
     </div>
   );
 }

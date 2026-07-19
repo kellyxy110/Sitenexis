@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { MarketingNav } from '@/components/marketing/MarketingNav';
+import { Footer } from '@/components/marketing/Footer';
 
 export const metadata: Metadata = {
   title: 'Privacy Policy — SiteNexis',
@@ -54,7 +55,7 @@ const SECTIONS = [
       'Correction: you may correct inaccurate personal data through Account Settings.',
       'Deletion: you may delete your account and all associated data at any time.',
       'Portability: you may export your audit history in JSON format from Account Settings.',
-      'To exercise these rights, contact privacy@sitenexis.com.',
+      'To exercise these rights, contact sitenexisintel@gmail.com.',
     ],
   },
   {
@@ -73,7 +74,7 @@ export default function PrivacyPage() {
       <MarketingNav />
       <div className="mx-auto max-w-3xl px-6 pb-24 pt-32">
         <h1 className="mb-2 text-[36px] font-bold tracking-[-0.02em] text-white">Privacy Policy</h1>
-        <p className="mb-12 text-[14px] text-slate-500">Last updated: May 2025</p>
+        <p className="mb-12 text-[14px] text-slate-500">Last updated: July 2026</p>
         <div className="space-y-10">
           {SECTIONS.map((s) => (
             <section key={s.title}>
@@ -92,12 +93,13 @@ export default function PrivacyPage() {
         <div className="mt-12 rounded-xl border border-white/[0.06] bg-white/[0.02] p-6">
           <p className="text-[14px] text-slate-400">
             Questions about this policy? Contact us at{' '}
-            <a href="mailto:privacy@sitenexis.com" className="text-cyan hover:underline">
-              privacy@sitenexis.com
+            <a href="mailto:sitenexisintel@gmail.com" className="text-cyan hover:underline">
+              sitenexisintel@gmail.com
             </a>
           </p>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

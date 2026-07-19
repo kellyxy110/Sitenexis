@@ -6,21 +6,9 @@ import { motion } from 'framer-motion'
 import { ArrowRight, Clock, Tag } from 'lucide-react'
 import { BLOG_POSTS, CATEGORIES, type BlogPost } from '@/lib/blog-posts'
 import { MarketingNav } from '@/components/marketing/MarketingNav'
+import { Footer } from '@/components/marketing/Footer'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-
-function PentagonMark({ size = 20 }: { size?: number }) {
-  const cx = size / 2, cy = size / 2, r = size * 0.42
-  const pts = Array.from({ length: 5 }, (_, i) => {
-    const a = (Math.PI * 2 * i) / 5 - Math.PI / 2
-    return `${cx + r * Math.cos(a)},${cy + r * Math.sin(a)}`
-  }).join(' ')
-  return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} fill="none" aria-hidden>
-      <polygon points={pts} stroke="rgba(255,255,255,0.5)" strokeWidth="1.2" fill="rgba(255,255,255,0.04)" />
-    </svg>
-  )
-}
 
 const CATEGORY_COLORS: Record<string, { text: string; bg: string; border: string; glow: string }> = {
   'AI Visibility':    { text: 'text-cyan-400',   bg: 'bg-cyan-500/10',   border: 'border-cyan-500/20',   glow: 'rgba(0,200,255,0.18)'     },
@@ -266,21 +254,7 @@ export default function BlogPage() {
       </section>
 
       {/* ── Footer ───────────────────────────────────────────────────────────── */}
-      <footer className="border-t border-white/[0.05] bg-[#07111F] px-6 py-12">
-        <div className="mx-auto max-w-7xl flex flex-col items-center justify-between gap-4 md:flex-row">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-6 w-6 items-center justify-center rounded-md border border-white/[0.08] bg-white/[0.03]">
-              <PentagonMark size={14} />
-            </div>
-            <span className="text-[14px] font-semibold text-white">SiteNexis</span>
-          </div>
-          <p className="text-[12px] text-slate-400">© {new Date().getFullYear()} SiteNexis. Built for the machine-first web.</p>
-          <div className="flex items-center gap-6 text-[12px] text-slate-400">
-            <Link href="/privacy" className="hover:text-slate-400 transition-colors">Privacy</Link>
-            <Link href="/terms" className="hover:text-slate-400 transition-colors">Terms</Link>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </main>
   )
 }

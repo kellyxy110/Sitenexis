@@ -6,6 +6,7 @@ import {
   Download, Copy, CheckCircle2,
   BarChart3, ArrowRight, Sparkles, Globe,
 } from 'lucide-react';
+import { Footer } from '@/components/marketing/Footer';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -787,6 +788,7 @@ export default function AiScorerPage() {
           </Link>
         </p>
       </div>
+      <Footer />
     </main>
   );
 }

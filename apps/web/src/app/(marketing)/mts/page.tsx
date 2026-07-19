@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Globe, ArrowRight, Shield, Loader2, BarChart3, Lock, Zap } from 'lucide-react';
+import { Footer } from '@/components/marketing/Footer';
 
 export default function MTSInputPage() {
   const [domain, setDomain] = useState('');
@@ -110,6 +111,7 @@ export default function MTSInputPage() {
           </div>
         </div>
       </section>
+      <Footer />
     </main>
   );
 }

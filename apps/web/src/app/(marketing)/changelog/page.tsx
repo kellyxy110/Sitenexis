@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { MarketingNav } from '@/components/marketing/MarketingNav';
+import { Footer } from '@/components/marketing/Footer';
 
 export const metadata: Metadata = {
   title: 'Changelog — SiteNexis',
@@ -101,6 +102,7 @@ export default function ChangelogPage() {
           ))}
         </div>
       </div>
+      <Footer />
     </div>
   );
 }
