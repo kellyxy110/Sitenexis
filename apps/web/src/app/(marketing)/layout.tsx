@@ -17,7 +17,7 @@ export const metadata: Metadata = {
     locale: 'en_US',
     images: [
       {
-        url: '/opengraph-image',
+        url: '/og-image',
         width: 1200,
         height: 630,
         alt: 'SiteNexis — AI Retrieval & Machine Trust Intelligence',
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     title: 'SiteNexis — AI Retrieval & Machine Trust Intelligence',
     description:
       'Model how AI systems retrieve, interpret, trust, and recommend your website. 12 scores · 16 agents · Intelligence Report · Decision Roadmap · Competitive Reality Simulation.',
-    images: ['/opengraph-image'],
+    images: ['/og-image'],
   },
 };
 

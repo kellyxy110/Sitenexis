@@ -173,7 +173,7 @@ const SITE_SCHEMA = {
       description:
         'SiteNexis audits any domain across 12 dimensions using 16 intelligence agents. It produces AI Visibility scores, Machine Trust scores, Retrieval Simulation results, Temporal Authority analysis, Recommendation Surface maps, Synthetic Entity detection, a Grok-style Intelligence Report, a Decision Roadmap, and a Competitive Reality Simulation — giving publishers a complete model of how AI systems perceive, trust, and recommend their content.',
       keywords: 'AI visibility, machine trust, entity SEO, AI retrieval simulation, ChatGPT visibility, Gemini optimization, AI Overviews, retrieval-augmented generation, Crawl4AI web extraction, Scrapy competitive intelligence, capability-first architecture',
-      screenshot: `${appUrl}/opengraph-image`,
+      screenshot: `${appUrl}/og-image`,
       offers: {
         '@type': 'AggregateOffer',
         priceCurrency: 'USD',

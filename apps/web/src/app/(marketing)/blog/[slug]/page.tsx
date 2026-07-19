@@ -27,14 +27,14 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       url: `${appUrl}/blog/${slug}`,
       siteName: 'SiteNexis',
       type: 'article',
-      images: [{ url: '/opengraph-image', width: 1200, height: 630, alt: post.title }],
+      images: [{ url: '/og-image', width: 1200, height: 630, alt: post.title }],
     },
     twitter: {
       card: 'summary_large_image',
       site: '@Sitenexis',
       title: `${post.title} — SiteNexis Blog`,
       description: post.excerpt,
-      images: ['/opengraph-image'],
+      images: ['/og-image'],
     },
   }
 }
