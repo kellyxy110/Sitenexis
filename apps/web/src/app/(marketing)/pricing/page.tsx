@@ -203,7 +203,7 @@ const FAQS = [
   },
   {
     q: 'How does the API work?',
-    a: 'The REST API is available on Agency and Enterprise plans. It exposes all audit endpoints, scoring data, and webhook events. Full documentation at sitenexis.com/docs.',
+    a: 'The REST API is available on Agency and Enterprise plans. It exposes all audit endpoints, scoring data, and webhook events. Full documentation at sitenexis.vercel.app/docs.',
   },
   {
     q: 'What AI models power the analysis?',
@@ -237,6 +237,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 
 export default function PricingPage() {
   const [annual, setAnnual] = useState(false)
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://sitenexis.vercel.app'
 
   const pricingSchema = [
     {
@@ -273,11 +274,11 @@ export default function PricingPage() {
     {
       '@context': 'https://schema.org',
       '@type': 'SoftwareApplication',
-      '@id': 'https://sitenexis.com/#app',
+      '@id': `${appUrl}/#app`,
       name: 'SiteNexis',
       applicationCategory: 'BusinessApplication',
       operatingSystem: 'Web',
-      url: 'https://sitenexis.com',
+      url: appUrl,
       offers: [
         { '@type': 'Offer', name: 'Free', price: '0', priceCurrency: 'USD', description: '1 audit per month — SEO, AI readability, entity intelligence, citation probability, and more.' },
         { '@type': 'Offer', name: 'Starter', price: '29', priceCurrency: 'USD', priceSpecification: { '@type': 'UnitPriceSpecification', price: '29', priceCurrency: 'USD', unitText: 'MONTH' }, description: '50 audits per month.' },
@@ -331,7 +332,7 @@ export default function PricingPage() {
             <div className="flex items-center gap-2">
               <Activity size={14} className="text-teal-400 shrink-0" />
               <span className="text-[12px] font-medium text-slate-300">
-                SiteNexis monitors itself on Pro — every deployment triggers a full audit of sitenexis.com
+                SiteNexis monitors itself on Pro — every deployment triggers a full audit of sitenexis.vercel.app
               </span>
             </div>
             <Link href="/platform/health"

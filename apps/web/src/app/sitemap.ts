@@ -2,7 +2,7 @@ import { type MetadataRoute } from 'next';
 import { BLOG_POSTS } from '@/lib/blog-posts';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const base = process.env['NEXT_PUBLIC_APP_URL'] ?? 'https://sitenexis.com';
+  const base = process.env['NEXT_PUBLIC_APP_URL'] ?? 'https://sitenexis.vercel.app';
 
   // Previously a hand-maintained list of 8 URLs — silently missed every marketing
   // page added since and, critically, all 200+ blog posts (only linked via /blog's

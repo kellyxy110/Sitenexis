@@ -126,7 +126,7 @@ const COLOR_MAP: Record<string, { border: string; bg: string; text: string; badg
 // ── JSON-LD structured data ────────────────────────────────────────────────────
 
 function buildJsonLd() {
-  const base = 'https://sitenexis.com';
+  const base = process.env.NEXT_PUBLIC_APP_URL || 'https://sitenexis.vercel.app';
   return {
     '@context': 'https://schema.org',
     '@graph': [

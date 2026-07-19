@@ -98,7 +98,7 @@ export default function MTSInputPage() {
           {/* Example domains */}
           <div className="mt-6 flex flex-wrap items-center gap-2">
             <span className="text-[11px] text-slate-600">Try:</span>
-            {['sitenexis.com', 'wikipedia.org', 'stripe.com', 'nytimes.com'].map((d) => (
+            {['sitenexis.vercel.app', 'wikipedia.org', 'stripe.com', 'nytimes.com'].map((d) => (
               <button
                 key={d}
                 onClick={() => { setDomain(d); }}

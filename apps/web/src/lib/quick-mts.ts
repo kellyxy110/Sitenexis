@@ -82,7 +82,7 @@ export async function computeQuickMTS(rawInput: string): Promise<QuickMTSResult>
     const res = await fetch(url, {
       signal: AbortSignal.timeout(12_000),
       headers: {
-        'User-Agent': 'SiteNexis-MTS/1.0 (+https://sitenexis.com/mts)',
+        'User-Agent': `SiteNexis-MTS/1.0 (+${process.env.NEXT_PUBLIC_APP_URL || 'https://sitenexis.vercel.app'}/mts)`,
         Accept: 'text/html',
       },
       redirect: 'follow',

@@ -264,6 +264,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   const related = getRelatedPosts(post)
   const style = getStyle(post.category)
   const allPosts = BLOG_POSTS.map(p => getPost(p.slug))
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://sitenexis.vercel.app'
 
   const articleSchema = {
     '@context': 'https://schema.org',
@@ -272,22 +273,22 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     description: post.excerpt,
     datePublished: post.publishedAt,
     dateModified: post.publishedAt,
-    url: `https://sitenexis.com/blog/${post.slug}`,
+    url: `${appUrl}/blog/${post.slug}`,
     mainEntityOfPage: {
       '@type': 'WebPage',
-      '@id': `https://sitenexis.com/blog/${post.slug}`,
+      '@id': `${appUrl}/blog/${post.slug}`,
     },
     author: {
       '@type': 'Person',
-      '@id': 'https://sitenexis.com/#founder',
+      '@id': `${appUrl}/#founder`,
       name: 'Ekeleme David Kelechi',
-      url: 'https://sitenexis.com/about',
+      url: `${appUrl}/about`,
     },
     publisher: {
-      '@id': 'https://sitenexis.com/#organization',
+      '@id': `${appUrl}/#organization`,
       '@type': 'Organization',
       name: 'SiteNexis',
-      logo: { '@type': 'ImageObject', url: 'https://sitenexis.com/favicon.svg' },
+      logo: { '@type': 'ImageObject', url: `${appUrl}/favicon.svg` },
     },
     keywords: post.tags.join(', '),
     articleSection: post.category,
@@ -344,7 +345,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
               <div className="mt-8 mb-6 flex items-center gap-4">
                 <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
                 <ShareButtons
-                  url={`https://sitenexis.com/blog/${post.slug}`}
+                  url={`${appUrl}/blog/${post.slug}`}
                   title={post.title}
                   compact
                 />
@@ -369,7 +370,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                     ))}
                   </div>
                   <ShareButtons
-                    url={`https://sitenexis.com/blog/${post.slug}`}
+                    url={`${appUrl}/blog/${post.slug}`}
                     title={post.title}
                   />
                 </div>

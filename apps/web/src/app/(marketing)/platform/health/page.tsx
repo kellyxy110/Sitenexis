@@ -18,7 +18,7 @@ async function getLatestHealthData() {
 
   try {
     const { getLatestSelfAuditRun } = await import('@sitenexis/db');
-    const run = await getLatestSelfAuditRun('sitenexis.com');
+    const run = await getLatestSelfAuditRun('sitenexis.vercel.app');
     if (!run) return { run: null };
     return { run };
   } catch {

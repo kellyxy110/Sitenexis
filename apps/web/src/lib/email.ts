@@ -82,7 +82,7 @@ export async function sendAuditCompleteEmail({
     <!-- Footer -->
     <p style="font-size:12px;color:#3A5568;margin:0;line-height:1.6">
       You're receiving this because you ran an audit on SiteNexis.<br>
-      <a href="${appUrl}" style="color:#4A6280">sitenexis.com</a>
+      <a href="${appUrl}" style="color:#4A6280">${appUrl.replace(/^https?:\/\//, '')}</a>
     </p>
   </div>
 </body>

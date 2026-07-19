@@ -18,7 +18,7 @@ export type BlogPost = {
   content: ContentBlock[]
 }
 
-export const CATEGORIES = ['All', 'AI Visibility', 'Machine Trust', 'Entity SEO', 'Technical SEO', 'Strategy', 'AI Agents', 'GTL Systems', 'Link Graph Intelligence', 'AI Visibility Engineering', 'DOM Forensics', 'Perception vs Fact Layer'] as const
+export const CATEGORIES = ['All', 'AI Visibility', 'Machine Trust', 'Entity SEO', 'Technical SEO', 'SEO', 'Strategy', 'AI Agents', 'GTL Systems', 'Link Graph Intelligence', 'AI Visibility Engineering', 'DOM Forensics', 'Perception vs Fact Layer'] as const
 
 export const BLOG_POSTS: BlogPost[] = [
   {
@@ -4787,7 +4787,7 @@ export const BLOG_POSTS: BlogPost[] = [
       { type: 'p', text: 'AI systems are trained to answer questions. A page that answers questions the SERP cohort does not answer provides clear information gain for question-triggered retrieval. The question gap detector extracts implied and explicit questions from all sources — phrased as interrogatives, or implied by headings and structural patterns. Questions answered by the target page but not by the cohort are scored as high-value information gain signals.' },
       { type: 'h2', text: 'The IGE Score' },
       { type: 'p', text: 'The final Information Gain Score is a 0–100 composite of entity gain, question gain, evidence uniqueness, and shared knowledge overlap (inverted — more overlap reduces the score). A page with score below 40 is adding little beyond what existing sources cover. A page above 70 has genuine unique value that AI retrieval systems will recognize as differentiating. The IGE Score feeds into Citation Probability — pages that add information are more likely to be cited.' },
-      { type: 'related', label: 'Related', slugs: ['entity-optimization-the-signal-ai-systems-weight-most', 'citation-probability-what-makes-ai-systems-cite-you'] },
+      { type: 'related', label: 'Related', slugs: ['entity-optimization-the-signal-ai-systems-weight-most', 'citation-probability-what-makes-ai-systems-cite-your-content'] },
     ],
   },
 
@@ -5165,7 +5165,7 @@ export const BLOG_POSTS: BlogPost[] = [
       { type: 'p', text: 'We built SiteNexis to model machine trust — how AI systems form confidence in content. It would be contradictory to hide our own output behind opacity. The demo reports demonstrate that our scores are explainable, our recommendations are actionable, and our analysis is substantive. Every deduction maps to a named issue. Every issue has a recommendation. There are no black boxes.' },
       { type: 'callout', variant: 'info', text: 'Demo reports are refreshed weekly to ensure they reflect the latest scoring algorithms and UI improvements. The domains were selected to represent diverse industry verticals and different AI visibility profiles — not to show only high scores.' },
       { type: 'cta', body: 'Explore the demo reports on our landing page, then audit your own domain with the same depth.', href: '/signup', btnText: 'Create free account' },
-      { type: 'related', label: 'Related reading', slugs: ['machine-trust-intelligence-explained', 'entity-optimization-the-signal-ai-systems-weight-most', 'recommendation-surface-mapping-where-ai-shows-your-content'] },
+      { type: 'related', label: 'Related reading', slugs: ['machine-trust-is-not-ai-visibility', 'entity-optimization-the-signal-ai-systems-weight-most', 'recommendation-surface-mapping-where-ai-shows-your-content'] },
     ],
   },
 
@@ -5189,7 +5189,7 @@ export const BLOG_POSTS: BlogPost[] = [
       { type: 'h2', text: 'The Future: Investigation Layers' },
       { type: 'p', text: 'Deterministic scoring is the foundation. Investigation layers sit above scoring and explain why scores are what they are — producing root cause hypotheses ranked by confidence and supported by cross-agent evidence. This is where the DeerFlow Principle reaches its full expression: automated investigation that surfaces insight rather than prescription, enabling domain owners to understand their AI visibility position deeply enough to make strategic decisions rather than following a checklist blindly.' },
       { type: 'cta', body: 'See the evidence behind every score — full transparency into how SiteNexis diagnoses your AI visibility.', href: '/signup?plan=pro', btnText: 'Get full diagnostic access' },
-      { type: 'related', label: 'Related reading', slugs: ['machine-trust-intelligence-explained', 'ai-perception-graph-what-ai-thinks-your-site-is-about', 'how-sitenexis-captures-audit-dashboard-real-time'] },
+      { type: 'related', label: 'Related reading', slugs: ['machine-trust-is-not-ai-visibility', 'ai-perception-graph-how-machines-see-your-website', 'how-sitenexis-captures-audit-dashboard-real-time'] },
     ],
   },
 
@@ -5213,7 +5213,7 @@ export const BLOG_POSTS: BlogPost[] = [
       { type: 'p', text: 'Even content that is retrieved, ranked, summarized, and not truncated may still fail the final filter: citation eligibility. AI systems apply a trust threshold before citing a source explicitly. Factors include: claim specificity (vague claims are not cited), authority signal density (does the page demonstrate expertise?), and factual verifiability (can the claim be cross-referenced?). The Citation Eligibility Score models this final gate — the difference between being used silently and being cited with attribution.' },
       { type: 'callout', variant: 'info', text: 'All retrieval simulation is deterministic and algorithmic. No live queries to AI retrieval systems are made. The same content always produces the same simulation result. Simulation parameters are configurable and documented — never black-box heuristics.' },
       { type: 'cta', body: 'Run a retrieval simulation on your domain — see exactly where content fails in the six-stage pipeline.', href: '/signup?plan=pro', btnText: 'Unlock retrieval simulation' },
-      { type: 'related', label: 'Related reading', slugs: ['retrieval-readiness-complete-technical-checklist', 'why-ai-systems-ignore-70-percent-of-your-content', 'recommendation-surface-mapping-where-ai-shows-your-content'] },
+      { type: 'related', label: 'Related reading', slugs: ['aive-retrieval-readiness-checklist', 'why-ai-systems-ignore-70-percent-of-your-content', 'recommendation-surface-mapping-where-ai-shows-your-content'] },
     ],
   },
 
@@ -5261,7 +5261,7 @@ export const BLOG_POSTS: BlogPost[] = [
       { type: 'p', text: 'Trust degradation is distinct from low trust. Low trust means trust was never established. Degradation means trust was formed and then damaged — which is worse from an AI system perspective because it suggests unreliability over time. Degradation signals include: pages that previously had schema now lacking it, entity attributes that changed between audits without explanation, external validation sources that previously resolved but now return 404, and sudden entity changes with no contextual update. The Trust Degradation Resistance sub-score requires audit history to compute — on first audit, it returns baseline values.' },
       { type: 'callout', variant: 'warning', text: 'A Machine Trust Score below 40 creates a ceiling on all other scores. Even with perfect retrieval readiness and entity confidence, low trust means AI systems suppress your content at the citation eligibility stage. Trust is not optional — it is the substrate that enables everything else.' },
       { type: 'cta', body: 'Measure your domain\'s Machine Trust Score — understand where trust has been formed, maintained, or damaged.', href: '/signup?plan=pro', btnText: 'Get your trust analysis' },
-      { type: 'related', label: 'Related reading', slugs: ['machine-trust-intelligence-explained', 'ai-perception-graph-what-ai-thinks-your-site-is-about', 'why-investigation-beats-recommendation-deerflow-principle'] },
+      { type: 'related', label: 'Related reading', slugs: ['machine-trust-is-not-ai-visibility', 'ai-perception-graph-how-machines-see-your-website', 'why-investigation-beats-recommendation-deerflow-principle'] },
     ],
   },
 
@@ -5285,7 +5285,7 @@ export const BLOG_POSTS: BlogPost[] = [
       { type: 'h2', text: 'Reading Your Surface Coverage Map' },
       { type: 'p', text: 'The Recommendation Surface Map in your audit report shows four inclusion probability scores — one per surface. Each surface reports a status: visible (probability above 70), partial (40 to 70), or absent (below 40). For each surface below "visible" status, the report lists specific blockers and the structural signals needed to close the gap. The recommendations are sequenced: start with the surface closest to visibility (smallest gap), then expand to surfaces requiring more structural changes.' },
       { type: 'cta', body: 'Map your content across all four AI recommendation surfaces — see exactly where you are visible and where you are absent.', href: '/signup?plan=pro', btnText: 'Get surface mapping' },
-      { type: 'related', label: 'Related reading', slugs: ['bridge-aive-recommendation-surfaces', 'retrieval-readiness-complete-technical-checklist', 'machine-trust-score-trust-is-not-visibility'] },
+      { type: 'related', label: 'Related reading', slugs: ['bridge-aive-recommendation-surfaces', 'aive-retrieval-readiness-checklist', 'machine-trust-score-trust-is-not-visibility'] },
     ],
   },
 
@@ -5478,8 +5478,30 @@ export function getPost(slug: string): BlogPost | undefined {
   return BLOG_POSTS.find(p => p.slug === slug)
 }
 
-export function getRelatedPosts(current: BlogPost, limit = 3): BlogPost[] {
+// Deterministic string hash (FNV-1a) — used only to break score ties so that
+// incoming "related" links spread across a whole category instead of always
+// landing on whichever posts happen to sit first in BLOG_POSTS array order.
+function hashPair(a: string, b: string): number {
+  let h = 0x811c9dc5
+  const s = `${a}::${b}`
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i)
+    h = Math.imul(h, 0x01000193)
+  }
+  return h >>> 0
+}
+
+export function getRelatedPosts(current: BlogPost, limit = 4): BlogPost[] {
+  const currentTags = new Set(current.tags)
   return BLOG_POSTS
-    .filter(p => p.slug !== current.slug && p.category === current.category)
+    .filter(p => p.slug !== current.slug)
+    .map(p => {
+      const sharedTags = p.tags.filter(t => currentTags.has(t)).length
+      const sameCategory = p.category === current.category ? 1 : 0
+      return { post: p, score: sharedTags * 2 + sameCategory, tiebreak: hashPair(current.slug, p.slug) }
+    })
+    .filter(entry => entry.score > 0)
+    .sort((a, b) => b.score - a.score || a.tiebreak - b.tiebreak)
     .slice(0, limit)
+    .map(entry => entry.post)
 }

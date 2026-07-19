@@ -176,7 +176,7 @@ export default function DocsPage() {
             <Reveal delay={0.1}>
               <div className="mt-8 grid gap-4 md:grid-cols-3">
                 {[
-                  { num: '01', title: 'Create an account', desc: 'Sign up at sitenexis.com/signup. Free plan includes 1 audit per month.' },
+                  { num: '01', title: 'Create an account', desc: 'Sign up at sitenexis.vercel.app/signup. Free plan includes 1 audit per month.' },
                   { num: '02', title: 'Enter a domain', desc: 'Type any public domain into the audit input — e.g. stripe.com or yoursite.com.' },
                   { num: '03', title: 'Read your report', desc: 'Within 3–8 minutes, a full machine trust report lands in your dashboard.' },
                 ].map(step => (
@@ -203,7 +203,7 @@ export default function DocsPage() {
             </Reveal>
             <Reveal delay={0.05}>
               <CodeBlock lang="bash" code={`# Add your API key to every request
-curl https://sitenexis.com/api/audit/start \\
+curl https://sitenexis.vercel.app/api/audit/start \\
   -H "Authorization: Bearer snx_live_your_api_key_here" \\
   -H "Content-Type: application/json" \\
   -d '{"domain": "example.com"}'`} />
@@ -226,7 +226,7 @@ curl https://sitenexis.com/api/audit/start \\
             </Reveal>
             <Reveal delay={0.05}>
               <h3 className="mt-6 text-[16px] font-semibold text-white">1. Start an audit</h3>
-              <CodeBlock lang="bash" code={`curl -X POST https://sitenexis.com/api/audit/start \\
+              <CodeBlock lang="bash" code={`curl -X POST https://sitenexis.vercel.app/api/audit/start \\
   -H "Authorization: Bearer snx_live_..." \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -247,7 +247,7 @@ curl https://sitenexis.com/api/audit/start \\
             <Reveal delay={0.08}>
               <h3 className="mt-6 text-[16px] font-semibold text-white">2. Stream real-time progress</h3>
               <CodeBlock lang="javascript" code={`const source = new EventSource(
-  'https://sitenexis.com/api/audit/aud_8kXmN3pQ.../stream',
+  'https://sitenexis.vercel.app/api/audit/aud_8kXmN3pQ.../stream',
   { headers: { Authorization: 'Bearer snx_live_...' } }
 )
 
@@ -264,7 +264,7 @@ source.addEventListener('complete', () => {
             </Reveal>
             <Reveal delay={0.1}>
               <h3 className="mt-6 text-[16px] font-semibold text-white">3. Fetch the report</h3>
-              <CodeBlock lang="bash" code={`curl https://sitenexis.com/api/audit/aud_8kXmN3pQ... \\
+              <CodeBlock lang="bash" code={`curl https://sitenexis.vercel.app/api/audit/aud_8kXmN3pQ... \\
   -H "Authorization: Bearer snx_live_..."
 
 # Returns the full AuditReport including all twelve scores,
@@ -321,7 +321,7 @@ source.addEventListener('complete', () => {
                 <h2 className="text-[26px] font-bold tracking-[-0.02em] text-white">API Reference</h2>
               </div>
               <p className="mt-3 text-[15px] leading-[1.75] text-slate-400">
-                All endpoints are REST and return JSON. Base URL: <code className="rounded bg-white/[0.06] px-1.5 py-0.5 font-mono text-[13px] text-slate-300">https://sitenexis.com</code>
+                All endpoints are REST and return JSON. Base URL: <code className="rounded bg-white/[0.06] px-1.5 py-0.5 font-mono text-[13px] text-slate-300">https://sitenexis.vercel.app</code>
               </p>
             </Reveal>
             <Reveal delay={0.05}>

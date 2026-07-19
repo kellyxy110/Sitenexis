@@ -11,18 +11,20 @@ export const metadata: Metadata = {
   alternates: { canonical: '/founder' },
 };
 
+const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://sitenexis.vercel.app';
+
 const FOUNDER_PERSON_SCHEMA = {
   '@context': 'https://schema.org',
   '@type': 'Person',
-  '@id': 'https://sitenexis.com/#founder',
+  '@id': `${appUrl}/#founder`,
   name: 'Ekeleme David Kelechi',
   alternateName: 'KellyxyHub',
-  url: 'https://sitenexis.com/founder',
+  url: `${appUrl}/founder`,
   jobTitle: 'Founder & CEO',
   description:
     'AI Visibility Researcher, educator, web developer, and prompt engineer. Founder of SiteNexis, the AI Retrieval and Machine Trust Intelligence platform.',
   worksFor: {
-    '@id': 'https://sitenexis.com/#organization',
+    '@id': `${appUrl}/#organization`,
     '@type': 'Organization',
     name: 'SiteNexis',
   },

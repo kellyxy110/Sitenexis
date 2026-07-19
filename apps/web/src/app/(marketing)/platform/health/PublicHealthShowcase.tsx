@@ -189,7 +189,7 @@ export function PublicHealthShowcase({ data }: Props) {
           </h1>
           <p className="mx-auto max-w-xl text-base text-[#7A9AB4] leading-relaxed">
             Every deployment automatically triggers a full audit of{' '}
-            <span className="text-white font-medium">sitenexis.com</span>.
+            <span className="text-white font-medium">sitenexis.vercel.app</span>.
             This page shows the live results — the same report any customer gets for their domain.
           </p>
           {run?.completedAt && (

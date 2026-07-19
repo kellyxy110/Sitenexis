@@ -9,14 +9,14 @@ const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://sitenexis.vercel.app'
 const FOUNDER_SCHEMA = {
   '@context': 'https://schema.org',
   '@type': 'Person',
-  '@id': 'https://sitenexis.com/#founder',
+  '@id': `${appUrl}/#founder`,
   name: 'Ekeleme David Kelechi',
   alternateName: ['Kellyxyhub', 'kellyxy110'],
   url: `${appUrl}/about`,
   jobTitle: 'Founder & CEO',
   description: 'Founder and CEO of SiteNexis. Builder of AI retrieval and machine trust intelligence systems. Expert in entity SEO, knowledge graph optimization, and how AI systems retrieve and recommend web content.',
   worksFor: {
-    '@id': 'https://sitenexis.com/#organization',
+    '@id': `${appUrl}/#organization`,
     '@type': 'Organization',
     name: 'SiteNexis',
     url: appUrl,

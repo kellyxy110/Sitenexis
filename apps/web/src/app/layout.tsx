@@ -76,7 +76,7 @@ const SITE_SCHEMA = {
     // ── Organization (brand-level identity, NOT founder personal profiles) ──
     {
       '@type': 'Organization',
-      '@id': 'https://sitenexis.com/#organization',
+      '@id': `${appUrl}/#organization`,
       name: 'SiteNexis',
       legalName: 'SiteNexis',
       slogan: 'AI Retrieval & Machine Trust Intelligence',
@@ -107,7 +107,7 @@ const SITE_SCHEMA = {
           availableLanguage: 'English',
         },
       ],
-      founder: { '@id': 'https://sitenexis.com/#founder' },
+      founder: { '@id': `${appUrl}/#founder` },
       // Brand-level external profiles only — not founder personal accounts
       sameAs: [
         'https://x.com/Sitenexis',
@@ -118,12 +118,12 @@ const SITE_SCHEMA = {
     // ── Person (founder — separate top-level node, not just nested) ──────────
     {
       '@type': 'Person',
-      '@id': 'https://sitenexis.com/#founder',
+      '@id': `${appUrl}/#founder`,
       name: 'Ekeleme David Kelechi',
       alternateName: ['Kellyxyhub', 'kellyxy110'],
       url: `${appUrl}/about`,
       jobTitle: 'Founder & CEO',
-      worksFor: { '@id': 'https://sitenexis.com/#organization' },
+      worksFor: { '@id': `${appUrl}/#organization` },
       knowsAbout: [
         'AI Retrieval Systems',
         'Machine Trust Intelligence',
@@ -147,11 +147,11 @@ const SITE_SCHEMA = {
     // ── WebSite ───────────────────────────────────────────────────────────────
     {
       '@type': 'WebSite',
-      '@id': 'https://sitenexis.com/#website',
+      '@id': `${appUrl}/#website`,
       url: appUrl,
       name: 'SiteNexis',
       description: 'AI Retrieval and Machine Trust Intelligence Platform',
-      publisher: { '@id': 'https://sitenexis.com/#organization' },
+      publisher: { '@id': `${appUrl}/#organization` },
       potentialAction: {
         '@type': 'SearchAction',
         target: {
@@ -164,7 +164,7 @@ const SITE_SCHEMA = {
     // ── SoftwareApplication ───────────────────────────────────────────────────
     {
       '@type': 'SoftwareApplication',
-      '@id': 'https://sitenexis.com/#app',
+      '@id': `${appUrl}/#app`,
       name: 'SiteNexis',
       applicationCategory: 'BusinessApplication',
       applicationSubCategory: 'AI Visibility & SEO Intelligence Tool',
@@ -186,7 +186,7 @@ const SITE_SCHEMA = {
           { '@type': 'Offer', name: 'Agency', price: '249', priceCurrency: 'USD', description: 'Unlimited audits + API access + bulk domains' },
         ],
       },
-      provider: { '@id': 'https://sitenexis.com/#organization' },
+      provider: { '@id': `${appUrl}/#organization` },
       featureList: [
         'AI Retrieval Simulation',
         'Machine Trust Scoring',

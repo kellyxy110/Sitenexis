@@ -113,7 +113,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       const res = await fetchNoInternalRedirects(url, {
         signal: controller.signal,
         headers: {
-          'User-Agent': 'SiteNexis-QuickAudit/1.0 (+https://sitenexis.com)',
+          'User-Agent': `SiteNexis-QuickAudit/1.0 (+${process.env.NEXT_PUBLIC_APP_URL || 'https://sitenexis.vercel.app'})`,
           Accept: 'text/html',
         },
       });

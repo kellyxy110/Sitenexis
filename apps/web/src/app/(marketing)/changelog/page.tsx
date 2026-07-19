@@ -19,7 +19,7 @@ const RELEASES = [
       { type: 'new', text: 'SiteNexis Health Score — 8-dimension composite score with public showcase at /platform/health' },
       { type: 'new', text: 'Recommendations Engine — every finding includes issue, impact, fix, and estimated improvement' },
       { type: 'new', text: 'Historical tracking — compare today / 7d / 30d / 90d across all dimensions' },
-      { type: 'new', text: 'Deploy webhook — every deployment triggers an automatic full audit of sitenexis.com' },
+      { type: 'new', text: 'Deploy webhook — every deployment triggers an automatic full audit of sitenexis.vercel.app' },
       { type: 'improved', text: 'AI Visibility Score now uses 8-dimension weighted formula including GEO score' },
       { type: 'improved', text: 'All v3 agents implement graceful partial failure — sub-task errors never void the full run' },
     ],

@@ -67,8 +67,9 @@ export function MTSResultClient({ result, domain }: { result: QuickMTSResult; do
   const [badgeCopied, setBadgeCopied] = useState(false);
   const cfg = GRADE_CONFIG[result.grade];
   const color = gradeColor(result.grade);
-  const shareUrl = `https://sitenexis.com/mts/${encodeURIComponent(domain)}`;
-  const badgeUrl = `https://sitenexis.com/api/badge/${encodeURIComponent(domain)}`;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://sitenexis.vercel.app';
+  const shareUrl = `${appUrl}/mts/${encodeURIComponent(domain)}`;
+  const badgeUrl = `${appUrl}/api/badge/${encodeURIComponent(domain)}`;
   const badgeMd = `[![Machine Trust Score](${badgeUrl})](${shareUrl})`;
 
   function copyShare() {

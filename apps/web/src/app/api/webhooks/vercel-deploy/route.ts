@@ -1,9 +1,10 @@
 export const dynamic = 'force-dynamic';
 /**
- * Vercel Deploy Webhook — triggers a self-audit of sitenexis.com on every production deployment.
+ * Vercel Deploy Webhook — triggers a self-audit (of SELF_AUDIT_DOMAIN in
+ * /api/self-audit/trigger, currently sitenexis.vercel.app) on every production deployment.
  *
  * Setup in Vercel: Project → Settings → Git → Deploy Hooks
- * Add webhook URL: https://sitenexis.com/api/webhooks/vercel-deploy
+ * Add webhook URL: <NEXT_PUBLIC_APP_URL>/api/webhooks/vercel-deploy
  * Set header: x-vercel-signature matching VERCEL_DEPLOY_WEBHOOK_SECRET
  */
 import { type NextRequest, NextResponse } from 'next/server';

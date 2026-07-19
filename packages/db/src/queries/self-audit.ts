@@ -90,7 +90,7 @@ export interface SelfAuditRecommendation {
 
 export async function createSelfAuditRun(
   triggeredBy: SelfAuditTrigger,
-  domain = 'sitenexis.com',
+  domain = 'sitenexis.vercel.app',
 ): Promise<string> {
   const run = await db.selfAuditRun.create({
     data: { domain, triggeredBy, status: 'running' },
@@ -231,7 +231,7 @@ export async function saveKnowledgeGraphRun(
 // ─── Read queries ─────────────────────────────────────────────────────────────
 
 export async function getLatestSelfAuditRun(
-  domain = 'sitenexis.com',
+  domain = 'sitenexis.vercel.app',
 ): Promise<SelfAuditRunRecord | null> {
   const run = await db.selfAuditRun.findFirst({
     where: { domain, status: 'complete' },
@@ -243,7 +243,7 @@ export async function getLatestSelfAuditRun(
 }
 
 export async function getSelfAuditRuns(
-  domain = 'sitenexis.com',
+  domain = 'sitenexis.vercel.app',
   limit = 50,
 ): Promise<SelfAuditRunRecord[]> {
   const runs = await db.selfAuditRun.findMany({
@@ -256,7 +256,7 @@ export async function getSelfAuditRuns(
 }
 
 export async function getSelfAuditHistory(
-  domain = 'sitenexis.com',
+  domain = 'sitenexis.vercel.app',
   windowDays: 7 | 30 | 90 = 30,
 ): Promise<SelfAuditRunRecord[]> {
   const since = new Date(Date.now() - windowDays * 86_400_000);

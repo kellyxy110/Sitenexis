@@ -19,8 +19,8 @@ const METHOD_SCHEMA = {
   headline: 'SiteNexis AI Visibility & Machine Trust Methodology',
   description:
     'A transparent explanation of how SiteNexis measures AI visibility and machine trust across four intelligence layers: Crawl & Structure, Semantic Intelligence, AI Visibility, and Machine Trust.',
-  author: { '@id': 'https://sitenexis.com/#founder' },
-  publisher: { '@id': 'https://sitenexis.com/#organization' },
+  author: { '@id': `${appUrl}/#founder` },
+  publisher: { '@id': `${appUrl}/#organization` },
   url: `${appUrl}/methodology`,
   datePublished: '2025-01-01',
   dateModified: '2026-06-22',
