@@ -1,19 +1,18 @@
+export const dynamic = 'force-dynamic';
 import { ImageResponse } from 'next/og';
 
-export const alt = 'SiteNexis — AI Retrieval & Machine Trust Intelligence';
-export const size = { width: 1200, height: 630 };
-export const contentType = 'image/png';
-// This route has no dynamic params, so Next.js prerenders it once at build time and
-// applies its default 1-year immutable Cache-Control — `revalidate` is ignored for
-// routes with nothing dynamic to revalidate. Social platforms (Facebook/Twitter/
-// LinkedIn/Slack) honor that header literally and never re-scrape, so a design
-// change here would never propagate. force-dynamic renders per-request instead —
-// cheap for a low-traffic, scraper-only route — so Cache-Control is no longer
-// Next's static-asset default.
-export const dynamic = 'force-dynamic';
+const size = { width: 1200, height: 630 };
 
-export default function Image() {
-  return new ImageResponse(
+/**
+ * Custom OG image route — NOT the opengraph-image.tsx special-file convention.
+ * That convention hardcodes a 1-year immutable Cache-Control on its Response
+ * regardless of revalidate/dynamic route config (verified live: both were tried
+ * and neither changed the served header). A plain Route Handler returns its
+ * Response exactly as constructed, so this is the only reliable way to control
+ * OG image caching in this Next.js version.
+ */
+export async function GET(): Promise<Response> {
+  const image = new ImageResponse(
     (
       <div
         style={{
@@ -58,4 +57,11 @@ export default function Image() {
     ),
     { ...size },
   );
+
+  return new Response(image.body, {
+    headers: {
+      'Content-Type': 'image/png',
+      'Cache-Control': 'public, max-age=3600, s-maxage=3600, must-revalidate',
+    },
+  });
 }
