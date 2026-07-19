@@ -32,15 +32,21 @@ describe('blog internal linking', () => {
         expect(rel.slug).not.toBe(post.slug)
         expect(allSlugs.has(rel.slug)).toBe(true)
       }
-      expect(related.length).toBeLessThanOrEqual(4)
+      // Base list is capped at 4; the coverage-repair pass can additively append a
+      // small number of extra slots onto a handful of source posts (see below) —
+      // bounded generously here as a guard against a pathological future where many
+      // orphaned posts happen to repair onto the same hub post.
+      expect(related.length).toBeLessThanOrEqual(8)
     }
   })
 
-  it('incoming related-post links are not concentrated on a handful of posts', () => {
+  it('incoming related-post links are not concentrated on a handful of posts, and every post has at least one', () => {
     // Regression guard for the array-order bias in the old implementation, where
     // getRelatedPosts() sliced the first N same-category posts in BLOG_POSTS order —
     // so every post in a large category linked to the same few posts, and the vast
     // majority of posts (164/212 measured before this fix) received zero incoming links.
+    // The coverage-repair pass (see blog-posts.ts) closed the remaining gap to zero —
+    // this is a hard invariant now, not just a "mostly fixed" bound.
     const inbound = new Map<string, number>()
     for (const post of BLOG_POSTS) inbound.set(post.slug, 0)
     for (const post of BLOG_POSTS) {
@@ -52,8 +58,26 @@ describe('blog internal linking', () => {
     const zeroInbound = counts.filter(c => c === 0).length
     const max = Math.max(...counts)
 
-    expect(zeroInbound).toBeLessThanOrEqual(15)
+    expect(zeroInbound).toBe(0)
     expect(max).toBeLessThanOrEqual(20)
+  })
+
+  it('no tag is duplicated under a different casing across the corpus', () => {
+    // Regression guard: 42 tags previously existed in two casings simultaneously
+    // (e.g. "Entity Authenticity" vs "entity authenticity"), silently defeating the
+    // exact-match tag comparison getRelatedPosts relied on before it went
+    // case-insensitive. Keeping this at zero also keeps the tags shown to users
+    // (and embedded in each post's JSON-LD `keywords`) from looking duplicated.
+    const casings = new Map<string, Set<string>>()
+    for (const post of BLOG_POSTS) {
+      for (const tag of post.tags) {
+        const lower = tag.toLowerCase()
+        if (!casings.has(lower)) casings.set(lower, new Set())
+        casings.get(lower)!.add(tag)
+      }
+    }
+    const inconsistent = [...casings.entries()].filter(([, variants]) => variants.size > 1)
+    expect(inconsistent).toEqual([])
   })
 
   it('getPost resolves every slug referenced by an inline related block', () => {

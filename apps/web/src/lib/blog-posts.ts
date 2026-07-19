@@ -3480,7 +3480,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'GTL Systems',
     publishedAt: 'Jun 16, 2026',
     readTime: 6,
-    tags: ['GTL', 'data integrity', 'API design', 'state management'],
+    tags: ['GTL', 'Data Integrity', 'API Design', 'State Management'],
     content: [
       { type: 'p', text: 'Most systems handle missing data with silence. A field returns null and the client guesses whether that means "not applicable," "not yet computed," "computation failed," or "genuinely absent." GTL — the Graceful Truth Layer — eliminates that ambiguity by wrapping every data response in a state envelope that explicitly declares what the system knows about its own output.' },
       { type: 'h2', text: 'The Core Problem GTL Solves' },
@@ -3526,7 +3526,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'GTL Systems',
     publishedAt: 'Jun 16, 2026',
     readTime: 5,
-    tags: ['GTL', 'data integrity', 'null handling', 'scoring'],
+    tags: ['GTL', 'Data Integrity', 'null handling', 'scoring'],
     content: [
       { type: 'p', text: 'A machine trust score of 0 means the system computed a trust score and found it to be as low as possible. A machine trust score of null means the system did not compute a trust score at all. These are completely different facts about the domain — but in many systems, both are stored as 0 and the distinction is permanently lost.' },
       { type: 'h2', text: 'Why the Distinction Gets Lost' },
@@ -3549,7 +3549,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'GTL Systems',
     publishedAt: 'Jun 16, 2026',
     readTime: 6,
-    tags: ['GTL', 'UI design', 'state management', 'AI applications'],
+    tags: ['GTL', 'UI design', 'State Management', 'AI applications'],
     content: [
       { type: 'p', text: 'GTL honesty has to survive the journey from the database through the API to the UI. If the API returns state: "partial" and the UI renders the score as if it were complete — same badge, same colour, same confidence indicator — the honesty has been lost at the last mile. State-aware UI design ensures the GTL state reaches the user in a form they can understand and act on.' },
       { type: 'h2', text: 'Three UI States, Not Two' },
@@ -3595,7 +3595,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'GTL Systems',
     publishedAt: 'Jun 16, 2026',
     readTime: 5,
-    tags: ['GTL', 'API design', 'contracts', 'data integrity'],
+    tags: ['GTL', 'API Design', 'contracts', 'Data Integrity'],
     content: [
       { type: 'p', text: 'Most API contracts guarantee a response shape. GTL API contracts go further: they guarantee that the response accurately represents the state of the system\'s knowledge at the time of the call. The shape guarantees structure. The honesty contract guarantees meaning.' },
       { type: 'h2', text: 'What an Honesty Contract Covers' },
@@ -3616,7 +3616,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'GTL Systems',
     publishedAt: 'Jun 16, 2026',
     readTime: 5,
-    tags: ['GTL', 'temporal authority', 'baseline', 'audit design'],
+    tags: ['GTL', 'Temporal Authority', 'baseline', 'audit design'],
     content: [
       { type: 'p', text: 'Some measurements require at least two data points. Velocity — the rate of change of authority — requires a previous value to compare against. Semantic drift — the shift in topic cluster over time — requires a previous embedding snapshot to compare against. Trust decay — the modeling of freshness loss — requires a previous timestamp to compute against. On the first audit of a domain, none of these can be computed.' },
       { type: 'h2', text: 'The Wrong Approach: Fill With Defaults' },
@@ -3637,7 +3637,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'GTL Systems',
     publishedAt: 'Jun 16, 2026',
     readTime: 6,
-    tags: ['GTL', 'temporal authority', 'data freshness', 'audit history'],
+    tags: ['GTL', 'Temporal Authority', 'data freshness', 'audit history'],
     content: [
       { type: 'p', text: 'Data has a birthdate. A machine trust score computed when a domain had strong schema and consistent entity data is a different fact from the same score computed after schema was removed and entity attributes changed. GTL temporal data integrity ensures that every score is anchored to the exact moment it was computed — so that historical scores remain accurate representations of what was true then, not potentially misleading representations of what is true now.' },
       { type: 'h2', text: 'The Timestamp Is Part of the Data' },
@@ -3658,7 +3658,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'GTL Systems',
     publishedAt: 'Jun 16, 2026',
     readTime: 6,
-    tags: ['GTL', 'AI agents', 'autonomous agents', 'data trust'],
+    tags: ['GTL', 'AI Agents', 'Autonomous Agents', 'data trust'],
     content: [
       { type: 'p', text: 'When an autonomous AI agent queries an external API to gather information for a task, it typically receives JSON and must infer data quality from the values themselves. A score of 72 out of 100 — is that good? Is it current? Was it fully computed? The agent has no way to know from the value alone. GTL solves this problem by making data state machine-readable in the response structure itself.' },
       { type: 'h2', text: 'State as a Machine-Readable Trust Signal' },
@@ -3679,7 +3679,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'GTL Systems',
     publishedAt: 'Jun 16, 2026',
     readTime: 5,
-    tags: ['GTL', 'data integrity', 'UX', 'system design'],
+    tags: ['GTL', 'Data Integrity', 'UX', 'system design'],
     content: [
       { type: 'p', text: 'When engineers first encounter GTL, the most common misreading is: "Oh, it\'s like a skeleton loader, but for data quality." This misses the point. A skeleton loader communicates: "the data is on its way, wait a moment." GTL communicates: "here is the data, and here is exactly what the system can honestly assert about its completeness." These are different problems.' },
       { type: 'h2', text: 'Loading States Are About Latency' },
@@ -3704,7 +3704,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'Link Graph Intelligence',
     publishedAt: 'Jun 16, 2026',
     readTime: 7,
-    tags: ['link graph', 'internal links', 'AI retrieval', 'topology'],
+    tags: ['link graph', 'internal links', 'AI Retrieval', 'topology'],
     content: [
       { type: 'p', text: 'The internal link graph of a website is a map of how information relates to information. For traditional SEO, it determines crawlability and PageRank distribution. For AI retrieval systems, it does something more structural: it defines which content clusters exist, which pages are authorities within clusters, and which pages are reachable in the context of any given query.' },
       { type: 'h2', text: 'What AI Systems Infer from Internal Links' },
@@ -3727,7 +3727,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'Link Graph Intelligence',
     publishedAt: 'Jun 16, 2026',
     readTime: 6,
-    tags: ['link graph', 'PageRank', 'AI retrieval', 'authority'],
+    tags: ['link graph', 'PageRank', 'AI Retrieval', 'authority'],
     content: [
       { type: 'p', text: 'The narrative that PageRank is obsolete misses what PageRank actually measures. PageRank is not a proxy for quality — it is a measure of how much the rest of a network points to a given node. That structural property is as meaningful for AI retrieval systems as it ever was for search engines, because it identifies which pages within a site are the most referenced and therefore the most likely to be authoritative entry points.' },
       { type: 'h2', text: 'How AI Systems Use Internal Authority Signals' },
@@ -3748,7 +3748,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'Link Graph Intelligence',
     publishedAt: 'Jun 16, 2026',
     readTime: 5,
-    tags: ['link graph', 'anchor text', 'entity signals', 'internal links'],
+    tags: ['link graph', 'Anchor Text', 'entity signals', 'internal links'],
     content: [
       { type: 'p', text: 'When an AI system processes a page, it reads the anchor text of outbound links as entity signals. "Learn more" tells the AI nothing about what the linked page contains. "See our retrieval simulation methodology" tells the AI that the linked page is about retrieval simulation methodology — and that this page considers retrieval simulation methodology relevant to the current context.' },
       { type: 'h2', text: 'Anchor Text as Entity Relationship Declaration' },
@@ -3769,7 +3769,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'Link Graph Intelligence',
     publishedAt: 'Jun 16, 2026',
     readTime: 5,
-    tags: ['link graph', 'orphaned pages', 'AI visibility', 'crawl'],
+    tags: ['link graph', 'orphaned pages', 'AI Visibility', 'crawl'],
     content: [
       { type: 'p', text: 'An orphaned page is a page that exists on the domain but receives no inbound links from any other page on the same domain. It may have excellent content, accurate schema, and strong entity clarity. None of that matters if no other page on the site points to it — because an AI system that crawls by following links will never reach it, and even a sitemap-directed crawl will treat it as isolated from the authority network.' },
       { type: 'h2', text: 'Why Orphans Fail in AI Retrieval' },
@@ -3790,7 +3790,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'Link Graph Intelligence',
     publishedAt: 'Jun 16, 2026',
     readTime: 6,
-    tags: ['link graph', 'fact edges', 'graph model', 'entity relationships'],
+    tags: ['link graph', 'fact edges', 'graph model', 'Entity Relationships'],
     content: [
       { type: 'p', text: 'The SiteNexis graph architecture distinguishes between fact edges and perception edges. A fact edge is extracted directly from the DOM: if page A has an anchor tag pointing to page B with anchor text "our machine trust methodology," that link is recorded as a fact edge with confidence 1.0 — it is an observable, verifiable relationship in the page structure. A perception edge is AI-inferred: a semantic relationship that the AI Perception Graph derives from the content of the two pages, not from an explicit link.' },
       { type: 'h2', text: 'What Fact Edges Capture' },
@@ -3811,7 +3811,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'Link Graph Intelligence',
     publishedAt: 'Jun 16, 2026',
     readTime: 6,
-    tags: ['link graph', 'hub pages', 'topical authority', 'content architecture'],
+    tags: ['link graph', 'hub pages', 'Topical Authority', 'Content Architecture'],
     content: [
       { type: 'p', text: 'Every topic cluster on a well-structured website has a hub page: the authoritative central page that defines the topic, is linked to by all supporting pages in the cluster, and is the most likely target for AI-generated references to that topic. Hub pages are not created by declaration — they emerge from the link graph. The page that receives the most inbound links from semantically related pages becomes the hub, regardless of what the site\'s content strategy intended.' },
       { type: 'h2', text: 'What Makes a Page a Hub' },
@@ -3832,7 +3832,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'Link Graph Intelligence',
     publishedAt: 'Jun 16, 2026',
     readTime: 5,
-    tags: ['link graph', 'crawl depth', 'AI discovery', 'information architecture'],
+    tags: ['link graph', 'crawl depth', 'AI Discovery', 'information architecture'],
     content: [
       { type: 'p', text: 'Crawl depth is the number of link traversals required to reach a page starting from the domain root. A depth-1 page is linked directly from the homepage. A depth-3 page requires three clicks to reach. For AI retrieval systems that crawl by following links, depth is a discovery probability signal: every additional click reduces the probability that a crawl session will reach and index the page.' },
       { type: 'h2', text: 'The Depth-Discovery Relationship' },
@@ -3853,7 +3853,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'Link Graph Intelligence',
     publishedAt: 'Jun 16, 2026',
     readTime: 5,
-    tags: ['link graph', 'reciprocal links', 'machine trust', 'graph analysis'],
+    tags: ['link graph', 'reciprocal links', 'Machine Trust', 'graph analysis'],
     content: [
       { type: 'p', text: 'A link from page A to page B says: "page A considers page B relevant to its topic." A link from page B back to page A says: "page B also considers page A relevant to its topic." When both links exist, the relationship is mutually declared — and mutual declaration carries more weight in trust modeling than a one-directional reference.' },
       { type: 'h2', text: 'When Reciprocal Links Are Valid' },
@@ -3874,7 +3874,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'Link Graph Intelligence',
     publishedAt: 'Jun 16, 2026',
     readTime: 6,
-    tags: ['link graph', 'entity continuity', 'AI visibility', 'entity intelligence'],
+    tags: ['link graph', 'entity continuity', 'AI Visibility', 'Entity Intelligence'],
     content: [
       { type: 'p', text: 'An entity that appears on 12 pages across a domain but is never explicitly linked between those pages exists in 12 isolated contexts for AI systems. Each page is treated as an independent mention of the entity. But an entity that appears on 12 pages and those pages are interlinked with descriptive anchor text — that entity exists in a coherent, interconnected knowledge cluster that AI systems can model accurately.' },
       { type: 'h2', text: 'Why Disconnected Entity Mentions Fail' },
@@ -3924,7 +3924,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'AI Visibility Engineering',
     publishedAt: 'Jun 16, 2026',
     readTime: 7,
-    tags: ['chunking', 'AI extraction', 'content structure', 'retrieval'],
+    tags: ['Chunking', 'AI extraction', 'content structure', 'Retrieval'],
     content: [
       { type: 'p', text: 'A page is a human-readable unit. A chunk is a machine-readable unit. The AI retrieval pipeline transforms your page into a set of 300–600 token chunks before anything else happens. How your content chunks — where the semantic boundaries fall, whether each chunk makes sense in isolation, whether critical context is present within each unit — determines the quality of everything downstream: embedding quality, retrieval ranking, summarization fidelity, citation eligibility.' },
       { type: 'h2', text: 'What Makes a Good Chunk' },
@@ -3947,7 +3947,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'AI Visibility Engineering',
     publishedAt: 'Jun 16, 2026',
     readTime: 6,
-    tags: ['boilerplate', 'extraction fidelity', 'machine readability', 'crawl'],
+    tags: ['boilerplate', 'extraction fidelity', 'Machine Readability', 'crawl'],
     content: [
       { type: 'p', text: 'Every page on a typical website contains a significant proportion of text that is not the page\'s content: navigation menus, header CTAs, footer links, cookie notices, sidebar widgets, email signup forms. For a human reader, these elements are invisible — the eye skips them. For an AI extraction pipeline, they are text — and text that is not correctly identified as boilerplate gets included in the content chunks.' },
       { type: 'h2', text: 'What Happens When Boilerplate Reaches the Chunks' },
@@ -3993,7 +3993,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'AI Visibility Engineering',
     publishedAt: 'Jun 16, 2026',
     readTime: 6,
-    tags: ['retrieval simulation', 'AI behavior modeling', 'deterministic analysis', 'retrieval quality'],
+    tags: ['Retrieval Simulation', 'AI behavior modeling', 'deterministic analysis', 'retrieval quality'],
     content: [
       { type: 'p', text: 'The only way to know with certainty whether a specific AI system retrieves a specific page for a specific query is to run the query against that system. But this is not feasible at scale: dozens of pages, dozens of query types, multiple AI systems, changing content. Retrieval simulation is the alternative: algorithmic modeling of expected retrieval behavior based on measurable content signals, without live queries.' },
       { type: 'h2', text: 'What Simulation Can and Cannot Do' },
@@ -4014,7 +4014,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'AI Visibility Engineering',
     publishedAt: 'Jun 16, 2026',
     readTime: 6,
-    tags: ['chunk stability', 'retrieval quality', 'extraction consistency', 'AI visibility'],
+    tags: ['Chunk Stability', 'retrieval quality', 'extraction consistency', 'AI Visibility'],
     content: [
       { type: 'p', text: 'Different AI systems use different chunking strategies. Some split on fixed token counts. Some split on paragraph boundaries. Some use heading tags as chunk boundaries. The same page, processed by different systems, can produce radically different chunks — which means the same content can be highly retrievable in one system and poorly retrievable in another. The Chunk Stability Index measures this variance.' },
       { type: 'h2', text: 'How the Index Is Computed' },
@@ -4035,7 +4035,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'AI Visibility Engineering',
     publishedAt: 'Jun 16, 2026',
     readTime: 5,
-    tags: ['context window', 'truncation', 'content structure', 'retrieval'],
+    tags: ['context window', 'truncation', 'content structure', 'Retrieval'],
     content: [
       { type: 'p', text: 'Every AI language model has a context window — a maximum number of tokens it can process in a single pass. When a page exceeds this limit (or when a retrieval system limits the number of chunks per page to control compute cost), content beyond the cutoff is never processed. This is context window truncation — and it creates invisible content: text that is on your page but effectively does not exist for AI systems.' },
       { type: 'h2', text: 'The Typical Truncation Zone' },
@@ -4077,7 +4077,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'AI Visibility Engineering',
     publishedAt: 'Jun 16, 2026',
     readTime: 6,
-    tags: ['query types', 'content alignment', 'AI retrieval', 'conversational readiness'],
+    tags: ['query types', 'content alignment', 'AI Retrieval', 'conversational readiness'],
     content: [
       { type: 'p', text: 'AI retrieval systems do not search for keywords — they search for answers. When a user asks "What is machine trust in AI visibility?", the AI retrieves chunks that directly answer a definitional query. When they ask "How do I improve my machine trust score?", it retrieves chunks that answer a procedural query. The content structure that makes a page retrievable for one query type often makes it less retrievable for another.' },
       { type: 'h2', text: 'The Six Query Types' },
@@ -4105,7 +4105,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'AI Visibility Engineering',
     publishedAt: 'Jun 16, 2026',
     readTime: 5,
-    tags: ['signal-to-noise', 'content quality', 'extraction', 'machine readability'],
+    tags: ['signal-to-noise', 'Content Quality', 'extraction', 'Machine Readability'],
     content: [
       { type: 'p', text: 'AI extraction pipelines assign an embedding vector to each chunk. The quality of that embedding — its accuracy as a representation of the chunk\'s meaning — depends on the proportion of meaningful content to noise. A chunk with high signal density produces an embedding that reliably retrieves the chunk for relevant queries. A chunk with low signal density — diluted by filler phrases, boilerplate text, or empty transitional language — produces a noisy embedding that retrieves inconsistently.' },
       { type: 'h2', text: 'What Counts as Signal' },
@@ -4126,7 +4126,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'AI Visibility Engineering',
     publishedAt: 'Jun 16, 2026',
     readTime: 6,
-    tags: ['retrieval readiness', 'checklist', 'AI visibility', 'content audit'],
+    tags: ['retrieval readiness', 'checklist', 'AI Visibility', 'Content Audit'],
     content: [
       { type: 'p', text: 'Retrieval readiness is the composite measurement of how well a page is prepared for the full AI retrieval pipeline. It is not a single signal — it is the intersection of four layers: crawl readiness (can the AI reach the content?), extraction readiness (can the AI extract clean text?), chunk readiness (does the extracted text form quality chunks?), and query-answer alignment (do the chunks satisfy the query forms that matter for this page\'s topic?).' },
       { type: 'h2', text: 'Crawl Layer Checklist' },
@@ -4199,7 +4199,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'DOM Forensics',
     publishedAt: 'Jun 16, 2026',
     readTime: 5,
-    tags: ['JavaScript rendering', 'crawl blindness', 'AI crawlers', 'CSR'],
+    tags: ['JavaScript Rendering', 'crawl blindness', 'AI Crawlers', 'CSR'],
     content: [
       { type: 'p', text: 'Headless browser crawling is computationally expensive. Many AI crawlers — including some used by major AI systems — opt for lightweight HTTP-based crawlers that fetch the HTML source without executing JavaScript. For websites built on client-side rendering frameworks, this means an AI crawler may receive a nearly empty HTML document: no visible content, no extractable entities, no text to embed or retrieve.' },
       { type: 'h2', text: 'The CSR Blindness Problem' },
@@ -4241,7 +4241,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'DOM Forensics',
     publishedAt: 'Jun 16, 2026',
     readTime: 5,
-    tags: ['boilerplate', 'DOM forensics', 'machine readability', 'extraction'],
+    tags: ['boilerplate', 'DOM forensics', 'Machine Readability', 'extraction'],
     content: [
       { type: 'p', text: 'Every page has two types of text: content text (unique to this page, written to convey specific information) and boilerplate text (shared across many pages, part of the template rather than the content). For AI extraction, only content text carries signal. Boilerplate text is noise that dilutes the content signal and reduces the quality of the chunks and embeddings derived from the page.' },
       { type: 'h2', text: 'How Boilerplate Is Identified' },
@@ -4262,7 +4262,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'DOM Forensics',
     publishedAt: 'Jun 16, 2026',
     readTime: 5,
-    tags: ['crawl fidelity', 'extraction gaps', 'DOM forensics', 'AI visibility'],
+    tags: ['crawl fidelity', 'extraction gaps', 'DOM forensics', 'AI Visibility'],
     content: [
       { type: 'p', text: 'Crawl fidelity is the ratio of content that was successfully extracted in a crawl to the content that is visually present on the page. A fidelity of 1.0 means everything you can read on the page was captured. A fidelity of 0.5 means half the content was lost — invisible to any AI system that relies on the crawled representation of the page.' },
       { type: 'h2', text: 'Common Sources of Fidelity Gaps' },
@@ -4283,7 +4283,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'DOM Forensics',
     publishedAt: 'Jun 16, 2026',
     readTime: 5,
-    tags: ['robots.txt', 'AI crawlers', 'crawl access', 'agent discovery'],
+    tags: ['robots.txt', 'AI Crawlers', 'crawl access', 'Agent Discovery'],
     content: [
       { type: 'p', text: 'robots.txt is the access control document for web crawlers. It tells crawlers which pages they are allowed to access and which are blocked. Most websites have a robots.txt optimized for traditional search engine crawlers (Googlebot, Bingbot). AI crawlers — which use different user-agent strings — may be permitted, disallowed, or unaddressed entirely. The difference has direct impact on AI visibility.' },
       { type: 'h2', text: 'AI Crawler User-Agent Strings' },
@@ -4325,7 +4325,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'DOM Forensics',
     publishedAt: 'Jun 16, 2026',
     readTime: 6,
-    tags: ['rendered HTML', 'source HTML', 'DOM forensics', 'JavaScript rendering'],
+    tags: ['rendered HTML', 'source HTML', 'DOM forensics', 'JavaScript Rendering'],
     content: [
       { type: 'p', text: 'Source HTML is the HTML delivered by the server in the HTTP response. Rendered HTML is the DOM state after the browser has parsed the source HTML, executed all JavaScript, applied CSS, and completed all asynchronous data fetches. For modern web applications, these two documents can be dramatically different — and different AI crawlers read one or the other.' },
       { type: 'h2', text: 'The Two Crawler Types' },
@@ -4373,7 +4373,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'DOM Forensics',
     publishedAt: 'Jun 16, 2026',
     readTime: 5,
-    tags: ['anchor text', 'DOM forensics', 'entity signals', 'link quality'],
+    tags: ['Anchor Text', 'DOM forensics', 'entity signals', 'link quality'],
     content: [
       { type: 'p', text: 'Every anchor element in the DOM (`<a href="...">text</a>`) contains two signals: the href (a structural relationship — this page connects to that page) and the anchor text (a semantic relationship declaration — this page considers the target relevant in the context of the current topic). AI extraction captures both signals and uses them to build the entity relationship graph for the domain.' },
       { type: 'h2', text: 'Forensic Anchor Analysis' },
@@ -4419,7 +4419,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'Perception vs Fact Layer',
     publishedAt: 'Jun 16, 2026',
     readTime: 6,
-    tags: ['entity confidence', 'perception graph', 'AI understanding', 'entity clarity'],
+    tags: ['Entity Confidence', 'perception graph', 'AI understanding', 'entity clarity'],
     content: [
       { type: 'p', text: 'When an AI system extracts an entity from content, it assigns an implicit confidence to that extraction — a reflection of how clearly the content identified the entity. SiteNexis models this as explicit entity perception confidence: a 0–1 score for each entity node in the Perception Graph that represents how clearly an AI system can identify that entity from the available content signals.' },
       { type: 'h2', text: 'What Drives Entity Confidence' },
@@ -4440,7 +4440,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'Perception vs Fact Layer',
     publishedAt: 'Jun 16, 2026',
     readTime: 6,
-    tags: ['PCE', 'perception confidence', 'scoring engine', 'AI visibility'],
+    tags: ['PCE', 'perception confidence', 'scoring engine', 'AI Visibility'],
     content: [
       { type: 'p', text: 'The Perception Confidence Engine produces the perceptionConfidenceScore: a single 0–1 composite score attached to every PerceptionGraphSnapshot. It answers one question: given the full content of this domain — its pages, entities, schema, links, and semantic signals — how clearly can an AI system build a coherent, accurate, and retrievable understanding of what this domain is, what it knows, and what it offers?' },
       { type: 'h2', text: 'The Four PCE Inputs' },
@@ -4461,7 +4461,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'Perception vs Fact Layer',
     publishedAt: 'Jun 16, 2026',
     readTime: 6,
-    tags: ['entity disambiguation', 'perception graph', 'entity clarity', 'AI understanding'],
+    tags: ['Entity Disambiguation', 'perception graph', 'entity clarity', 'AI understanding'],
     content: [
       { type: 'p', text: 'Disambiguation is one of the hardest problems in knowledge representation. The word "Apple" could refer to the technology company, the fruit, the record label, a person\'s name, or a geographic location. An AI system resolving which Apple is meant in a specific context uses disambiguation signals: type declarations, co-occurring attributes, geographic context, industry context, and external validation (does a sameAs link confirm which Apple this is?).' },
       { type: 'h2', text: 'Disambiguation Signals in the Content' },
@@ -4482,7 +4482,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'Perception vs Fact Layer',
     publishedAt: 'Jun 16, 2026',
     readTime: 6,
-    tags: ['perception graph', 'relationship types', 'graph edges', 'entity relationships'],
+    tags: ['perception graph', 'relationship types', 'graph edges', 'Entity Relationships'],
     content: [
       { type: 'p', text: 'Not all relationships are the same. "SiteNexis is a software platform" is a classification relationship. "Machine Trust Score is part of the SiteNexis scoring system" is a composition relationship. "This page contradicts that page on entity founding date" is a contradiction relationship. The AI Perception Graph uses typed edges to distinguish these fundamentally different relationship kinds — because the type of relationship determines how the AI uses the connection.' },
       { type: 'h2', text: 'The Eight Perception Edge Types' },
@@ -4511,7 +4511,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'Perception vs Fact Layer',
     publishedAt: 'Jun 16, 2026',
     readTime: 6,
-    tags: ['citation readiness', 'retrieval readiness', 'AI visibility', 'content strategy'],
+    tags: ['citation readiness', 'retrieval readiness', 'AI Visibility', 'Content Strategy'],
     content: [
       { type: 'p', text: 'Retrieval readiness is the probability that an AI system selects a chunk from this page when processing a relevant query. Citation readiness is the probability that an AI system selects this page as a source to cite in a generated response. These are related but distinct. Every citation requires retrieval, but not every retrieved chunk becomes a citation.' },
       { type: 'h2', text: 'What Drives Retrieval Readiness' },
@@ -4532,7 +4532,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'Perception vs Fact Layer',
     publishedAt: 'Jun 16, 2026',
     readTime: 5,
-    tags: ['graph architecture', 'data integrity', 'fact graph', 'perception graph'],
+    tags: ['graph architecture', 'Data Integrity', 'fact graph', 'perception graph'],
     content: [
       { type: 'p', text: 'One-directional derivation is the invariant that prevents the SiteNexis graph model from collapsing into circular data dependency. The Fact Graph contains DOM-observable facts with confidence 1.0. The Perception Graph contains AI-inferred relationships with confidence 0–1. The direction of information flow is strictly: Fact Graph → Perception Graph. Never the reverse.' },
       { type: 'h2', text: 'What Happens If the Invariant Is Violated' },
@@ -4553,7 +4553,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'Perception vs Fact Layer',
     publishedAt: 'Jun 16, 2026',
     readTime: 6,
-    tags: ['confidence scoring', 'perception graph', 'probabilistic scoring', 'AI visibility'],
+    tags: ['confidence scoring', 'perception graph', 'probabilistic scoring', 'AI Visibility'],
     content: [
       { type: 'p', text: 'Confidence in the Perception Graph is a probabilistic measure: the likelihood that a given node or edge accurately represents what an AI system would understand from the available content. A perception_node with confidence 0.9 means: given the available DOM signals, there is very high probability that an AI system would correctly identify and represent this entity. A confidence of 0.4 means: there is significant uncertainty — the entity exists but the signals are too weak or inconsistent for reliable AI inference.' },
       { type: 'h2', text: 'Node Confidence vs Edge Confidence' },
@@ -4574,7 +4574,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'Perception vs Fact Layer',
     publishedAt: 'Jun 16, 2026',
     readTime: 6,
-    tags: ['topical clusters', 'perception graph', 'topical authority', 'AI retrieval'],
+    tags: ['topical clusters', 'perception graph', 'Topical Authority', 'AI Retrieval'],
     content: [
       { type: 'p', text: 'A topical cluster in the AI Perception Graph is a group of nodes (entities and topics) that are strongly interconnected through semantic relationships and appear across a coherent set of pages on the domain. Clusters represent the AI system\'s understanding of the domain\'s areas of expertise. A domain with strong, dense topical clusters is treated as an authority on those topics. A domain with weak, sparse, or disconnected clusters is treated as a generalist with no clear expertise.' },
       { type: 'h2', text: 'How Clusters Are Formed' },
@@ -4595,7 +4595,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'Perception vs Fact Layer',
     publishedAt: 'Jun 16, 2026',
     readTime: 6,
-    tags: ['entity resolution', 'perception graph', 'entity consistency', 'AI understanding'],
+    tags: ['entity resolution', 'perception graph', 'Entity Consistency', 'AI understanding'],
     content: [
       { type: 'p', text: 'Entity resolution is the process of determining whether two entity mentions — on different pages, in different contexts, with possibly different phrasings — refer to the same real-world entity. When an AI system crawls a domain, it encounters the primary business entity on the homepage, the about page, the blog, product pages, case studies, and the schema markup on every page. Cross-page entity resolution is what turns these many mentions into one coherent entity model.' },
       { type: 'h2', text: 'Resolution Signals' },
@@ -4618,7 +4618,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'Technical SEO',
     publishedAt: 'Jun 16, 2026',
     readTime: 6,
-    tags: ['technical SEO', 'DOM forensics', 'AI visibility', 'crawl'],
+    tags: ['Technical SEO', 'DOM forensics', 'AI Visibility', 'crawl'],
     content: [
       { type: 'p', text: 'Technical SEO is the foundation. It ensures that pages are reachable, indexable, fast, and correctly declared to search engines. Every serious web presence needs to pass technical SEO before anything else matters. But passing technical SEO does not mean your content is machine-readable by AI systems — and this is where DOM Forensics begins.' },
       { type: 'h2', text: 'What Technical SEO Checks' },
@@ -4639,7 +4639,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'Entity SEO',
     publishedAt: 'Jun 16, 2026',
     readTime: 6,
-    tags: ['entity SEO', 'perception graph', 'entity intelligence', 'AI knowledge'],
+    tags: ['Entity SEO', 'perception graph', 'Entity Intelligence', 'AI knowledge'],
     content: [
       { type: 'p', text: 'Entity SEO has become a recognized discipline: ensuring that key entities — businesses, products, people, places — are clearly defined, consistently named, and correctly linked via schema markup and sameAs declarations. Done well, entity SEO establishes the factual record of an entity\'s existence and attributes. The AI Perception Graph is what happens after — it models how AI systems understand those entities once the factual record is established.' },
       { type: 'h2', text: 'What Entity SEO Establishes' },
@@ -4660,7 +4660,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'Machine Trust',
     publishedAt: 'Jun 16, 2026',
     readTime: 6,
-    tags: ['machine trust', 'GTL', 'data integrity', 'scoring'],
+    tags: ['Machine Trust', 'GTL', 'Data Integrity', 'scoring'],
     content: [
       { type: 'p', text: 'Machine Trust analysis produces complex, multi-factor scores: entity credibility consistency, schema trust alignment, external validation depth, contradiction absence, and trust degradation resistance. Each of these can succeed, partially succeed, or fail to compute. Without GTL, a failed sub-computation silently produces a wrong number. With GTL, every machine trust score carries an honest declaration of what was computed and what was not.' },
       { type: 'h2', text: 'Why Machine Trust Is Especially Vulnerable to Data Integrity Failures' },
@@ -4681,7 +4681,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'Link Graph Intelligence',
     publishedAt: 'Jun 16, 2026',
     readTime: 6,
-    tags: ['link graph', 'fact graph', 'entity relationships', 'graph architecture'],
+    tags: ['link graph', 'fact graph', 'Entity Relationships', 'graph architecture'],
     content: [
       { type: 'p', text: 'The internal link graph is a page-level structure: node for each page, edge for each link between pages. The Fact Graph is an entity-level structure: node for each entity, edge for each verifiable relationship between entities. Both are derived from the same source — the crawled DOM — but they model different things. The link graph models the site\'s information architecture. The Fact Graph models the site\'s knowledge architecture.' },
       { type: 'h2', text: 'The Translation Process' },
@@ -4704,7 +4704,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'AI Agents',
     publishedAt: 'June 19, 2026',
     readTime: 8,
-    tags: ['agent architecture', 'BullMQ', 'audit pipeline', 'autonomous agents', 'orchestration'],
+    tags: ['agent architecture', 'BullMQ', 'audit pipeline', 'Autonomous Agents', 'orchestration'],
     content: [
       { type: 'p', text: 'When you submit a domain to SiteNexis, you trigger a 16-agent pipeline. These agents do not run as a monolith — they operate as independent, stateless workers communicating exclusively through a BullMQ message bus. No agent calls another directly. No agent knows what other agents are doing. The Infrastructure Agent sequences their execution, monitors their progress, and assembles partial results if any agent fails. The entire audit completes in 3–8 minutes, depending on domain size.' },
       { type: 'h2', text: 'The Seven Execution Phases' },
@@ -4829,7 +4829,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'Machine Trust',
     publishedAt: 'June 19, 2026',
     readTime: 9,
-    tags: ['machine trust', 'trust score', 'entity credibility', 'contradiction detection', 'schema trust'],
+    tags: ['Machine Trust', 'trust score', 'entity credibility', 'contradiction detection', 'schema trust'],
     content: [
       { type: 'p', text: 'AI systems do not trust sources the way humans do — by reading about a brand\'s reputation and forming an opinion. They derive trust from measurable consistency signals: does the entity data agree across multiple pages? Does the schema markup describe content that actually exists on the page? Do external sources confirm what the site claims about itself? When these signals conflict, trust degrades. When they align and are independently verified, trust strengthens. The Machine Trust Score models this five-signal framework across your entire domain.' },
       { type: 'h2', text: 'The Five Trust Dimensions' },
@@ -4860,7 +4860,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'AI Visibility Engineering',
     publishedAt: 'June 19, 2026',
     readTime: 8,
-    tags: ['retrieval simulation', 'chunk stability', 'summarization degradation', 'citation eligibility', 'context window'],
+    tags: ['Retrieval Simulation', 'Chunk Stability', 'summarization degradation', 'citation eligibility', 'context window'],
     content: [
       { type: 'p', text: 'The moment a user submits a query to an AI system, a retrieval chain begins. Your content either participates in that chain at each stage, or it does not. Content that survives all six stages ends up in the AI-generated response. Content that is eliminated at stage one never even reaches the ranking phase. The Retrieval Simulation Engine models what happens to your content at every stage — not by querying actual AI systems, but by measuring the content signals that determine whether elimination occurs.' },
       { type: 'h2', text: 'Stage 1: Chunk Extraction' },
@@ -4885,7 +4885,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'Machine Trust',
     publishedAt: 'June 19, 2026',
     readTime: 7,
-    tags: ['temporal authority', 'content freshness', 'semantic drift', 'trust decay', 'authority velocity'],
+    tags: ['Temporal Authority', 'Content Freshness', 'semantic drift', 'Trust Decay', 'authority velocity'],
     content: [
       { type: 'p', text: 'In traditional SEO, content freshness matters for certain query types — news, current events, time-sensitive searches. In AI retrieval, freshness operates differently. It is not a query modifier but a trust signal. AI systems that have processed your content multiple times across different crawl dates develop a model of your content\'s stability. Content that changes unpredictably creates semantic drift. Content that has not been updated for months on a topic where information evolves triggers trust decay. SiteNexis models both.' },
       { type: 'h2', text: 'Authority Velocity' },
@@ -4909,7 +4909,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'AI Visibility',
     publishedAt: 'June 19, 2026',
     readTime: 7,
-    tags: ['perception graph', 'entity graph', 'knowledge graph', 'AI visibility', 'semantic structure'],
+    tags: ['perception graph', 'entity graph', 'Knowledge Graph', 'AI Visibility', 'semantic structure'],
     content: [
       { type: 'p', text: 'When you navigate your website, you follow links between pages. When an AI system processes your website, it builds a semantic graph of the entities and relationships it encounters. This is the AI Perception Graph: the cognitive model the AI system would build from your content. It exists whether you model it or not. SiteNexis makes it visible so you can see exactly what the AI understands about your domain — and where its understanding is incomplete, contradictory, or confused.' },
       { type: 'h2', text: 'Nodes in the Perception Graph' },
@@ -4931,7 +4931,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'AI Visibility',
     publishedAt: 'June 19, 2026',
     readTime: 7,
-    tags: ['recommendation surfaces', 'AI Overviews', 'voice retrieval', 'agent discovery', 'surface mapping'],
+    tags: ['Recommendation Surfaces', 'AI Overviews', 'voice retrieval', 'Agent Discovery', 'surface mapping'],
     content: [
       { type: 'p', text: 'AI recommendations do not happen in one place. They happen across at least four distinct surfaces: AI Overviews embedded in search results, chat-based responses from LLM assistants, voice assistant answers, and programmatic consumption by autonomous agents. Each surface has different structural requirements. A page optimized for chat recommendation may be entirely absent from voice retrieval. A page with excellent AI Overviews inclusion may be invisible to autonomous agents. Recommendation Surface Mapping diagnoses your coverage across all four.' },
       { type: 'h2', text: 'Surface 1: AI Overviews' },
@@ -4955,7 +4955,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'Machine Trust',
     publishedAt: 'June 19, 2026',
     readTime: 7,
-    tags: ['synthetic entity detection', 'entity authenticity', 'schema manipulation', 'citation farming', 'trust integrity'],
+    tags: ['Synthetic Entity Detection', 'Entity Authenticity', 'schema manipulation', 'citation farming', 'trust integrity'],
     content: [
       { type: 'p', text: 'Synthetic entity detection is defensive intelligence. We built it not to flag competitors but to help domain owners understand how their own authority signals appear to AI systems — because inadvertent synthetic-looking patterns are more common than deliberate manipulation. A company that launched multiple regional versions of the same LinkedIn profile, a blogger with identical author bios across 12 syndication partners, a review page with aggregate ratings imported from a third-party platform with no on-page review content: none of these are deliberate fraud, but all produce synthetic detection signals.' },
       { type: 'h2', text: 'The Five Pattern Categories' },
@@ -4983,7 +4983,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'GTL Systems',
     publishedAt: 'June 19, 2026',
     readTime: 6,
-    tags: ['GTL', 'API design', 'graceful degradation', 'state envelope', 'partial results'],
+    tags: ['GTL', 'API Design', 'graceful degradation', 'state envelope', 'partial results'],
     content: [
       { type: 'p', text: 'Most APIs return data or an error. When data is partially available — some agents completed, others failed — the typical response is either to return incomplete data without signaling incompleteness, or to fail the entire request. Neither is acceptable when an audit takes 3–8 minutes and involves 16 parallel agents, any of which may fail independently. The Graceful Truth Layer solves this with a three-state envelope that every SiteNexis API route returns.' },
       { type: 'h2', text: 'The Envelope Structure' },
@@ -5028,7 +5028,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'Entity SEO',
     publishedAt: 'June 19, 2026',
     readTime: 7,
-    tags: ['entity confidence', 'entity SEO', 'entity detection', 'disambiguation', 'knowledge graph'],
+    tags: ['Entity Confidence', 'Entity SEO', 'entity detection', 'disambiguation', 'Knowledge Graph'],
     content: [
       { type: 'p', text: 'Entity Confidence is not a proxy for brand awareness or domain authority. It is a measure of how cleanly and consistently an AI system can identify, describe, and distinguish your primary entity from the content on your website. Four dimensions determine the score. Each dimension maps to a distinct failure mode. Each failure mode has a specific remediation path. There is no single "entity SEO" fix — different scores on different dimensions require different actions.' },
       { type: 'h2', text: 'Dimension 1: Entity Detection Rate' },
@@ -5052,7 +5052,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'AI Visibility',
     publishedAt: 'June 19, 2026',
     readTime: 7,
-    tags: ['citation probability', 'AI citation', 'factual density', 'claim specificity', 'citation readiness'],
+    tags: ['Citation Probability', 'AI Citation', 'factual density', 'claim specificity', 'citation readiness'],
     content: [
       { type: 'p', text: 'When an AI system generates a response and decides which sources to cite, it is not running a PageRank calculation. It is filtering retrieved chunks through a citation eligibility model that weights specific content properties. A chunk with high factual density, specific verifiable claims, and clear topical authority will be selected over a generic overview from a higher-authority domain. SiteNexis models this with seven weighted factors derived from the observable patterns in how AI systems attribute sources.' },
       { type: 'h2', text: 'The Seven Citation Factors' },
@@ -5111,7 +5111,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'AI Visibility Engineering',
     publishedAt: 'Jun 16, 2026',
     readTime: 6,
-    tags: ['AI visibility', 'recommendation surfaces', 'AI Overviews', 'surface mapping'],
+    tags: ['AI Visibility', 'Recommendation Surfaces', 'AI Overviews', 'surface mapping'],
     content: [
       { type: 'p', text: 'AI Visibility Engineering makes content retrievable: it optimizes chunk quality, query alignment, entity clarity, and extraction fidelity so that when an AI retrieval system processes a query relevant to your content, your content is found. But retrieval is not the same as recommendation. Recommendation happens when the AI system surfaces your content in a specific interface — an AI Overview, a chat response, a voice assistant answer, an autonomous agent result. Each surface has its own requirements.' },
       { type: 'h2', text: 'The Gap Between Retrieval and Recommendation' },
@@ -5176,7 +5176,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'AI Agents',
     publishedAt: 'Jun 22, 2026',
     readTime: 7,
-    tags: ['AI agents', 'investigation', 'DeerFlow', 'root cause analysis', 'evidence', 'confidence'],
+    tags: ['AI Agents', 'investigation', 'DeerFlow', 'root cause analysis', 'evidence', 'confidence'],
     content: [
       { type: 'p', text: 'There are two philosophies in automated analysis. The Judge philosophy says: here is your score, here is what to fix, trust the system. The Detective philosophy says: here is what we observed, here is what it means, here is our confidence level, here is the evidence chain. SiteNexis is built on the Detective philosophy. We call this the DeerFlow Principle — named after the investigation-first pattern where understanding WHY precedes prescribing WHAT.' },
       { type: 'h2', text: 'The Judge vs. Detective Paradigm' },
@@ -5200,7 +5200,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'AI Visibility',
     publishedAt: 'Jun 22, 2026',
     readTime: 8,
-    tags: ['retrieval simulation', 'chunk selection', 'AI retrieval', 'ranking pressure', 'summarization', 'citation eligibility'],
+    tags: ['Retrieval Simulation', 'chunk selection', 'AI Retrieval', 'ranking pressure', 'summarization', 'citation eligibility'],
     content: [
       { type: 'p', text: 'When an AI system retrieves content to answer a query, it does not simply "find your page" and use it. It executes a multi-stage pipeline: extracting chunks, ranking them against competing sources, compressing them into summaries, truncating context that exceeds window limits, forming answer candidates, and filtering for citation eligibility. Content can fail at any stage. The Retrieval Simulation Engine in SiteNexis models every stage algorithmically — producing a Retrieval Quality Score that predicts how your content performs under retrieval pressure.' },
       { type: 'h2', text: 'Stage 1: Chunk Extraction Simulation' },
@@ -5224,7 +5224,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'Strategy',
     publishedAt: 'Jun 22, 2026',
     readTime: 7,
-    tags: ['SERP data', 'Serper API', 'competitive analysis', 'entity gaps', 'AI visibility', 'evidence uniqueness'],
+    tags: ['SERP data', 'Serper API', 'Competitive Analysis', 'entity gaps', 'AI Visibility', 'evidence uniqueness'],
     content: [
       { type: 'p', text: 'AI visibility analysis without SERP data is like navigation without a map. You can measure your own content quality in isolation, but you cannot understand your competitive position without knowing what actually ranks, what questions are being asked, and what entities dominate the search landscape for your topic clusters. SiteNexis integrates Serper.dev API data to bridge this gap — providing real-time SERP intelligence that reveals where your AI visibility actually stands relative to the competitive field.' },
       { type: 'h2', text: 'Three Dimensions of SERP Intelligence' },
@@ -5248,7 +5248,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'Machine Trust',
     publishedAt: 'Jun 22, 2026',
     readTime: 7,
-    tags: ['machine trust', 'trust score', 'entity credibility', 'schema alignment', 'contradiction detection', 'trust decay'],
+    tags: ['Machine Trust', 'trust score', 'entity credibility', 'schema alignment', 'contradiction detection', 'Trust Decay'],
     content: [
       { type: 'p', text: 'AI visibility measures whether your content can be found and retrieved. Machine trust measures whether an AI system would confidence-weight your content as a reliable source once retrieved. These are fundamentally different problems. A site can be perfectly extractable, chunked cleanly, entity-rich, and schema-complete — and still be low-trust because its entity claims contradict each other across pages, or its schema markup over-claims attributes not evidenced in body text. Trust is not a byproduct of visibility. It is a separate signal dimension.' },
       { type: 'h2', text: 'Five Components of Machine Trust' },
@@ -5272,7 +5272,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'AI Visibility',
     publishedAt: 'Jun 22, 2026',
     readTime: 6,
-    tags: ['recommendation surfaces', 'AI Overviews', 'voice search', 'chat recommendation', 'agent discovery', 'surface mapping'],
+    tags: ['Recommendation Surfaces', 'AI Overviews', 'Voice Search', 'chat recommendation', 'Agent Discovery', 'surface mapping'],
     content: [
       { type: 'p', text: 'AI systems retrieve content and AI systems recommend content — but these are different operations with different requirements. A page with high retrieval readiness may score well in the ranking stage but never appear in an AI Overview, never be quoted in a chat response, never be read aloud by a voice assistant, and never be discovered by an autonomous agent. The gap between retrieval and recommendation is the last mile of AI visibility — and it is surface-specific.' },
       { type: 'h2', text: 'Four Recommendation Surfaces' },
@@ -5328,7 +5328,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'AI Visibility Engineering',
     publishedAt: 'Jul 9, 2026',
     readTime: 6,
-    tags: ['token limits', 'structured output', 'JSON truncation', 'Groq', 'AI pipeline', 'maxTokens', 'debugging'],
+    tags: ['token limits', 'structured output', 'JSON truncation', 'Groq', 'AI Pipeline', 'maxTokens', 'debugging'],
     content: [
       { type: 'p', text: 'Structured JSON output from language models is foundational to production AI applications. When it silently breaks, the failure mode is brutal: a truncated JSON string that looks like a response, fails JSON.parse, gets caught by a generic error handler, and returns a 500 to the user with no indication of what went wrong. The root cause is almost always a token limit set too low for the output the caller expects. This is not a hypothetical — it is a pattern we encountered in production with the SiteNexis Intelligence Report.' },
       { type: 'h2', text: 'The Failure Mode in Detail' },
@@ -5382,7 +5382,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'Strategy',
     publishedAt: 'Jul 9, 2026',
     readTime: 7,
-    tags: ['competitive simulation', 'citation probability', 'AI citation', 'competitive intelligence', 'market position', 'query clusters', 'softmax'],
+    tags: ['competitive simulation', 'Citation Probability', 'AI Citation', 'competitive intelligence', 'market position', 'query clusters', 'softmax'],
     content: [
       { type: 'p', text: 'The most dangerous misconception in AI visibility strategy is treating citation probability as an absolute score. It is not. AI systems making citation decisions are not independently evaluating each source against a fixed quality threshold — they are allocating citation slots among competing sources for a given query. Improving your entity confidence from 60 to 75 matters if your competitors are at 65. It is meaningless if they are at 80 and also improving. Relative position is the only kind of improvement that produces outcomes.' },
       { type: 'h2', text: 'The Softmax Model of Citation Allocation' },
@@ -5406,7 +5406,7 @@ export const BLOG_POSTS: BlogPost[] = [
     category: 'Strategy',
     publishedAt: 'Jul 9, 2026',
     readTime: 6,
-    tags: ['AdNexis', 'SiteNexis', 'ad intelligence', 'AI visibility', 'creative intelligence', 'full-loop', 'ecosystem'],
+    tags: ['AdNexis', 'SiteNexis', 'ad intelligence', 'AI Visibility', 'creative intelligence', 'full-loop', 'ecosystem'],
     content: [
       { type: 'p', text: 'AI systems are reshaping how both organic content and paid advertising are discovered, evaluated, and recommended. SiteNexis models the organic side of this equation: how AI retrieval pipelines extract, rank, trust, and surface your website content across chat, search, voice, and autonomous agents. AdNexis models the paid side: how AI systems evaluate ad creative, which hook structures drive engagement, and how to generate and iterate creative variants using AI intelligence. Together they form a complete loop.' },
       { type: 'h2', text: 'SiteNexis: Organic AI Visibility' },
@@ -5491,17 +5491,63 @@ function hashPair(a: string, b: string): number {
   return h >>> 0
 }
 
-export function getRelatedPosts(current: BlogPost, limit = 4): BlogPost[] {
-  const currentTags = new Set(current.tags)
+function relatedScore(current: BlogPost, candidate: BlogPost): number {
+  // Case-insensitive on top of the corpus-wide tag-casing normalization — defends
+  // against future drift (e.g. a new post tagged 'ai visibility' instead of 'AI Visibility')
+  // silently missing matches again.
+  const currentTags = new Set(current.tags.map(t => t.toLowerCase()))
+  const sharedTags = candidate.tags.filter(t => currentTags.has(t.toLowerCase())).length
+  const sameCategory = candidate.category === current.category ? 1 : 0
+  return sharedTags * 2 + sameCategory
+}
+
+function scoredCandidates(current: BlogPost): { post: BlogPost; score: number; tiebreak: number }[] {
   return BLOG_POSTS
     .filter(p => p.slug !== current.slug)
-    .map(p => {
-      const sharedTags = p.tags.filter(t => currentTags.has(t)).length
-      const sameCategory = p.category === current.category ? 1 : 0
-      return { post: p, score: sharedTags * 2 + sameCategory, tiebreak: hashPair(current.slug, p.slug) }
-    })
+    .map(p => ({ post: p, score: relatedScore(current, p), tiebreak: hashPair(current.slug, p.slug) }))
     .filter(entry => entry.score > 0)
     .sort((a, b) => b.score - a.score || a.tiebreak - b.tiebreak)
-    .slice(0, limit)
-    .map(entry => entry.post)
+}
+
+// Coverage repair: some posts never score highly enough in anyone's list to make
+// the top N (thin/unique tag sets in large categories) and end up with zero
+// incoming "Related Articles" links. This computes, once, the single best real
+// match (by the same score+tiebreak used everywhere else — never an arbitrary or
+// unrelated pairing) for every such post, and grafts it additively onto that
+// match's own list. Purely additive: it only ever appends a slot, never removes
+// or displaces an existing (already-relevant) pick, so it can't degrade anyone
+// else's related-articles quality to fix someone else's coverage gap.
+let coverageRepairCache: Map<string, string[]> | null = null
+
+function getCoverageRepair(): Map<string, string[]> {
+  if (coverageRepairCache) return coverageRepairCache
+
+  const inbound = new Map<string, number>()
+  for (const p of BLOG_POSTS) inbound.set(p.slug, 0)
+  for (const p of BLOG_POSTS) {
+    for (const entry of scoredCandidates(p).slice(0, 4)) {
+      inbound.set(entry.post.slug, (inbound.get(entry.post.slug) ?? 0) + 1)
+    }
+  }
+
+  const repair = new Map<string, string[]>()
+  for (const target of BLOG_POSTS) {
+    if ((inbound.get(target.slug) ?? 0) > 0) continue
+    const best = scoredCandidates(target)[0]
+    if (!best) continue // no real signal (shared tag or category) exists anywhere — leave unlinked rather than force it
+    if (!repair.has(best.post.slug)) repair.set(best.post.slug, [])
+    repair.get(best.post.slug)!.push(target.slug)
+  }
+
+  coverageRepairCache = repair
+  return repair
+}
+
+export function getRelatedPosts(current: BlogPost, limit = 4): BlogPost[] {
+  const base = scoredCandidates(current).slice(0, limit).map(entry => entry.post)
+  const repairSlugs = getCoverageRepair().get(current.slug) ?? []
+  const extra = repairSlugs
+    .map(slug => getPost(slug))
+    .filter((p): p is BlogPost => !!p && !base.some(b => b.slug === p.slug))
+  return [...base, ...extra]
 }
