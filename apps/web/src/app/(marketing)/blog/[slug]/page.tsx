@@ -388,8 +388,8 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
             </div>
 
             {/* Sidebar */}
-            <aside className="hidden lg:block">
-              <div className="sticky top-28 space-y-6">
+            <aside>
+              <div className="space-y-6 lg:sticky lg:top-28">
 
                 {/* Audit CTA card */}
                 <div className="card-glow relative overflow-hidden rounded-[20px] border border-teal-500/[0.15] bg-[#0A1628] p-6">
