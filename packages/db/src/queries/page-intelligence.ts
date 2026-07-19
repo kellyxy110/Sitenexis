@@ -71,6 +71,21 @@ export async function getOptimizationSessionsForPage(pageId: string, userId: str
   });
 }
 
+/** Sessions the user has accepted/published — the "recommendation applied" set the post-recommendation-improvement insight compares before/after. */
+export async function getAppliedOptimizationSessionsForUser(userId: string) {
+  const rows = await db.optimizationSession.findMany({
+    where: { userId, status: { in: ['accepted', 'published'] }, archivedAt: null },
+    include: { page: { select: { url: true } } },
+    orderBy: { updatedAt: 'desc' },
+  });
+  return rows.map((r) => ({
+    id: r.id,
+    page: r.page.url,
+    appliedAt: r.publishedAt ?? r.updatedAt,
+    recommendedAction: (r.recommendations as Array<{ action?: string }>)?.[0]?.action ?? 'the applied recommendation',
+  }));
+}
+
 export async function setOptimizationSessionStatus(
   sessionId: string,
   status: OptimizationSessionStatus,

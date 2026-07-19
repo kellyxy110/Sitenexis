@@ -52,6 +52,14 @@ export { buildFindingPool, filterTraceableRecommendations } from './page-intelli
 export type { Finding, PageFacts, IssueFinding, RetrievalFailureFinding, RecommendationCandidate } from './page-intelligence/finding-pool';
 export { PAGE_INTELLIGENCE_SYSTEM_PROMPT, buildPageIntelligenceUserPrompt } from './page-intelligence/prompt';
 export type { PageIntelligenceContext } from './page-intelligence/prompt';
+export {
+  detectImpressionsFallingOnIssuePages, detectHighImpressionsLowCtr, detectTrafficWithoutConversion,
+  detectAiReferralReachingPage, detectPostRecommendationImprovement,
+} from './ai-visibility-insights/detectors';
+export type {
+  InsightType, InsightCandidate, PageImpressionsDelta, PageIssueInfo, SearchPageStat,
+  LandingPageStat, AiReferralStat, TopLandingPage, RecommendationImpactInput,
+} from './ai-visibility-insights/detectors';
 export type {
   SecurityTrustReport,
   SecurityFinding,

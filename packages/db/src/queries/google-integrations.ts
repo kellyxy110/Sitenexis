@@ -127,6 +127,18 @@ export async function disconnectGoogleConnection(userId: string): Promise<void> 
   await db.googleConnection.update({ where: { userId }, data: { archivedAt: new Date(), status: 'pending' } });
 }
 
+/** All connections ready to sync — status connected AND at least one property selected. Used by the daily cron. */
+export async function getAllSyncableGoogleConnections(): Promise<GoogleConnectionRecord[]> {
+  const rows = await db.googleConnection.findMany({
+    where: {
+      status: 'connected',
+      archivedAt: null,
+      OR: [{ ga4PropertyId: { not: null } }, { gscSiteUrl: { not: null } }],
+    },
+  });
+  return rows.map(toConnectionRecord);
+}
+
 // ─── Sync log (connector health + admin operations view) ────────────────────
 
 export async function logGoogleSync(params: {
@@ -330,6 +342,16 @@ export async function upsertSearchPageMetrics(userId: string, rows: SearchPageRo
 
 export async function getTopSearchPages(userId: string, from: Date, to: Date, limit = 20) {
   return db.searchPageMetric.findMany({ where: { userId, date: { gte: from, lte: to } }, orderBy: { clicks: 'desc' }, take: limit });
+}
+
+/** Sums clicks/impressions per unique page across a date range — used to compute visibility gains/losses between two periods. */
+export async function getAggregatedSearchPageMetrics(userId: string, from: Date, to: Date) {
+  const rows = await db.searchPageMetric.groupBy({
+    by: ['page'],
+    where: { userId, date: { gte: from, lte: to } },
+    _sum: { clicks: true, impressions: true },
+  });
+  return rows.map((r) => ({ page: r.page, clicks: r._sum.clicks ?? 0, impressions: r._sum.impressions ?? 0 }));
 }
 
 // ─── Deterministic insights ────────────────────────────────────────────────────

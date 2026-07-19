@@ -99,6 +99,9 @@ const envSchema = z.object({
   // 32-byte key (64 hex chars) for AES-256-GCM token encryption. Generate with:
   // openssl rand -hex 32
   GOOGLE_TOKEN_ENCRYPTION_KEY: z.string().default(''),
+  // Authorizes Vercel Cron to call /api/cron/google-sync. Vercel sends this automatically
+  // as `Authorization: Bearer <CRON_SECRET>` for cron-triggered requests once set.
+  CRON_SECRET: z.string().default(''),
 
   // Crawl4AI — Python extraction microservice (primary web extraction provider when set)
   CRAWL4AI_URL: z.string().default(''),
