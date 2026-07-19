@@ -111,7 +111,6 @@ const SITE_SCHEMA = {
       // Brand-level external profiles only — not founder personal accounts
       sameAs: [
         'https://x.com/Sitenexis',
-        'https://www.linkedin.com/in/sitenexis',
         'https://www.reddit.com/user/Sitenexis',
       ],
     },
@@ -140,7 +139,8 @@ const SITE_SCHEMA = {
       sameAs: [
         'https://github.com/kellyxy110',
         'https://x.com/Sitenexis',
-        'https://www.linkedin.com/in/sitenexis',
+        'https://www.linkedin.com/in/ekeleme-kelechi-18b56a340/',
+        'https://web.facebook.com/david.k.ekeleme',
         'https://www.reddit.com/user/Sitenexis',
       ],
     },
