@@ -24,8 +24,9 @@ export function createGoogleOAuthClient() {
 export function buildGoogleAuthUrl(state: string): string {
   const client = createGoogleOAuthClient();
   return client.generateAuthUrl({
-    access_type: 'offline', // required to receive a refresh_token
-    prompt: 'consent',      // force a fresh refresh_token even on re-connect
+    access_type: 'offline',          // required to receive a refresh_token
+    prompt: 'consent',               // force a fresh refresh_token even on re-connect
+    include_granted_scopes: true,    // incremental auth — keep any previously granted scopes on re-consent
     scope: [...GOOGLE_OAUTH_SCOPES],
     state,
   });

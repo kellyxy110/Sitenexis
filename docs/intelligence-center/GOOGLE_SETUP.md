@@ -8,20 +8,35 @@ staging environment that needs real Google data).
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/) → select or
    create a project (e.g. "SiteNexis").
-2. **APIs & Services → Library** — enable both:
-   - **Google Analytics Data API** (this is the GA4 API — not "Google Analytics API",
+2. **APIs & Services → Library** — enable all three:
+   - **Google Analytics Data API** (this is the GA4 reporting API — not "Google Analytics API",
      which is the legacy Universal Analytics one)
+   - **Google Analytics Admin API** (a *separate* API from the Data API above — required
+     for listing which GA4 properties the connected account has access to; the code
+     calls this via `google.analyticsadmin(...).accountSummaries.list()`. Skipping this
+     one produces an "Insufficient Permission" error even when the Data API is enabled.)
    - **Google Search Console API**
 3. **APIs & Services → OAuth consent screen**
    - User type: **External** (unless the whole org is on one Google Workspace)
    - App name: `SiteNexis`
-   - Scopes to add:
+   - **Scopes** step — this is a separate registration step from what the code requests
+     at runtime. A scope Google's authorization server hasn't seen added here can be
+     silently dropped from any grant, even if the code asks for it and the user clicks
+     Allow. Add both:
      - `https://www.googleapis.com/auth/analytics.readonly`
      - `https://www.googleapis.com/auth/webmasters.readonly`
    - While the app is in "Testing" mode, only test users you explicitly add can
      complete the OAuth flow — add your own Google account here first, or publish
      the app (requires Google verification for these scopes since they're
      sensitive — budget a few days for review if going fully public).
+   - After connecting, verify at [myaccount.google.com/permissions](https://myaccount.google.com/permissions)
+     that SiteNexis appears under **apps with access to your data**, not only under
+     **Sign in with Google**. If it only shows under "Sign in with Google", the
+     consent only granted basic profile access — remove it there and reconnect,
+     watching for explicit Analytics/Search Console permission lines on the consent
+     screen this time. SiteNexis now checks this itself (see `oauth-client.ts` /
+     `callback/route.ts`) and will show a clear in-app error instead of silently
+     treating a profile-only grant as a working connection.
 4. **APIs & Services → Credentials → Create Credentials → OAuth client ID**
    - Application type: **Web application**
    - Name: `Sitenexis Web`

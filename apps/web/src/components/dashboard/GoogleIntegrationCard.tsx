@@ -9,6 +9,8 @@ import { trackEvent } from '@/lib/analytics/events';
 interface GoogleConnection {
   status: 'connected' | 'pending' | 'expired' | 'error';
   googleAccountEmail: string;
+  scopes: string[];
+  lastError: string | null;
   ga4PropertyId: string | null;
   ga4PropertyName: string | null;
   gscSiteUrl: string | null;
@@ -16,6 +18,18 @@ interface GoogleConnection {
 }
 interface Ga4Property { propertyId: string; propertyName: string; accountName: string }
 interface GscSite { siteUrl: string; permissionLevel: string }
+
+const ANALYTICS_SCOPE = 'https://www.googleapis.com/auth/analytics.readonly';
+const SEARCH_CONSOLE_SCOPE = 'https://www.googleapis.com/auth/webmasters.readonly';
+
+const GOOGLE_ERROR_MESSAGES: Record<string, string> = {
+  insufficient_scopes:
+    'Google authenticated your account but did not grant Analytics/Search Console access — only basic profile info. ' +
+    'Remove SiteNexis at myaccount.google.com/permissions, then reconnect and explicitly allow both permissions on the consent screen.',
+  access_denied: 'You cancelled the Google consent screen. Click Connect Google to try again.',
+  invalid_state: 'The connection request expired or was tampered with. Please try again.',
+  exchange_failed: 'Google could not complete the connection. Please try again.',
+};
 
 export function GoogleIntegrationCard() {
   const searchParams = useSearchParams();
@@ -75,6 +89,12 @@ export function GoogleIntegrationCard() {
   const connection = statusQuery.data?.connection;
   const isConnected = connection?.status === 'connected';
   const googleError = searchParams.get('google_error');
+  const hasAnalyticsScope = connection?.scopes.includes(ANALYTICS_SCOPE) ?? false;
+  const hasSearchConsoleScope = connection?.scopes.includes(SEARCH_CONSOLE_SCOPE) ?? false;
+  // A connection exists (Google authenticated) but lacks one or both data scopes —
+  // distinct from "never connected" and from "fully connected". Never inferred from
+  // Supabase login state, which this component never reads.
+  const hasPartialAccess = connection != null && connection.status !== 'connected' && (hasAnalyticsScope || hasSearchConsoleScope || connection.status === 'error');
 
   return (
     <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
@@ -116,7 +136,21 @@ export function GoogleIntegrationCard() {
       </div>
 
       {googleError && (
-        <p className="mt-3 text-xs text-red-400">Google connection failed ({googleError}). Please try again.</p>
+        <p className="mt-3 text-xs text-red-400">
+          {GOOGLE_ERROR_MESSAGES[googleError] ?? `Google connection failed (${googleError}). Please try again.`}
+        </p>
+      )}
+
+      {hasPartialAccess && (
+        <div className="mt-3 space-y-1 rounded-lg border border-amber-500/20 bg-amber-500/[0.04] px-3 py-2">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-400">Connected as {connection!.googleAccountEmail}, but missing access</p>
+          <p className="flex items-center gap-1.5 text-xs text-[#C8DFE8]">
+            {hasAnalyticsScope ? <Check size={12} className="text-teal-400" /> : <X size={12} className="text-red-400" />} Google Analytics
+          </p>
+          <p className="flex items-center gap-1.5 text-xs text-[#C8DFE8]">
+            {hasSearchConsoleScope ? <Check size={12} className="text-teal-400" /> : <X size={12} className="text-red-400" />} Search Console
+          </p>
+        </div>
       )}
 
       {showPicker && (
