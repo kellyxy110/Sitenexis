@@ -58,14 +58,6 @@ async function listGa4Properties(auth: ReturnType<typeof clientWithAccessToken>)
 async function listGscSites(auth: ReturnType<typeof clientWithAccessToken>) {
   const searchConsole = google.searchconsole({ version: 'v1', auth });
   const { data } = await searchConsole.sites.list();
-
-  // TEMPORARY diagnostic logging — raw API response only (siteUrl + permissionLevel),
-  // never the access token. Remove once the Search Console discovery issue is closed.
-  logger.info(
-    { rawSiteEntry: (data.siteEntry ?? []).map((s) => ({ siteUrl: s.siteUrl, permissionLevel: s.permissionLevel })) },
-    '[gsc-debug] raw searchconsole.sites.list() response',
-  );
-
   return (data.siteEntry ?? [])
     .filter((s) => s.siteUrl && s.permissionLevel !== 'siteUnverifiedUser')
     .map((s) => ({ siteUrl: s.siteUrl!, permissionLevel: s.permissionLevel ?? 'unknown' }));
