@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { ArrowRight, Clock, Tag } from 'lucide-react'
-import { BLOG_POSTS, CATEGORIES, type BlogPost } from '@/lib/blog-posts'
+import { BLOG_POSTS, CATEGORIES, sortByRecentlyLinkedFirst, type BlogPost } from '@/lib/blog-posts'
 import { MarketingNav } from '@/components/marketing/MarketingNav'
 import { Footer } from '@/components/marketing/Footer'
 
@@ -135,7 +135,8 @@ export default function BlogPage() {
     ? BLOG_POSTS
     : BLOG_POSTS.filter(p => p.category === activeCategory)
 
-  const [featured, ...rest] = filtered
+  const sorted = sortByRecentlyLinkedFirst(filtered)
+  const [featured, ...rest] = sorted
 
   return (
     <main className="min-h-screen bg-[#07111F] text-white antialiased font-sans">
