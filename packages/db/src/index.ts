@@ -20,3 +20,4 @@ export * from './queries/v4';
 export * from './queries/google-integrations';
 export * from './queries/page-intelligence';
 export * from './queries/admin';
+export * from './queries/ai-metrics';

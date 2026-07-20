@@ -7,6 +7,12 @@
  */
 export async function register() {
   if (process.env.NEXT_RUNTIME !== 'nodejs') return;
+
+  await registerPrismaEngine();
+  await registerAiTelemetrySubscriber();
+}
+
+async function registerPrismaEngine() {
   if (process.env.PRISMA_QUERY_ENGINE_LIBRARY) return;
 
   // Vercel deploys the monorepo under /var/task — the Linux engine is always there.
@@ -57,5 +63,26 @@ export async function register() {
   } catch {
     // fs/path unavailable — fall back to known Vercel path unconditionally
     process.env.PRISMA_QUERY_ENGINE_LIBRARY = vercelPath;
+  }
+}
+
+/**
+ * Persists AI call events emitted by packages/analyzers/src/ai/client.ts (the
+ * BullMQ-pipeline call path). packages/analyzers must never import @sitenexis/db
+ * directly (CLAUDE.md §7), so this is the one place that bridges the DB-free
+ * emitter to real storage. Registered once per server instance at startup —
+ * safe to no-op if analyzers isn't installed in this deployment for any reason.
+ */
+async function registerAiTelemetrySubscriber() {
+  try {
+    const [{ onAiCall }, { recordAiCallMetric }] = await Promise.all([
+      import('@sitenexis/analyzers'),
+      import('@sitenexis/db'),
+    ]);
+    onAiCall((event: import('@sitenexis/analyzers').AiCallEvent) => {
+      void recordAiCallMetric({ ...event, skillId: null }).catch(() => {});
+    });
+  } catch {
+    // Telemetry subscription failing must never block server startup.
   }
 }

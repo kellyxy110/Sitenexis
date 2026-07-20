@@ -1581,3 +1581,33 @@ model CompetitiveSetMember {
   @@index([domain])
   @@map("competitive_set_members")
 }
+
+// ─── Native AI observability (in-house Langfuse alternative) ─────────────────
+// One row per AI provider call (LLM completion, embedding, or skill invocation).
+// No relation to Audit — deliberately loose coupling, since calls also happen
+// outside any audit lifecycle (blog/ad generation, skill dry-runs, health checks).
+// auditId/traceId are plain indexed strings a caller may or may not supply.
+model AiCallMetric {
+  id       String  @id @default(cuid())
+  provider String
+  model    String
+  skillId  String? @map("skill_id")
+
+  latencyMs        Int     @map("latency_ms")
+  success          Boolean
+  errorCode        String? @map("error_code")
+  inputTokens      Int?    @map("input_tokens")
+  outputTokens     Int?    @map("output_tokens")
+  estimatedCostUsd Float?  @map("estimated_cost_usd")
+
+  auditId String? @map("audit_id")
+  traceId String? @map("trace_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@index([provider])
+  @@index([skillId])
+  @@index([auditId])
+  @@map("ai_call_metrics")
+}

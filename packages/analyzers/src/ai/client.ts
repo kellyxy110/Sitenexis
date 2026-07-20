@@ -8,6 +8,7 @@
 import { getGroqAdapter } from '@sitenexis/adapters';
 import { AI_SYSTEM_PROMPT, parseAIResponse } from './prompts';
 import { routeTask, isAnyOpenRouterAvailable } from './model-router';
+import { emitAiCall } from './telemetry';
 
 export const AI_MODEL = 'llama-3.3-70b-versatile';
 /** @deprecated Use AI_MODEL */
@@ -61,15 +62,35 @@ async function callGroqDirect<T>(
   maxTokens: number = GROQ_MAX_TOKENS,
 ): Promise<T> {
   await groqRateLimiter.acquire();
-  const output = await getGroqAdapter().complete({
-    systemPrompt,
-    userPrompt,
-    model: AI_MODEL,
-    maxTokens,
-    temperature: TEMPERATURE,
-    jsonMode: true,
-  });
-  return parseAIResponse<T>(output.content);
+  const callStart = Date.now();
+  try {
+    const output = await getGroqAdapter().complete({
+      systemPrompt,
+      userPrompt,
+      model: AI_MODEL,
+      maxTokens,
+      temperature: TEMPERATURE,
+      jsonMode: true,
+    });
+    emitAiCall({
+      provider: output.provider,
+      model: output.model,
+      latencyMs: output.latencyMs,
+      success: true,
+      ...(output.inputTokens !== undefined ? { inputTokens: output.inputTokens } : {}),
+      ...(output.outputTokens !== undefined ? { outputTokens: output.outputTokens } : {}),
+    });
+    return parseAIResponse<T>(output.content);
+  } catch (err) {
+    emitAiCall({
+      provider: 'groq',
+      model: AI_MODEL,
+      latencyMs: Date.now() - callStart,
+      success: false,
+      errorCode: err instanceof Error ? err.message.slice(0, 64) : 'unknown',
+    });
+    throw err;
+  }
 }
 
 /**

@@ -6,7 +6,8 @@
  */
 
 import { logger } from '@/lib/logger';
-import { getGroqAdapter, getFetchExtractionAdapter, getCrawl4aiExtractionAdapter } from '@sitenexis/adapters';
+import { getGroqAdapter, getFetchExtractionAdapter, getCrawl4aiExtractionAdapter, estimateCost } from '@sitenexis/adapters';
+import { recordAiCallMetric } from '@sitenexis/db';
 import type { CrawledPage } from '@sitenexis/shared';
 import type {
   RetrievalSimulationResult,
@@ -240,6 +241,7 @@ Return a JSON object with these exact numeric keys (all 0-100 integers):
 
 Be specific and differentiated. Do not cluster scores around 50. Return ONLY valid JSON.`;
 
+  const callStart = Date.now();
   try {
     const output = await adapter.complete({
       systemPrompt: 'You are an AI visibility analysis engine. Return ONLY valid JSON.',
@@ -249,6 +251,16 @@ Be specific and differentiated. Do not cluster scores around 50. Return ONLY val
       temperature: 0,
       jsonMode: true,
     });
+
+    void recordAiCallMetric({
+      provider: output.provider,
+      model: output.model,
+      latencyMs: output.latencyMs,
+      success: true,
+      inputTokens: output.inputTokens ?? null,
+      outputTokens: output.outputTokens ?? null,
+      estimatedCostUsd: estimateCost(output.provider, output.inputTokens, output.outputTokens) ?? null,
+    }).catch(() => {});
 
     const parsed = JSON.parse(output.content) as Partial<GroqAIScores>;
 
@@ -269,7 +281,14 @@ Be specific and differentiated. Do not cluster scores around 50. Return ONLY val
       recommendationConfidence: Math.min(100, Math.max(0, Math.round(parsed.recommendationConfidence!))),
       aiVisibilityScore: Math.min(100, Math.max(0, Math.round(parsed.aiVisibilityScore!))),
     };
-  } catch {
+  } catch (err) {
+    void recordAiCallMetric({
+      provider: 'groq',
+      model: 'llama-3.3-70b-versatile',
+      latencyMs: Date.now() - callStart,
+      success: false,
+      errorCode: err instanceof Error ? err.message.slice(0, 64) : 'unknown',
+    }).catch(() => {});
     return null;
   }
 }
@@ -717,6 +736,7 @@ Relationship types: isA, partOf, relatedTo, contradicts, supports, authorOf, loc
 Include 6-12 nodes and 5-10 edges. All confidence/strength values are 0-1 floats.
 Return ONLY valid JSON.`;
 
+  const callStart = Date.now();
   try {
     const output = await adapter.complete({
       systemPrompt: 'You are an AI entity graph extraction engine. Return ONLY valid JSON.',
@@ -726,6 +746,16 @@ Return ONLY valid JSON.`;
       temperature: 0,
       jsonMode: true,
     });
+
+    void recordAiCallMetric({
+      provider: output.provider,
+      model: output.model,
+      latencyMs: output.latencyMs,
+      success: true,
+      inputTokens: output.inputTokens ?? null,
+      outputTokens: output.outputTokens ?? null,
+      estimatedCostUsd: estimateCost(output.provider, output.inputTokens, output.outputTokens) ?? null,
+    }).catch(() => {});
 
     const parsed = JSON.parse(output.content) as Partial<RawPerceptionGraph>;
     if (!Array.isArray(parsed.nodes) || !Array.isArray(parsed.edges)) return null;
@@ -756,7 +786,14 @@ Return ONLY valid JSON.`;
 
     if (nodes.length === 0) return null;
     return { nodes, edges };
-  } catch {
+  } catch (err) {
+    void recordAiCallMetric({
+      provider: 'groq',
+      model: 'llama-3.3-70b-versatile',
+      latencyMs: Date.now() - callStart,
+      success: false,
+      errorCode: err instanceof Error ? err.message.slice(0, 64) : 'unknown',
+    }).catch(() => {});
     return null;
   }
 }

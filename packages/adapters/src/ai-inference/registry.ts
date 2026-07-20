@@ -139,7 +139,8 @@ const COST_RATES: Record<string, { in: number; out: number }> = {
   anthropic:  { in: 0.000003,   out: 0.000015   },  // claude-sonnet
 };
 
-function estimateCost(
+/** Per-token cost estimate for a provider — shared by anything recording AICallMetrics. */
+export function estimateCost(
   provider: string,
   inputTokens?: number,
   outputTokens?: number,

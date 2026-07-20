@@ -5,6 +5,7 @@ export * from './ai-inference/index';
 export * from './web-extraction/index';
 export * from './competitive-intelligence/index';
 export * from './creative/index';
+export * from './skills/index';
 
 // Benchmark stubs — evaluation-only adapters, never in production registries.
 // Import from '@sitenexis/adapters/benchmark' directly to avoid polluting the main bundle.
