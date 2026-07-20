@@ -16,6 +16,10 @@
     "./adnexis": {
       "types": "./dist/adnexis/index.d.ts",
       "default": "./dist/adnexis/index.js"
+    },
+    "./ai-telemetry": {
+      "types": "./dist/ai/telemetry.d.ts",
+      "default": "./dist/ai/telemetry.js"
     }
   },
   "scripts": {

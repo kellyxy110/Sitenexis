@@ -75,11 +75,17 @@ async function registerPrismaEngine() {
  */
 async function registerAiTelemetrySubscriber() {
   try {
+    // Deliberately imports the narrow './ai-telemetry' subpath, not the package
+    // root — the root index re-exports skills.ts, which pulls in the full
+    // @sitenexis/adapters surface (including creative/* adapters that import
+    // Node's 'crypto'). instrumentation.ts is compiled for both the Node and
+    // Edge runtimes, and Edge webpack can't resolve 'crypto' at build time —
+    // the NEXT_RUNTIME guard above only skips it at runtime, not at bundle time.
     const [{ onAiCall }, { recordAiCallMetric }] = await Promise.all([
-      import('@sitenexis/analyzers'),
+      import('@sitenexis/analyzers/ai-telemetry'),
       import('@sitenexis/db'),
     ]);
-    onAiCall((event: import('@sitenexis/analyzers').AiCallEvent) => {
+    onAiCall((event: import('@sitenexis/analyzers/ai-telemetry').AiCallEvent) => {
       void recordAiCallMetric({ ...event, skillId: null }).catch(() => {});
     });
   } catch {
