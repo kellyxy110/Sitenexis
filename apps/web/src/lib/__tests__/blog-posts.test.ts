@@ -90,6 +90,27 @@ describe('blog internal linking', () => {
       }
     }
   })
+
+  it('every in-prose [label](/blog/slug) link resolves to a real post', () => {
+    // Series posts carry hand-written mid-paragraph links (RichText parses
+    // [label](href) inside p/list/callout text), not just the boxed 'related'
+    // block. A typo'd slug here would silently render as a dead link.
+    const linkPattern = /\]\(\/blog\/([a-z0-9-]+)\)/g
+    const broken: string[] = []
+    for (const post of BLOG_POSTS) {
+      for (const block of post.content) {
+        const text = 'text' in block ? block.text : undefined
+        const items = 'items' in block ? block.items : undefined
+        const texts = items ?? (text ? [text] : [])
+        for (const t of texts) {
+          for (const match of t.matchAll(linkPattern)) {
+            if (!allSlugs.has(match[1]!)) broken.push(`${post.slug} -> ${match[1]}`)
+          }
+        }
+      }
+    }
+    expect(broken).toEqual([])
+  })
 })
 
 describe('authored series navigation', () => {
