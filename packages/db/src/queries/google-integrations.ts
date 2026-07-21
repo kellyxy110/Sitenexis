@@ -86,17 +86,24 @@ export async function upsertGoogleConnection(params: {
   return toConnectionRecord(row);
 }
 
-/** Persist the user's chosen GA4 property + GSC site after property-selection, marking the connection live. */
+/**
+ * Persist the user's chosen GA4 property and/or GSC site, marking the connection live.
+ * Merges — a field omitted from `params` (undefined) leaves the existing stored value
+ * untouched. Selecting a GA4 property must never blow away an already-saved GSC site,
+ * and vice versa, since the picker UI saves each selection independently.
+ */
 export async function setGoogleConnectionProperties(userId: string, params: {
   ga4PropertyId?: string | null;
   ga4PropertyName?: string | null;
   gscSiteUrl?: string | null;
   gscSiteName?: string | null;
 }): Promise<void> {
-  await db.googleConnection.update({
-    where: { userId },
-    data: { ...params, status: 'connected' },
-  });
+  const data: Prisma.GoogleConnectionUpdateInput = { status: 'connected' };
+  if (params.ga4PropertyId !== undefined) data.ga4PropertyId = params.ga4PropertyId;
+  if (params.ga4PropertyName !== undefined) data.ga4PropertyName = params.ga4PropertyName;
+  if (params.gscSiteUrl !== undefined) data.gscSiteUrl = params.gscSiteUrl;
+  if (params.gscSiteName !== undefined) data.gscSiteName = params.gscSiteName;
+  await db.googleConnection.update({ where: { userId }, data });
 }
 
 /** Update just the encrypted access token + expiry after a refresh-token exchange. */

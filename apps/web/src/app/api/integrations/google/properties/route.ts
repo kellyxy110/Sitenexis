@@ -80,12 +80,15 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const parsed = SelectPropertiesSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
+  // Only forward fields actually present in this request — each picker selection
+  // (GA4 property, GSC site) saves independently, and must not null out whichever
+  // property wasn't part of this particular click.
   const { setGoogleConnectionProperties } = await import('@sitenexis/db');
   await setGoogleConnectionProperties(user.id, {
-    ga4PropertyId: parsed.data.ga4PropertyId ?? null,
-    ga4PropertyName: parsed.data.ga4PropertyName ?? null,
-    gscSiteUrl: parsed.data.gscSiteUrl ?? null,
-    gscSiteName: parsed.data.gscSiteName ?? null,
+    ...(parsed.data.ga4PropertyId !== undefined && { ga4PropertyId: parsed.data.ga4PropertyId }),
+    ...(parsed.data.ga4PropertyName !== undefined && { ga4PropertyName: parsed.data.ga4PropertyName }),
+    ...(parsed.data.gscSiteUrl !== undefined && { gscSiteUrl: parsed.data.gscSiteUrl }),
+    ...(parsed.data.gscSiteName !== undefined && { gscSiteName: parsed.data.gscSiteName }),
   });
 
   return NextResponse.json({ ok: true });

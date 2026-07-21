@@ -67,7 +67,8 @@ export function GoogleIntegrationCard() {
     },
     onSuccess: () => {
       trackEvent('integration_connected', { provider: 'ga4' });
-      setShowPicker(false);
+      // Keep the picker open — GA4 and GSC save independently on separate clicks,
+      // and closing here would strand the user before they've picked the second one.
       queryClient.invalidateQueries({ queryKey: ['google-integration-status'] });
     },
   });
@@ -118,13 +119,21 @@ export function GoogleIntegrationCard() {
         {!statusQuery.data?.configured ? (
           <span className="text-xs text-[#4A6280]">Not configured</span>
         ) : isConnected ? (
-          <button
-            onClick={() => disconnectMutation.mutate()}
-            disabled={disconnectMutation.isPending}
-            className="shrink-0 flex items-center gap-1.5 rounded-lg border border-white/[0.08] bg-white/[0.02] px-3 py-1.5 text-xs text-[#7A9AB4] hover:text-white hover:border-white/[0.15] transition-colors disabled:opacity-50"
-          >
-            {disconnectMutation.isPending ? <Loader2 size={12} className="animate-spin" /> : <X size={12} />} Disconnect
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              onClick={() => setShowPicker((v) => !v)}
+              className="flex items-center gap-1.5 rounded-lg border border-white/[0.08] bg-white/[0.02] px-3 py-1.5 text-xs text-[#7A9AB4] hover:text-white hover:border-white/[0.15] transition-colors"
+            >
+              {showPicker ? 'Done' : 'Change properties'}
+            </button>
+            <button
+              onClick={() => disconnectMutation.mutate()}
+              disabled={disconnectMutation.isPending}
+              className="flex items-center gap-1.5 rounded-lg border border-white/[0.08] bg-white/[0.02] px-3 py-1.5 text-xs text-[#7A9AB4] hover:text-white hover:border-white/[0.15] transition-colors disabled:opacity-50"
+            >
+              {disconnectMutation.isPending ? <Loader2 size={12} className="animate-spin" /> : <X size={12} />} Disconnect
+            </button>
+          </div>
         ) : (
           <a
             href="/api/integrations/google/connect"
