@@ -6,7 +6,7 @@ import NextLink from 'next/link';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { TopCommandBar } from '@/components/dashboard/TopCommandBar';
 import { useLatestAudit, useAuditSubReport } from '@/lib/use-audit-data';
-import { Activity, TrendingUp, TrendingDown, Users, MousePointerClick, Eye, Search, Link2, AlertCircle, Sparkles } from 'lucide-react';
+import { Activity, TrendingUp, TrendingDown, Users, MousePointerClick, Eye, Search, Link2, AlertCircle, Sparkles, Lightbulb } from 'lucide-react';
 
 interface DashboardData {
   connector: {
@@ -25,6 +25,44 @@ interface DashboardData {
   topPages?: Array<{ page: string; clicks: number; impressions: number; ctr: number; avgPosition: number }>;
   visibilityGains?: Array<{ page: string; deltaImpressions: number; current: number; previous: number }>;
   visibilityLosses?: Array<{ page: string; deltaImpressions: number; current: number; previous: number }>;
+  insights?: AiVisibilityInsight[];
+}
+
+interface AiVisibilityInsight {
+  id: string;
+  type: string;
+  affectedPage: string;
+  evidence: Record<string, unknown>;
+  confidence: number;
+  recommendedAction: string;
+  verificationMethod: string;
+  severity: 'critical' | 'warning' | 'info';
+  createdAt: string;
+}
+
+const INSIGHT_TYPE_LABELS: Record<string, string> = {
+  impressions_falling_on_issue_page: 'Impressions falling on a flagged page',
+  high_impressions_low_ctr: 'High impressions, low click-through',
+  traffic_without_conversion: 'Traffic without conversion',
+  ai_referral_reaching_page: 'AI referral traffic detected',
+  post_recommendation_improvement: 'Recommendation confirmed working',
+};
+
+function formatEvidence(type: string, evidence: Record<string, unknown>): string {
+  switch (type) {
+    case 'impressions_falling_on_issue_page':
+      return `Impressions down ${String(evidence.declinePct)}% (${String(evidence.previousImpressions)} → ${String(evidence.currentImpressions)}) · ${String(evidence.unresolvedIssueCount)} unresolved issue(s)`;
+    case 'high_impressions_low_ctr':
+      return `${String(evidence.impressions)} impressions, ${String(evidence.clicks)} clicks (${(Number(evidence.ctr) * 100).toFixed(1)}% CTR)`;
+    case 'traffic_without_conversion':
+      return `${String(evidence.sessions)} sessions, 0 key events recorded`;
+    case 'ai_referral_reaching_page':
+      return `${String(evidence.totalAiReferralSessions)} sessions from ${String(evidence.topAiSource)}`;
+    case 'post_recommendation_improvement':
+      return `Impressions up ${String(evidence.improvementPct)}% since the fix was applied (${String(evidence.impressionsBefore)} → ${String(evidence.impressionsAfter)})`;
+    default:
+      return '';
+  }
 }
 
 interface AiVisibilityScoreData {
@@ -173,6 +211,27 @@ export default function IntelligenceCenterPage() {
                   </tbody>
                 </table>
                 {(data?.topQueries ?? []).length === 0 && <p className="text-xs text-[#4A6280]">No query data yet.</p>}
+              </div>
+            </div>
+
+            <div className="mb-6 rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+              <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-white"><Lightbulb size={14} className="text-cyan" /> AI Visibility Insights</h2>
+              <div className="space-y-2">
+                {(data?.insights ?? []).map((insight) => (
+                  <div key={insight.id} className="rounded-lg border border-white/[0.05] bg-black/20 p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-semibold text-[#C8DFE8]">{INSIGHT_TYPE_LABELS[insight.type] ?? insight.type}</span>
+                      <span className="shrink-0 text-[10px] tabular-nums text-[#4A6280]">{Math.round(insight.confidence * 100)}% confidence</span>
+                    </div>
+                    <p className="mt-1 max-w-[520px] truncate text-[11px] text-[#7A9AB4]">{insight.affectedPage}</p>
+                    <p className="mt-1.5 text-xs text-[#C8DFE8]">{formatEvidence(insight.type, insight.evidence)}</p>
+                    <p className="mt-1.5 text-xs text-white">{insight.recommendedAction}</p>
+                    <p className="mt-1.5 text-[11px] italic text-[#4A6280]">How to verify: {insight.verificationMethod}</p>
+                  </div>
+                ))}
+                {(data?.insights ?? []).length === 0 && (
+                  <p className="text-xs text-[#4A6280]">No insights yet — these are generated from your synced traffic and search data against your latest audit. Check back after the next sync.</p>
+                )}
               </div>
             </div>
 

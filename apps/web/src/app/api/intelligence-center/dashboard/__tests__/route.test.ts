@@ -11,6 +11,7 @@ const h = vi.hoisted(() => ({
   getTopSearchQueries: vi.fn(),
   getTopSearchPages: vi.fn(),
   getAggregatedSearchPageMetrics: vi.fn(),
+  getAiVisibilityInsights: vi.fn(),
 }));
 
 vi.mock('@/lib/auth', () => ({
@@ -26,6 +27,7 @@ vi.mock('@sitenexis/db', () => ({
   getTopSearchQueries: h.getTopSearchQueries,
   getTopSearchPages: h.getTopSearchPages,
   getAggregatedSearchPageMetrics: h.getAggregatedSearchPageMetrics,
+  getAiVisibilityInsights: h.getAiVisibilityInsights,
 }));
 
 const { GET } = await import('../route');
@@ -44,6 +46,7 @@ beforeEach(() => {
   h.getTopSearchQueries.mockResolvedValue([]);
   h.getTopSearchPages.mockResolvedValue([]);
   h.getAggregatedSearchPageMetrics.mockResolvedValue([]);
+  h.getAiVisibilityInsights.mockResolvedValue([]);
 });
 
 describe('GET /api/intelligence-center/dashboard', () => {
@@ -112,5 +115,23 @@ describe('GET /api/intelligence-center/dashboard', () => {
     expect(json.visibilityGains).toHaveLength(1);
     expect(json.visibilityGains[0]).toMatchObject({ page: '/blog/a', deltaImpressions: 50 });
     expect(json.visibilityLosses).toHaveLength(0);
+  });
+
+  it('includes deterministic AI visibility insights in the response', async () => {
+    h.getGoogleConnection.mockResolvedValue({ status: 'connected', ga4PropertyId: 'prop-1', gscSiteUrl: 'https://x.com/', lastSyncedAt: new Date(), googleAccountEmail: 'a@gmail.com' });
+    h.getDailyTrafficMetrics.mockResolvedValue([{ date: new Date(), sessions: 100, activeUsers: 80 }]);
+    h.getAiVisibilityInsights.mockResolvedValue([
+      {
+        id: 'insight-1', type: 'high_impressions_low_ctr', affectedPage: '/blog/a',
+        evidence: { impressions: 1000, clicks: 5, ctr: 0.005 }, confidence: 0.6,
+        recommendedAction: 'Rewrite the title tag.', verificationMethod: 'Check CTR next week.',
+        severity: 'info', createdAt: new Date(),
+      },
+    ]);
+
+    const res = await GET(req());
+    const json = await res.json();
+    expect(json.insights).toHaveLength(1);
+    expect(json.insights[0]).toMatchObject({ id: 'insight-1', type: 'high_impressions_low_ctr', affectedPage: '/blog/a' });
   });
 });

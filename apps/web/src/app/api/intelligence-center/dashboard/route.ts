@@ -23,6 +23,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   const {
     getGoogleConnection, getDailyTrafficMetrics, getAcquisitionChannelMetrics, getAiReferralMetrics,
     getSearchVisibilityMetrics, getTopSearchQueries, getTopSearchPages, getAggregatedSearchPageMetrics,
+    getAiVisibilityInsights,
   } = await import('@sitenexis/db');
 
   const connection = await getGoogleConnection(user.id);
@@ -44,13 +45,14 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   const from = daysAgo(RANGE_DAYS);
   const to = new Date();
 
-  const [daily, channels, aiReferrals, search, topQueries, topPages] = await Promise.all([
+  const [daily, channels, aiReferrals, search, topQueries, topPages, insights] = await Promise.all([
     connection.ga4PropertyId ? getDailyTrafficMetrics(user.id, from, to) : Promise.resolve([]),
     connection.ga4PropertyId ? getAcquisitionChannelMetrics(user.id, from, to) : Promise.resolve([]),
     connection.ga4PropertyId ? getAiReferralMetrics(user.id, from, to) : Promise.resolve([]),
     connection.gscSiteUrl ? getSearchVisibilityMetrics(user.id, from, to) : Promise.resolve([]),
     connection.gscSiteUrl ? getTopSearchQueries(user.id, from, to, TOP_N) : Promise.resolve([]),
     connection.gscSiteUrl ? getTopSearchPages(user.id, from, to, TOP_N) : Promise.resolve([]),
+    getAiVisibilityInsights(user.id, TOP_N * 2),
   ]);
 
   // ── No data yet — connected, but the daily cron hasn't produced rows (or has
@@ -117,5 +119,16 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     topPages: topPages.map((p) => ({ page: p.page, clicks: p.clicks, impressions: p.impressions, ctr: p.ctr, avgPosition: p.avgPosition })),
     visibilityGains,
     visibilityLosses,
+    insights: insights.map((i) => ({
+      id: i.id,
+      type: i.type,
+      affectedPage: i.affectedPage,
+      evidence: i.evidence,
+      confidence: i.confidence,
+      recommendedAction: i.recommendedAction,
+      verificationMethod: i.verificationMethod,
+      severity: i.severity,
+      createdAt: i.createdAt,
+    })),
   });
 }
