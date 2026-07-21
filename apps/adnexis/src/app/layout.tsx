@@ -7,7 +7,10 @@ export const metadata: Metadata = {
     template: '%s | AdNexis',
   },
   description: 'Deconstruct winning ad creatives with AI. Analyze hook types, emotional stacks, funnel stages, and CTA patterns. Generate high-converting variations, edit images with Qwen AI, and create videos with LTX-2.3 in seconds.',
-  metadataBase: new URL(process.env['NEXT_PUBLIC_APP_URL'] ?? 'https://adnexis-eight.vercel.app'),
+  // `||`, not `??` — an env var saved as an empty string is falsy but not
+  // null/undefined, so `??` would pass "" straight to `new URL()` and crash
+  // the entire build (every page renders through this root layout).
+  metadataBase: new URL(process.env['NEXT_PUBLIC_APP_URL'] || 'https://adnexis-eight.vercel.app'),
   keywords: ['ad creative analysis', 'AI advertising', 'ad hook analysis', 'performance marketing', 'creative intelligence', 'ad generation', 'AI image editing', 'AI video generation', 'LTX video', 'image inpainting'],
   authors: [{ name: 'AdNexis', url: 'https://adnexis-eight.vercel.app' }],
   openGraph: {
