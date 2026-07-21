@@ -9,6 +9,13 @@ import { logger } from '@/lib/logger';
 
 const Schema = z.object({ domain: z.string().min(3).max(253) });
 
+// This route calls OpenAI's paid gpt-4o-search-preview (web search) with no
+// authentication — the per-IP limit below bounds abuse from one visitor, but
+// spend still scales with distinct IPs. This caps total requests across ALL
+// visitors combined, so daily OpenAI spend has a hard ceiling regardless of
+// how many different people hit it.
+const GLOBAL_DAILY_LIMIT = 200;
+
 export type CitationCheckResult = {
   domain: string;
   queriesRun: number;
@@ -68,6 +75,11 @@ function fallbackQueries(domain: string): string[] {
 // ── Main handler ──────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  const globalRl = await rateLimit('citation-check-global', 'global', { limit: GLOBAL_DAILY_LIMIT, windowSec: 86_400 });
+  if (!globalRl.ok) {
+    return NextResponse.json({ error: 'Daily citation-check limit reached across all users. Try again tomorrow.' }, { status: 429, headers: globalRl.headers });
+  }
+
   const ip = getClientIp(req);
   const rl = await rateLimit('citation-check', ip, { limit: 10, windowSec: 3600 });
   if (!rl.ok) return NextResponse.json({ error: 'Rate limit exceeded. 10 checks per hour.' }, { status: 429 });

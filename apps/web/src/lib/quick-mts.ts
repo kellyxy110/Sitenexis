@@ -3,6 +3,7 @@
  * Public, no-auth, single-domain crawl that produces a 4-dimension MTS estimate.
  * Called directly by server components and by /api/mts for external access.
  */
+import { isPrivateHostUrl, fetchNoInternalRedirects } from './safe-fetch';
 
 export type MTSGrade = 'Authoritative' | 'Established' | 'Developing' | 'Unverified';
 
@@ -71,6 +72,16 @@ export async function computeQuickMTS(rawInput: string): Promise<QuickMTSResult>
   const isHttps = url.startsWith('https://');
   const signals: MTSSignal[] = [];
 
+  if (isPrivateHostUrl(url)) {
+    return {
+      domain, url, quickMTS: 0, grade: 'Unverified',
+      subScores: { crawlability: 0, contentTrust: 0, entityClarity: 0, citationReadiness: 0 },
+      signals: [{ dimension: 'crawlability', label: 'Domain reachable', ok: false, detail: 'Private or reserved addresses are not allowed' }],
+      schemaTypes: [], ttfbMs: 0, wordCount: 0, isHttps, cachedAt: new Date().toISOString(),
+      error: 'Private or reserved addresses are not allowed',
+    };
+  }
+
   // ── Fetch homepage ────────────────────────────────────────────────────────
   let html = '';
   let ttfbMs = 0;
@@ -79,13 +90,12 @@ export async function computeQuickMTS(rawInput: string): Promise<QuickMTSResult>
 
   try {
     const t0 = Date.now();
-    const res = await fetch(url, {
+    const res = await fetchNoInternalRedirects(url, {
       signal: AbortSignal.timeout(12_000),
       headers: {
         'User-Agent': `SiteNexis-MTS/1.0 (+${process.env.NEXT_PUBLIC_APP_URL || 'https://sitenexis.vercel.app'}/mts)`,
         Accept: 'text/html',
       },
-      redirect: 'follow',
     });
     ttfbMs = Date.now() - t0;
     httpStatus = res.status;
@@ -145,7 +155,7 @@ export async function computeQuickMTS(rawInput: string): Promise<QuickMTSResult>
   let robotsTxt = '';
   let robotsOk = false;
   try {
-    const r = await fetch(`${url.replace(/\/+$/, '')}/robots.txt`, {
+    const r = await fetchNoInternalRedirects(`${url.replace(/\/+$/, '')}/robots.txt`, {
       signal: AbortSignal.timeout(5_000),
       headers: { 'User-Agent': 'SiteNexis-MTS/1.0' },
     });
@@ -168,8 +178,12 @@ export async function computeQuickMTS(rawInput: string): Promise<QuickMTSResult>
     const sitemapUrl =
       robotsTxt.match(/sitemap:\s*(\S+)/i)?.[1] ??
       `${url.replace(/\/+$/, '')}/sitemap.xml`;
-    const s = await fetch(sitemapUrl, { signal: AbortSignal.timeout(5_000) });
-    sitemapOk = s.ok;
+    // sitemapUrl can come from the target's own robots.txt content — validate it
+    // too, since that text is attacker-influenced even when the domain itself isn't.
+    if (!isPrivateHostUrl(sitemapUrl)) {
+      const s = await fetchNoInternalRedirects(sitemapUrl, { signal: AbortSignal.timeout(5_000) });
+      sitemapOk = s.ok;
+    }
   } catch { /* non-fatal */ }
 
   // ── DIMENSION 1: Crawlability (20% weight) ────────────────────────────────
