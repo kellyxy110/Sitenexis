@@ -1,16 +1,27 @@
 import type { Metadata } from 'next';
 import './globals.css';
 
+const DEFAULT_APP_URL = 'https://adnexis-eight.vercel.app';
+
+// A malformed NEXT_PUBLIC_APP_URL (empty, whitespace-only, missing a scheme,
+// or otherwise unparseable) must never throw here — this runs during static
+// generation for every page via the root layout, so an unguarded `new URL()`
+// takes the entire build down. Trim, validate, and fall back safely.
+function safeAppUrl(): URL {
+  const raw = process.env['NEXT_PUBLIC_APP_URL']?.trim();
+  if (raw) {
+    try { return new URL(raw); } catch { /* fall through to default */ }
+  }
+  return new URL(DEFAULT_APP_URL);
+}
+
 export const metadata: Metadata = {
   title: {
     default: 'AdNexis — AI Ad Creative Intelligence Platform',
     template: '%s | AdNexis',
   },
   description: 'Deconstruct winning ad creatives with AI. Analyze hook types, emotional stacks, funnel stages, and CTA patterns. Generate high-converting variations, edit images with Qwen AI, and create videos with LTX-2.3 in seconds.',
-  // `||`, not `??` — an env var saved as an empty string is falsy but not
-  // null/undefined, so `??` would pass "" straight to `new URL()` and crash
-  // the entire build (every page renders through this root layout).
-  metadataBase: new URL(process.env['NEXT_PUBLIC_APP_URL'] || 'https://adnexis-eight.vercel.app'),
+  metadataBase: safeAppUrl(),
   keywords: ['ad creative analysis', 'AI advertising', 'ad hook analysis', 'performance marketing', 'creative intelligence', 'ad generation', 'AI image editing', 'AI video generation', 'LTX video', 'image inpainting'],
   authors: [{ name: 'AdNexis', url: 'https://adnexis-eight.vercel.app' }],
   openGraph: {
