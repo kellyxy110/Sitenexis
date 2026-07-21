@@ -3,6 +3,21 @@ import Credentials from 'next-auth/providers/credentials';
 import Google from 'next-auth/providers/google';
 import type { NextAuthConfig } from 'next-auth';
 
+// next-auth's own internals (@auth/core's createActionURL, lib/env's
+// reqWithEnvURL) call `new URL(AUTH_URL ?? NEXTAUTH_URL)` unguarded in
+// several places -- a malformed value (whitespace-only, missing scheme)
+// throws and takes down every route that touches auth, including static
+// generation of /login. Can't patch node_modules, so sanitize before
+// NextAuth ever reads these: trim, validate, and drop anything that
+// doesn't parse so NextAuth falls back to request-based URL detection
+// instead of crashing.
+for (const key of ['NEXTAUTH_URL', 'AUTH_URL'] as const) {
+  const raw = process.env[key]?.trim();
+  if (!raw) { delete process.env[key]; continue; }
+  try { new URL(raw); process.env[key] = raw; }
+  catch { delete process.env[key]; }
+}
+
 declare module 'next-auth' {
   interface Session {
     user: {
