@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { BLOG_POSTS, CATEGORIES, getPost, getRelatedPosts, getSeriesInfo } from '../blog-posts'
+import { NEXISHUB_RELATED_GUIDES, getNexisHubRelatedGuide } from '../nexishub-related'
 
 describe('blog internal linking', () => {
   const allSlugs = new Set(BLOG_POSTS.map(p => p.slug))
@@ -110,6 +111,27 @@ describe('blog internal linking', () => {
       }
     }
     expect(broken).toEqual([])
+  })
+})
+
+describe('NexisHub cross-publication links', () => {
+  const allSlugs = new Set(BLOG_POSTS.map(post => post.slug))
+
+  it('maps exactly fifteen real SiteNexis articles to fifteen unique NexisHub guides', () => {
+    const entries = Object.entries(NEXISHUB_RELATED_GUIDES)
+    expect(entries).toHaveLength(15)
+    expect(new Set(entries.map(([, guide]) => guide.href)).size).toBe(15)
+    for (const [sourceSlug, guide] of entries) {
+      expect(allSlugs.has(sourceSlug)).toBe(true)
+      expect(guide.href).toMatch(/^https:\/\/nexishub\.vercel\.app\/blog\/[a-z0-9-]+$/)
+      expect(guide.anchor.length).toBeGreaterThan(12)
+      expect(guide.description.length).toBeGreaterThan(40)
+      expect(getNexisHubRelatedGuide(sourceSlug)).toEqual(guide)
+    }
+  })
+
+  it('returns null for articles without an approved NexisHub relationship', () => {
+    expect(getNexisHubRelatedGuide('not-an-approved-source')).toBeNull()
   })
 })
 
