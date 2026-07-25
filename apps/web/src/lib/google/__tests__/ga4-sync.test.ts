@@ -41,6 +41,15 @@ describe('parseGa4DailyReport', () => {
     const [result] = parseGa4DailyReport(rows);
     expect(result!.sessions).toBe(0);
   });
+
+  it('maps pageViews and bounceRate from the 7th and 8th metric slots', () => {
+    const rows = [{
+      dimensionValues: [{ value: '20260715' }],
+      metricValues: [{ value: '120' }, { value: '95' }, { value: '30' }, { value: '80' }, { value: '45.5' }, { value: '5' }, { value: '210' }, { value: '0.34' }],
+    }];
+    const [result] = parseGa4DailyReport(rows);
+    expect(result).toMatchObject({ pageViews: 210, bounceRate: 0.34 });
+  });
 });
 
 describe('parseGa4ChannelReport', () => {

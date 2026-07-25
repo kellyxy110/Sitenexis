@@ -7,6 +7,7 @@ import { getValidAccessToken, GoogleTokenError } from '@/lib/google/token-manage
 import { fetchGa4Metrics } from '@/lib/google/ga4-sync';
 import { fetchGscMetrics } from '@/lib/google/gsc-sync';
 import { generateInsightsForUser } from '@/lib/google/insights-runner';
+import { classifyGoogleApiError } from '@/lib/google/error-classifier';
 
 const SYNC_WINDOW_DAYS = 3; // rolling window — re-upserts recent days to absorb GSC's ~2-3 day data lag
 
@@ -67,10 +68,10 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         ga4Synced++;
       } catch (err) {
         failures++;
-        const message = err instanceof Error ? err.message : String(err);
-        logger.error({ userId: conn.userId, err: message }, 'GA4 sync failed');
-        await logGoogleSync({ connectionId: conn.id, userId: conn.userId, provider: 'ga4', status: 'failed', errorMessage: message.slice(0, 500), startedAt, completedAt: new Date() });
-        if (err instanceof GoogleTokenError) await setGoogleConnectionError(conn.userId, 'error', message.slice(0, 500));
+        const classified = classifyGoogleApiError(err);
+        logger.error({ userId: conn.userId, category: classified.category, err: err instanceof Error ? err.message : String(err) }, 'GA4 sync failed');
+        await logGoogleSync({ connectionId: conn.id, userId: conn.userId, provider: 'ga4', status: 'failed', errorMessage: classified.message.slice(0, 500), startedAt, completedAt: new Date() });
+        if (err instanceof GoogleTokenError || !classified.retryable) await setGoogleConnectionError(conn.userId, 'error', classified.message.slice(0, 500));
       }
     }
 
@@ -88,9 +89,10 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         gscSynced++;
       } catch (err) {
         failures++;
-        const message = err instanceof Error ? err.message : String(err);
-        logger.error({ userId: conn.userId, err: message }, 'Search Console sync failed');
-        await logGoogleSync({ connectionId: conn.id, userId: conn.userId, provider: 'search_console', status: 'failed', errorMessage: message.slice(0, 500), startedAt, completedAt: new Date() });
+        const classified = classifyGoogleApiError(err);
+        logger.error({ userId: conn.userId, category: classified.category, err: err instanceof Error ? err.message : String(err) }, 'Search Console sync failed');
+        await logGoogleSync({ connectionId: conn.id, userId: conn.userId, provider: 'search_console', status: 'failed', errorMessage: classified.message.slice(0, 500), startedAt, completedAt: new Date() });
+        if (!classified.retryable) await setGoogleConnectionError(conn.userId, 'error', classified.message.slice(0, 500));
       }
     }
 

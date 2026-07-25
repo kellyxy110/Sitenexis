@@ -40,7 +40,7 @@ function dim(row: Ga4ReportRow, dimIndex: number): string {
   return row.dimensionValues?.[dimIndex]?.value ?? '';
 }
 
-/** dimensions=[date], metrics=[sessions, activeUsers, newUsers, engagedSessions, userEngagementDuration, keyEvents] */
+/** dimensions=[date], metrics=[sessions, activeUsers, newUsers, engagedSessions, userEngagementDuration, keyEvents, screenPageViews, bounceRate] */
 export function parseGa4DailyReport(rows: Ga4ReportRow[]): DailyTrafficRow[] {
   return rows.map((row) => ({
     date: parseGa4Date(dim(row, 0)),
@@ -50,6 +50,8 @@ export function parseGa4DailyReport(rows: Ga4ReportRow[]): DailyTrafficRow[] {
     engagedSessions: num(row, 3),
     avgEngagementTimeSec: num(row, 4),
     keyEvents: num(row, 5),
+    pageViews: num(row, 6),
+    bounceRate: num(row, 7),
     deviceBreakdown: {},
     countryBreakdown: {},
   }));
@@ -126,7 +128,7 @@ export async function fetchGa4Metrics(
   const [dailyRes, deviceRes, countryRes, channelRes, landingRes] = await Promise.all([
     analyticsData.properties.runReport({
       property,
-      requestBody: { dateRanges, dimensions: [{ name: 'date' }], metrics: [{ name: 'sessions' }, { name: 'activeUsers' }, { name: 'newUsers' }, { name: 'engagedSessions' }, { name: 'userEngagementDuration' }, { name: 'keyEvents' }] },
+      requestBody: { dateRanges, dimensions: [{ name: 'date' }], metrics: [{ name: 'sessions' }, { name: 'activeUsers' }, { name: 'newUsers' }, { name: 'engagedSessions' }, { name: 'userEngagementDuration' }, { name: 'keyEvents' }, { name: 'screenPageViews' }, { name: 'bounceRate' }] },
     }),
     analyticsData.properties.runReport({
       property,

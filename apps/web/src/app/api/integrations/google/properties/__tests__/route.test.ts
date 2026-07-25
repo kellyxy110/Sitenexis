@@ -25,15 +25,34 @@ vi.mock('googleapis', () => ({
 }));
 vi.mock('@sitenexis/db', () => ({ setGoogleConnectionProperties: h.setGoogleConnectionProperties }));
 
-const { POST } = await import('../route');
+const { GET, POST } = await import('../route');
+const { GoogleTokenError } = await import('@/lib/google/token-manager');
 
 function postReq(body: unknown): NextRequest {
   return { json: async () => body } as unknown as NextRequest;
+}
+function getReq(): NextRequest {
+  return {} as unknown as NextRequest;
 }
 
 beforeEach(() => {
   vi.clearAllMocks();
   h.requireAuth.mockResolvedValue({ id: 'user-1', email: 'test@example.com' });
+  h.getValidAccessToken.mockResolvedValue('access-token');
+});
+
+describe('GET /api/integrations/google/properties', () => {
+  it('returns empty lists with no error when both APIs succeed with no results', async () => {
+    const res = await GET(getReq());
+    const json = await res.json();
+    expect(json).toEqual({ ga4Properties: [], gscSites: [], ga4Error: null, gscError: null });
+  });
+
+  it('409 when the Google connection is missing or expired', async () => {
+    h.getValidAccessToken.mockRejectedValueOnce(new GoogleTokenError('no connection'));
+    const res = await GET(getReq());
+    expect(res.status).toBe(409);
+  });
 });
 
 describe('POST /api/integrations/google/properties', () => {

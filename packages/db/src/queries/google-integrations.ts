@@ -187,6 +187,8 @@ export interface DailyTrafficRow {
   engagedSessions: number;
   avgEngagementTimeSec: number;
   keyEvents: number;
+  pageViews: number;
+  bounceRate: number;
   deviceBreakdown: Record<string, number>;
   countryBreakdown: Record<string, number>;
 }
@@ -276,6 +278,8 @@ export interface SearchVisibilityRow {
   impressions: number;
   ctr: number;
   avgPosition: number;
+  deviceBreakdown: Record<string, number>;
+  countryBreakdown: Record<string, number>;
 }
 
 export async function upsertSearchVisibilityMetrics(userId: string, rows: SearchVisibilityRow[]): Promise<void> {
@@ -284,8 +288,8 @@ export async function upsertSearchVisibilityMetrics(userId: string, rows: Search
     rows.map((r) =>
       db.searchVisibilityMetric.upsert({
         where: { userId_date: { userId, date: r.date } },
-        create: { userId, ...r },
-        update: { clicks: r.clicks, impressions: r.impressions, ctr: r.ctr, avgPosition: r.avgPosition },
+        create: { userId, ...r, deviceBreakdown: r.deviceBreakdown as Prisma.InputJsonValue, countryBreakdown: r.countryBreakdown as Prisma.InputJsonValue },
+        update: { clicks: r.clicks, impressions: r.impressions, ctr: r.ctr, avgPosition: r.avgPosition, deviceBreakdown: r.deviceBreakdown as Prisma.InputJsonValue, countryBreakdown: r.countryBreakdown as Prisma.InputJsonValue },
       }),
     ),
   );

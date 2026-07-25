@@ -1441,6 +1441,8 @@ model DailyTrafficMetric {
   engagedSessions      Int      @default(0) @map("engaged_sessions")
   avgEngagementTimeSec Float    @default(0) @map("avg_engagement_time_sec")
   keyEvents            Int      @default(0) @map("key_events")
+  pageViews            Int      @default(0) @map("page_views")
+  bounceRate           Float    @default(0) @map("bounce_rate")
   deviceBreakdown      Json     @default("{}") @map("device_breakdown")
   countryBreakdown     Json     @default("{}") @map("country_breakdown")
   createdAt            DateTime @default(now()) @map("created_at")
@@ -1500,6 +1502,8 @@ model SearchVisibilityMetric {
   impressions Int      @default(0)
   ctr         Float    @default(0)
   avgPosition Float    @default(0) @map("avg_position")
+  deviceBreakdown  Json @default("{}") @map("device_breakdown")
+  countryBreakdown Json @default("{}") @map("country_breakdown")
   createdAt   DateTime @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id])

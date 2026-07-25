@@ -50,7 +50,7 @@ export function GoogleIntegrationCard() {
     queryFn: async () => {
       const res = await fetch('/api/integrations/google/properties');
       if (!res.ok) throw new Error('Failed to load properties');
-      return res.json() as Promise<{ ga4Properties: Ga4Property[]; gscSites: GscSite[] }>;
+      return res.json() as Promise<{ ga4Properties: Ga4Property[]; gscSites: GscSite[]; ga4Error: string | null; gscError: string | null }>;
     },
     enabled: showPicker,
   });
@@ -181,7 +181,9 @@ export function GoogleIntegrationCard() {
                       {connection?.ga4PropertyId === p.propertyId && <Check size={13} className="text-teal-400" />}
                     </button>
                   ))}
-                  {propertiesQuery.data.ga4Properties.length === 0 && <p className="text-xs text-[#4A6280]">No GA4 properties found on this Google account.</p>}
+                  {propertiesQuery.data.ga4Properties.length === 0 && (
+                    <p className="text-xs text-[#4A6280]">{propertiesQuery.data.ga4Error ?? 'No GA4 properties found on this Google account.'}</p>
+                  )}
                 </div>
               </div>
               <div>
@@ -197,7 +199,9 @@ export function GoogleIntegrationCard() {
                       {connection?.gscSiteUrl === s.siteUrl && <Check size={13} className="text-teal-400" />}
                     </button>
                   ))}
-                  {propertiesQuery.data.gscSites.length === 0 && <p className="text-xs text-[#4A6280]">No verified Search Console sites found on this Google account.</p>}
+                  {propertiesQuery.data.gscSites.length === 0 && (
+                    <p className="text-xs text-[#4A6280]">{propertiesQuery.data.gscError ?? 'No verified Search Console sites found on this Google account.'}</p>
+                  )}
                 </div>
               </div>
             </div>

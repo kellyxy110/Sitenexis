@@ -6,6 +6,7 @@ import { requireAuth, unauthorizedResponse } from '@/lib/auth';
 import { logger } from '@/lib/logger';
 import { getValidAccessToken, GoogleTokenError } from '@/lib/google/token-manager';
 import { clientWithAccessToken } from '@/lib/google/oauth-client';
+import { classifyGoogleApiError } from '@/lib/google/error-classifier';
 
 /** GET — list the connected Google account's available GA4 properties + Search Console sites to choose from. */
 export async function GET(req: NextRequest): Promise<NextResponse> {
@@ -24,18 +25,25 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
   const auth = clientWithAccessToken(accessToken);
 
+  let ga4Error: string | null = null;
+  let gscError: string | null = null;
+
   const [ga4Properties, gscSites] = await Promise.all([
     listGa4Properties(auth).catch((err: unknown) => {
-      logger.warn({ userId: user.id, err: err instanceof Error ? err.message : String(err) }, 'Listing GA4 properties failed');
+      const classified = classifyGoogleApiError(err);
+      ga4Error = classified.message;
+      logger.warn({ userId: user.id, category: classified.category, err: err instanceof Error ? err.message : String(err) }, 'Listing GA4 properties failed');
       return [];
     }),
     listGscSites(auth).catch((err: unknown) => {
-      logger.warn({ userId: user.id, err: err instanceof Error ? err.message : String(err) }, 'Listing Search Console sites failed');
+      const classified = classifyGoogleApiError(err);
+      gscError = classified.message;
+      logger.warn({ userId: user.id, category: classified.category, err: err instanceof Error ? err.message : String(err) }, 'Listing Search Console sites failed');
       return [];
     }),
   ]);
 
-  return NextResponse.json({ ga4Properties, gscSites });
+  return NextResponse.json({ ga4Properties, gscSites, ga4Error, gscError });
 }
 
 async function listGa4Properties(auth: ReturnType<typeof clientWithAccessToken>) {

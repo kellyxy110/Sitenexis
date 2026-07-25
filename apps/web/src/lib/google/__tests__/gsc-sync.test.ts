@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseGscDailyReport, parseGscQueryReport, parseGscPageReport } from '../gsc-sync';
+import { parseGscDailyReport, parseGscQueryReport, parseGscPageReport, mergeGscDeviceCountryBreakdowns } from '../gsc-sync';
 
 describe('parseGscDailyReport', () => {
   it('maps a site-wide daily row', () => {
@@ -31,5 +31,27 @@ describe('parseGscPageReport', () => {
     const [result] = parseGscPageReport([{}]);
     expect(result!.page).toBe('');
     expect(result!.clicks).toBe(0);
+  });
+});
+
+describe('mergeGscDeviceCountryBreakdowns', () => {
+  it('merges device and country click counts into the matching daily row', () => {
+    const daily = parseGscDailyReport([{ keys: ['2026-07-15'], clicks: 42, impressions: 900, ctr: 0.0467, position: 8.3 }]);
+    const deviceRows = [
+      { keys: ['2026-07-15', 'MOBILE'], clicks: 30 },
+      { keys: ['2026-07-15', 'DESKTOP'], clicks: 12 },
+    ];
+    const countryRows = [{ keys: ['2026-07-15', 'usa'], clicks: 40 }];
+
+    const merged = mergeGscDeviceCountryBreakdowns(daily, deviceRows, countryRows);
+    expect(merged[0]!.deviceBreakdown).toEqual({ MOBILE: 30, DESKTOP: 12 });
+    expect(merged[0]!.countryBreakdown).toEqual({ usa: 40 });
+  });
+
+  it('ignores breakdown rows for a date with no matching daily row', () => {
+    const daily = parseGscDailyReport([{ keys: ['2026-07-15'], clicks: 42, impressions: 900, ctr: 0.0467, position: 8.3 }]);
+    const deviceRows = [{ keys: ['2026-07-16', 'MOBILE'], clicks: 5 }];
+    const merged = mergeGscDeviceCountryBreakdowns(daily, deviceRows, []);
+    expect(merged[0]!.deviceBreakdown).toEqual({});
   });
 });
