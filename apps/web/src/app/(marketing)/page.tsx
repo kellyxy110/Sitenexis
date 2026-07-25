@@ -2,13 +2,13 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { motion, useInView, type Variants } from 'framer-motion';
 import { ArrowRight, Globe } from 'lucide-react';
 import { HeroCinematic } from '@/components/hero/HeroCinematic';
 import { MarketingNav } from '@/components/marketing/MarketingNav';
 import { Footer } from '@/components/marketing/Footer';
+import { LiveAuditObservatory } from '@/components/marketing/LiveAuditObservatory';
 
 // ─── Animation primitives ─────────────────────────────────────────────────────
 
@@ -785,84 +785,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── Live Audit Reports (demo showcase) ─────────────────────────────── */}
-      <section className="border-t border-white/[0.05] bg-[#07111F] py-32 px-6">
-        <div className="mx-auto max-w-6xl">
-          <Reveal className="mb-16 text-center">
-            <p className="mb-5 text-[11px] font-semibold tracking-[0.18em] text-cyan/70 uppercase">Live Audit Reports</p>
-            <h2 className="text-[clamp(2rem,4vw,3rem)] font-bold leading-[1.1] tracking-[-0.03em] text-white">
-              See real results.
-              <br />
-              <span className="text-slate-400 font-normal">Before you run your own.</span>
-            </h2>
-            <p className="mx-auto mt-5 max-w-lg text-[16px] leading-[1.8] text-[#94A3B8]">
-              Explore full audit reports for real domains — every score, every issue, every recommendation — exactly as you will receive them.
-            </p>
-          </Reveal>
-
-          <motion.div
-            className="grid gap-6 md:grid-cols-2"
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: '-60px' }}
-            variants={stagger}
-          >
-            {[
-              { domain: 'genshipyard.com', label: 'GenShipyard', desc: 'AI company website', score: 72, img: '/demos/genshipyard.png' },
-              { domain: 'alwajudproperties.com', label: 'Alwajud Properties', desc: 'Real estate portfolio', score: 58, img: '/demos/alwajudproperties.png' },
-              { domain: 'inforsphere.com', label: 'InforSphere', desc: 'Enterprise data platform', score: 65, img: '/demos/inforsphere.png' },
-              { domain: 'community.genhub.fun', label: 'GenHub Community', desc: 'Community platform', score: 44, img: '/demos/communitygenhub.png' },
-            ].map((site) => (
-              <motion.div
-                key={site.domain}
-                variants={fadeUp}
-                className="card-glow group relative overflow-hidden rounded-card border border-white/[0.06] bg-[#0A1628] transition-all duration-300 hover:border-cyan/20"
-              >
-                {/* Report screenshot */}
-                <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#050B18]">
-                  <Image
-                    src={site.img}
-                    alt={`${site.label} audit report preview`}
-                    fill
-                    className="object-cover object-top transition-transform duration-500 group-hover:scale-[1.03]"
-                    sizes="(max-width: 768px) 100vw, 50vw"
-                    unoptimized
-                  />
-                  {/* Gradient overlay at bottom of image */}
-                  <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#0A1628] to-transparent" />
-                  {/* Score badge */}
-                  <div className="absolute top-4 right-4 flex items-center gap-2 rounded-full border border-white/10 bg-[#0A1628]/80 px-3 py-1.5 backdrop-blur-md">
-                    <span className={`text-[18px] font-bold ${site.score >= 70 ? 'text-[#0BCEBC]' : site.score >= 50 ? 'text-[#F59E0B]' : 'text-[#EF4444]'}`}>
-                      {site.score}
-                    </span>
-                    <span className="text-[10px] text-slate-400 uppercase tracking-wider">Score</span>
-                  </div>
-                </div>
-
-                {/* Card info */}
-                <div className="flex items-center justify-between p-5">
-                  <div>
-                    <h3 className="text-[15px] font-semibold text-white">{site.label}</h3>
-                    <p className="mt-0.5 text-[12px] text-slate-500">{site.desc} &middot; {site.domain}</p>
-                  </div>
-                  <Link
-                    href={`/audit/${encodeURIComponent(site.domain)}?demo=true`}
-                    className="inline-flex shrink-0 items-center gap-2 rounded-button border border-cyan/20 bg-cyan/[0.07] px-4 py-2 text-[12px] font-semibold text-cyan transition-all duration-200 hover:bg-cyan/[0.14] hover:border-cyan/30"
-                  >
-                    View report <ArrowRight size={12} />
-                  </Link>
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
-
-          <Reveal className="mt-8 text-center">
-            <p className="text-[12px] text-slate-500">
-              These are real audits run by SiteNexis — scores, issues, and recommendations are generated from live site data.
-            </p>
-          </Reveal>
-        </div>
-      </section>
+      {/* ── Live AI Audit Observatory (real audit data, not screenshots) ────── */}
+      <LiveAuditObservatory />
 
       {/* ── Score preview ─────────────────────────────────────────────────── */}
       <section className="py-32 px-6 bg-[#07111F]">
