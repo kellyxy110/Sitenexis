@@ -16,6 +16,7 @@ import {
   createColumnHelper,
   type SortingState,
   type ColumnFiltersState,
+  type Row,
 } from '@tanstack/react-table';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useQuery } from '@tanstack/react-query';
@@ -718,7 +719,6 @@ function FixPanel({ auditId, issueId }: { auditId: string; issueId: string }) {
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function RowContent({
   row,
   expanded,
@@ -727,7 +727,7 @@ function RowContent({
   onToggleFix,
   pageMap,
 }: {
-  row: any;
+  row: Row<SEOIssue>;
   expanded: boolean;
   auditId: string | undefined;
   fixPanelId: string | null;
@@ -746,7 +746,7 @@ function RowContent({
   return (
     <>
       <div className="flex items-center px-4 py-3">
-        {row.getVisibleCells().map((cell: ReturnType<typeof row.getVisibleCells>[number]) => (
+        {row.getVisibleCells().map((cell) => (
           <div key={cell.id} className={headerColClass(cell.column.id)}>
             {flexRender(cell.column.columnDef.cell, cell.getContext())}
           </div>

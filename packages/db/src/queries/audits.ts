@@ -1,5 +1,6 @@
-import { type Audit, type AuditStatus } from '../../generated';
+import { type Audit, type AuditStatus, type Prisma } from '../../generated';
 import { db } from '../client';
+import type { AuditAgentManifest, AuditAgentState, AgentResultStatus } from '@sitenexis/shared';
 
 export type { Audit };
 
@@ -9,15 +10,15 @@ export async function createAudit(userId: string, domain: string): Promise<Audit
   });
 }
 
-export async function getAuditById(id: string): Promise<Audit | null> {
+export async function getAuditById(id: string, userId?: string): Promise<Audit | null> {
   return db.audit.findFirst({
-    where: { id, archivedAt: null },
+    where: { id, ...(userId ? { userId } : {}), archivedAt: null },
   });
 }
 
-export async function getAuditWithResults(id: string) {
+export async function getAuditWithResults(id: string, userId?: string) {
   return db.audit.findFirst({
-    where: { id, archivedAt: null },
+    where: { id, ...(userId ? { userId } : {}), archivedAt: null },
     include: {
       pages: { where: { archivedAt: null } },
       issues: true,
@@ -78,6 +79,51 @@ export async function updateAuditStatus(
       ...(metadata?.crawlDurationMs !== undefined ? { crawlDurationMs: metadata.crawlDurationMs } : {}),
     },
   });
+}
+
+export async function initializeAuditManifest(auditId: string, required: string[]): Promise<void> {
+  const now = new Date().toISOString();
+  const agents = Object.fromEntries(required.map((agent) => [agent, {
+    agent, status: 'pending' as const, startedAt: null, finishedAt: null,
+    durationMs: null, retryCount: 0, keyOutput: null, resultPersisted: false,
+  }]));
+  const manifest: AuditAgentManifest = { version: 1, required, agents, updatedAt: now };
+  await db.audit.update({
+    where: { id: auditId },
+    data: { agentManifest: manifest as unknown as Prisma.InputJsonValue, requiredAgentCount: required.length },
+  });
+}
+
+export async function updateAuditAgentState(auditId: string, state: AuditAgentState): Promise<void> {
+  const audit = await db.audit.findUnique({ where: { id: auditId }, select: { agentManifest: true } });
+  if (!audit) throw new Error(`Audit ${auditId} not found`);
+  const current = (audit.agentManifest as unknown as Partial<AuditAgentManifest>) ?? {};
+  const agents = { ...(current.agents ?? {}), [state.agent]: state };
+  const values = Object.values(agents);
+  const manifest: AuditAgentManifest = {
+    version: 1,
+    required: current.required ?? values.map((value) => value.agent),
+    agents,
+    updatedAt: new Date().toISOString(),
+  };
+  const count = (status: AgentResultStatus) => values.filter((value) => value.status === status).length;
+  await db.audit.update({
+    where: { id: auditId },
+    data: {
+      agentManifest: manifest as unknown as Prisma.InputJsonValue,
+      completedAgentCount: count('completed'),
+      partialAgentCount: count('partial'),
+      failedAgentCount: count('failed'),
+    },
+  });
+}
+
+export async function getAuditManifest(auditId: string, userId?: string): Promise<AuditAgentManifest | null> {
+  const audit = await db.audit.findFirst({
+    where: { id: auditId, ...(userId ? { userId } : {}), archivedAt: null },
+    select: { agentManifest: true },
+  });
+  return (audit?.agentManifest as unknown as AuditAgentManifest | undefined) ?? null;
 }
 
 export async function softDeleteAudit(id: string): Promise<void> {

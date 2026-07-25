@@ -11,6 +11,8 @@ import {
   Key, CreditCard, Users, Puzzle, Globe, Layers, History,
   Settings, Zap,
 } from 'lucide-react';
+import { ToolExplanation } from '@/components/dashboard/ToolExplanation';
+import { AuditNarrative } from '@/components/dashboard/AuditNarrative';
 
 // ── Route metadata map ────────────────────────────────────────────────────────
 
@@ -154,7 +156,7 @@ const UPCOMING = [
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
-export default function StubPage() {
+export default function DashboardModulePage() {
   const params  = useParams();
   const router  = useRouter();
   const slugArr = Array.isArray(params.slug) ? params.slug : [params.slug ?? ''];
@@ -199,15 +201,26 @@ export default function StubPage() {
                     {meta.badge}
                   </span>
                 )}
-                <span className="rounded-pill border border-amber/20 bg-amber/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber">
-                  Coming soon
-                </span>
+                <ToolExplanation
+                  what={meta?.title ?? 'Dashboard module'}
+                  why="This analysis uses your audited pages to explain how AI systems may retrieve and interpret them."
+                  checks="The latest user-scoped audit and persisted agent results; missing data remains unavailable rather than becoming zero."
+                  improve="Run a completed audit with this module enabled, then follow its evidence-backed recommendations."
+                />
               </div>
               <p className="text-[15px] leading-[1.7] text-[#64748B]">
                 {meta?.description ?? 'This section is under active development.'}
               </p>
             </div>
           </div>
+
+          <AuditNarrative
+            finding="This module is ready to show audit-derived evidence when its agent has completed."
+            evidence="No synthetic scores or competitor estimates are displayed on this state."
+            impact="Without a persisted result there is no reliable finding to act on yet."
+            nextAction="Run or rerun an audit with this module enabled."
+            verify="Return when the audit reaches a truthful completed or partial state and confirm its evidence and affected pages."
+          />
 
           {/* CTA row */}
           <div className="flex items-center gap-4 border-t border-white/[0.05] pt-6">

@@ -157,7 +157,7 @@ export default function HealthDashboardPage() {
 
   const run = latestData?.run ?? null;
   const score = run?.healthScore ?? null;
-  const series = historyData?.series ?? [];
+  const series = useMemo(() => historyData?.series ?? [], [historyData?.series]);
 
   // Calculate trend vs previous data point
   const trends = useMemo(() => {

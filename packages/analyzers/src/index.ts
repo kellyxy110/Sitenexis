@@ -8,6 +8,7 @@ import { analyzePerformance } from './performance/engine';
 import { analyzeMachineReadability } from './machine-readability/engine';
 import { analyzeEntityIntelligence } from './entity/engine';
 import { analyzeCitationProbability } from './citation/engine';
+import { analyzeCitationIntelligence } from './citation-intelligence/engine';
 import { analyzeSemanticTrust } from './semantic-trust/engine';
 import { buildPerceptionGraph } from './perception-graph/engine';
 
@@ -89,6 +90,8 @@ export type { HybridAuditContext, ExecutiveSummaryOutput, ExecutiveSummarySectio
 export { analyzeMachineReadability } from './machine-readability/engine';
 export { analyzeEntityIntelligence } from './entity/engine';
 export { analyzeCitationProbability } from './citation/engine';
+export { analyzeCitationIntelligence, CITATION_INTELLIGENCE_ENGINE_VERSION } from './citation-intelligence/engine';
+export type { CitationDiscoveryProvider, CitationDiscoveryRequest, CitationDiscoveryResponse } from './citation-intelligence/provider';
 export { analyzeSemanticTrust } from './semantic-trust/engine';
 export { buildPerceptionGraph } from './perception-graph/engine';
 export { calculateAIVisibilityScore, calculateRecommendationConfidenceScore, getRecommendationBlockers } from './ai/visibility';
@@ -221,6 +224,7 @@ export async function runAllAnalyzers(
   ]);
 
   const perceptionGraph = buildPerceptionGraph(auditId, pages, entityIntelligence);
+  const citationIntelligence = analyzeCitationIntelligence({ auditId, domain: pages[0]?.url ?? '', pages });
 
   const overall = Math.round(
     (seo.score
@@ -247,5 +251,6 @@ export async function runAllAnalyzers(
     citationAnalysis,
     semanticTrust,
     perceptionGraph,
+    citationIntelligence,
   };
 }

@@ -143,8 +143,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   // Stage 4: Create audit record
   let audit: { id: string };
   try {
-    const { createAudit } = await import('@sitenexis/db');
+    const { createAudit, initializeAuditManifest } = await import('@sitenexis/db');
     audit = await createAudit(user.id, domain);
+    const { DEFAULT_AUDIT_AGENTS } = await import('@sitenexis/shared');
+    await initializeAuditManifest(audit.id, [...DEFAULT_AUDIT_AGENTS]);
     stages.push({ stage: 'db_create_audit', status: 'ok' });
   } catch (err) {
     const s = stageError('db_create_audit', err, 'Cannot write to audits table. Check DATABASE_URL and run pnpm db:push.');

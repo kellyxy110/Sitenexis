@@ -148,21 +148,17 @@ const executiveSummarySkill: SkillDefinition<HybridAuditContext> = {
   }),
 };
 
-const CORE_SKILLS: SkillDefinition<any>[] = [
-  entityClaritySkill,
-  conversationalReadinessSkill,
-  aiExtractabilitySkill,
-  entityDetectionSkill,
-  groqEntityExtractionSkill,
-  entityDisambiguationSkill,
-  contradictionDetectionSkill,
-  hybridAuditReportSkill,
-  executiveSummarySkill,
-];
-
 /** Registers every core SiteNexis skill. Safe to call more than once (register() is idempotent for unchanged versions). */
 export function registerCoreSkills(): void {
-  for (const skill of CORE_SKILLS) skillRegistry.register(skill);
+  skillRegistry.register(entityClaritySkill);
+  skillRegistry.register(conversationalReadinessSkill);
+  skillRegistry.register(aiExtractabilitySkill);
+  skillRegistry.register(entityDetectionSkill);
+  skillRegistry.register(groqEntityExtractionSkill);
+  skillRegistry.register(entityDisambiguationSkill);
+  skillRegistry.register(contradictionDetectionSkill);
+  skillRegistry.register(hybridAuditReportSkill);
+  skillRegistry.register(executiveSummarySkill);
 }
 
 export {

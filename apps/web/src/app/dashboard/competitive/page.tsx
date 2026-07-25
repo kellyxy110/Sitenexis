@@ -54,35 +54,6 @@ const DIMENSIONS = [
 
 // ── Demo dataset ─────────────────────────────────────────────────────────────
 
-function buildDemoScores(primaryDomain: string, competitors: string[]): CompetitorScore[] {
-  const seed = (s: string) => s.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
-
-  const domains = [primaryDomain, ...competitors].filter(Boolean).slice(0, 6);
-  const scores: CompetitorScore[] = domains.map((domain, i) => {
-    const s = seed(domain);
-    const base = i === 0 ? 68 : 42 + (s % 35);
-    return {
-      domain,
-      aiVisibility:        Math.min(100, base + (s % 15)),
-      entityConfidence:    Math.min(100, base - 5 + ((s * 3) % 18)),
-      citationProbability: Math.min(100, base - 8 + ((s * 7) % 22)),
-      semanticTrust:       Math.min(100, base + 3 + ((s * 11) % 16)),
-      retrievalReadiness:  Math.min(100, base - 3 + ((s * 5) % 20)),
-      overall: 0,
-      rank: i + 1,
-    };
-  });
-
-  scores.forEach(s => {
-    s.overall = Math.round((s.aiVisibility + s.entityConfidence + s.citationProbability + s.semanticTrust + s.retrievalReadiness) / 5);
-  });
-
-  scores.sort((a, b) => b.overall - a.overall);
-  scores.forEach((s, i) => { s.rank = i + 1; });
-
-  return scores;
-}
-
 // ── Plan gate ─────────────────────────────────────────────────────────────────
 
 function PlanGate({ plan }: { plan: string }) {
@@ -114,6 +85,7 @@ export default function CompetitiveAnalysisPage() {
   const [competitors, setCompetitors] = useState<string[]>(['', '']);
   const [analyzed, setAnalyzed] = useState(false);
   const [scores, setScores] = useState<CompetitorScore[]>([]);
+  const [comparisonMessage, setComparisonMessage] = useState<string | null>(null);
 
   const { data: me } = useQuery<MeResponse>({
     queryKey: ['me'],
@@ -140,8 +112,8 @@ export default function CompetitiveAnalysisPage() {
   const runAnalysis = () => {
     const filled = competitors.filter(c => c.trim());
     if (!primaryDomain.trim() || filled.length === 0) return;
-    const results = buildDemoScores(primaryDomain.trim(), filled.map(c => c.trim()));
-    setScores(results);
+    setScores([]);
+    setComparisonMessage('Public competitor crawling is not configured for this workspace yet. No competitor scores were invented. Configure the competitive analysis worker, then rerun this comparison.');
     setAnalyzed(true);
   };
 
@@ -342,6 +314,13 @@ export default function CompetitiveAnalysisPage() {
                       </div>
                     </div>
                   )}
+                </div>
+              )}
+
+              {analyzed && scores.length === 0 && comparisonMessage && (
+                <div className="rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] p-6">
+                  <h3 className="text-[14px] font-semibold text-amber-300">Comparison unavailable</h3>
+                  <p className="mt-2 text-[13px] leading-6 text-slate-400">{comparisonMessage}</p>
                 </div>
               )}
 

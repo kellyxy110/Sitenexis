@@ -37,9 +37,7 @@ async function registerPrismaEngine() {
          'query_engine-windows.dll.node'];
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const fs = require('fs') as typeof import('fs');
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const path = require('path') as typeof import('path');
 
     // Directories where the generated engines may live, most-specific first.

@@ -21,6 +21,7 @@ enum Plan {
 enum AuditStatus {
   queued
   running
+  partial
   complete
   failed
 }
@@ -106,6 +107,12 @@ model Audit {
   createdAt       DateTime    @default(now()) @map("created_at")
   updatedAt       DateTime    @updatedAt @map("updated_at")
   archivedAt      DateTime?   @map("archived_at")
+  agentManifest   Json        @default("{}") @map("agent_manifest")
+  requiredAgentCount Int      @default(0) @map("required_agent_count")
+  completedAgentCount Int     @default(0) @map("completed_agent_count")
+  partialAgentCount Int       @default(0) @map("partial_agent_count")
+  failedAgentCount Int        @default(0) @map("failed_agent_count")
+  totalFindings Int           @default(0) @map("total_findings")
 
   user                     User                      @relation(fields: [userId], references: [id])
   pages                    Page[]

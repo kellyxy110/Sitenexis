@@ -10,7 +10,7 @@ export interface GTLResponse<T> {
 
 // ─── Audit ───────────────────────────────────────────────────────────────────
 
-export type AuditStatus = 'queued' | 'running' | 'complete' | 'failed';
+export type AuditStatus = 'queued' | 'running' | 'partial' | 'complete' | 'failed';
 
 export type Plan = 'free' | 'starter' | 'pro' | 'agency' | 'enterprise';
 
@@ -381,6 +381,7 @@ export interface AuditScores {
   citationAnalysis: CitationAnalysis;
   semanticTrust: SemanticTrustScore;
   perceptionGraph: PerceptionGraphSnapshot;
+  citationIntelligence?: import('./citation-intelligence').CitationIntelligenceResult;
 }
 
 // ─── v2 — Entity Intelligence ─────────────────────────────────────────────────

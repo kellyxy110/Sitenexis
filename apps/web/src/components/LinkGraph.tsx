@@ -210,10 +210,10 @@ export function LinkGraph({ graph, onNodeClick }: LinkGraphProps) {
   const [highlightOrphans, setHighlightOrphans] = useState(true);
   const [mounted, setMounted]               = useState(false);
 
-  const nodes        = graph.nodes ?? [];
-  const edges        = graph.edges ?? [];
-  const orphanPages  = graph.orphanPages ?? [];
-  const weakClusters = graph.weakClusters ?? [];
+  const nodes = useMemo(() => graph.nodes ?? [], [graph.nodes]);
+  const edges = useMemo(() => graph.edges ?? [], [graph.edges]);
+  const orphanPages = useMemo(() => graph.orphanPages ?? [], [graph.orphanPages]);
+  const weakClusters = useMemo(() => graph.weakClusters ?? [], [graph.weakClusters]);
 
   // Build cluster colour index once
   const clusterIndex = useMemo(() => {

@@ -20,9 +20,8 @@ export async function GET(req: NextRequest, { params }: Params): Promise<NextRes
 
   try {
     const { getAuditWithResults } = await import('@sitenexis/db');
-    const audit = await getAuditWithResults(id) as ({ userId: string; status: AuditStatus } & Record<string, unknown>) | null;
+    const audit = await getAuditWithResults(id, user.id) as ({ userId: string; status: AuditStatus } & Record<string, unknown>) | null;
     if (!audit) return gtlEmpty();
-    if (audit.userId !== user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const state = audit.status === 'complete' ? 'complete'
       : audit.status === 'running' || audit.status === 'queued' ? 'partial'

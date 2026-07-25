@@ -14,13 +14,14 @@ export async function GET(req: NextRequest, { params }: Params): Promise<NextRes
 
   try {
     const { getAuditWithResults, getAIVisibilityScore, getAuditScores } = await import('@sitenexis/db');
-    const audit = await getAuditWithResults(id) as { userId: string; status: AuditStatus } | null;
+    const audit = await getAuditWithResults(id, user.id) as { userId: string; status: AuditStatus } | null;
     if (!audit) return gtlEmpty();
     if (audit.userId !== user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-    const [visScore, auditScores] = await Promise.all([
+    const [visScore, auditScores, citationIntelligence] = await Promise.all([
       getAIVisibilityScore(id),
       getAuditScores(id),
+      (await import('@sitenexis/db')).getCitationIntelligence(id, user.id),
     ]);
 
     const state = resolveGTLState(audit.status, !!visScore);
@@ -36,6 +37,7 @@ export async function GET(req: NextRequest, { params }: Params): Promise<NextRes
       citationBlockers: (citBreakdown?.['blockers'] as string[] | undefined) ?? [],
       recommendations: (citBreakdown?.['recommendations'] as string[] | undefined) ?? [],
       pageBreakdown: (citBreakdown?.['pageBreakdown'] as unknown[] | undefined) ?? [],
+      citationIntelligence,
     });
   } catch (err) {
     logger.error({ err }, 'GET /api/audit/[id]/citation failed');

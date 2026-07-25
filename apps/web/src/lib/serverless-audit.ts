@@ -9,6 +9,7 @@ import { logger } from '@/lib/logger';
 import { getGroqAdapter, getFetchExtractionAdapter, getCrawl4aiExtractionAdapter, estimateCost } from '@sitenexis/adapters';
 import { recordAiCallMetric } from '@sitenexis/db';
 import type { CrawledPage } from '@sitenexis/shared';
+import type { AgentResultStatus, AuditAgentState } from '@sitenexis/shared';
 import type {
   RetrievalSimulationResult,
   MachineTrustScore,
@@ -930,10 +931,22 @@ export async function runServerlessAudit(
   _userId: string,
   selfAuditRunId?: string,
 ): Promise<void> {
-  const { updateAuditStatus, db } = await import('@sitenexis/db');
+  const { updateAuditStatus, updateAuditAgentState, db } = await import('@sitenexis/db');
+  const startedAt = Date.now();
+  const markAgent = async (agent: string, status: AgentResultStatus, keyOutput: string | null, failureReason?: string): Promise<void> => {
+    const state: AuditAgentState = {
+      agent, status, startedAt: new Date(startedAt).toISOString(), finishedAt: new Date().toISOString(),
+      durationMs: Date.now() - startedAt, retryCount: 0, keyOutput, resultPersisted: status !== 'failed',
+      ...(failureReason ? { failureReason } : {}),
+    };
+    try { await updateAuditAgentState(auditId, state); } catch (err) {
+      logger.warn({ auditId, agent, err }, 'Could not persist agent state');
+    }
+  };
 
   try {
     await updateAuditStatus(auditId, 'running', {});
+    await markAgent('crawl', 'running', null);
     const crawlStartTime = Date.now();
 
     // ── 1 + 2. Crawl pages via FetchExtractionAdapter ─────────────────────────
@@ -993,16 +1006,20 @@ export async function runServerlessAudit(
       await updateAuditStatus(auditId, 'failed', {
         errorMessage: `Homepage returned ${code} for ${domain}${hint}`.slice(0, 500),
       });
+      await markAgent('crawl', 'failed', null, `Homepage returned ${code}`);
       return;
     }
 
     const pages: ParsedPage[] = crawledRaw.map(toParsedPage);
     const urls = pages.map((p) => p.url);
     await updateAuditStatus(auditId, 'running', { pageCount: pages.length });
+    await markAgent('crawl', 'completed', `${pages.length} pages crawled`);
 
     // ── 3. Analyse ────────────────────────────────────────────────────────────
     const { score: seoScore, issues: seoIssues } = analyseSEO(pages);
     const { score: schemaScore, schemaUrls } = analyseSchema(pages);
+    await markAgent('seo', 'completed', `${seoIssues.length} findings`);
+    await markAgent('schema', 'completed', `${schemaUrls.length} pages with schema`);
 
     // Run both Groq calls in parallel with the heuristic fallback
     const heuristicScores = scoreAIVisibility(pages);
@@ -1019,6 +1036,11 @@ export async function runServerlessAudit(
       semanticTrustScore:       groqScores?.semanticTrustScore       ?? heuristicScores.semanticTrustScore,
       recommendationConfidence: groqScores?.recommendationConfidence ?? heuristicScores.recommendationConfidence,
     };
+    await markAgent('entity', 'completed', `Entity confidence ${aiScores.entityConfidenceScore}`);
+    await markAgent('retrieval', 'completed', `Retrieval readiness ${aiScores.retrievalReadinessScore}`);
+    await markAgent('citation', 'completed', `Citation readiness ${aiScores.citationProbabilityScore}`);
+    await markAgent('semantic-trust', 'completed', `Semantic trust ${aiScores.semanticTrustScore}`);
+    await markAgent('performance', 'no_data', 'Performance metrics were not collected by the fetch crawler');
 
     const overall = Math.round(seoScore * 0.25 + aiScores.aiScore * 0.40 + schemaScore * 0.15 + 60 * 0.20);
 
@@ -1036,6 +1058,7 @@ export async function runServerlessAudit(
       aiScores.machineReadabilityScore * 0.10 +
       aiScores.entityConfidenceScore * 0.10,
     );
+    await markAgent('visualization', perceptionGraph ? 'completed' : 'no_data', perceptionGraph ? `${perceptionGraph.nodes.length} graph nodes` : 'No graph returned');
 
     // ── 4. Save to DB ─────────────────────────────────────────────────────────
 
@@ -1077,6 +1100,7 @@ export async function runServerlessAudit(
     // Persisted in the auditScore.breakdown JSON — no schema migration required.
     let securityReport: unknown = null;
     let brandReport: unknown = null;
+    let layer4Failed = false;
     try {
       const { buildSecurityTrustReport, buildBrandPresenceReport } = await import('@sitenexis/analyzers');
       securityReport = buildSecurityTrustReport({
@@ -1274,7 +1298,7 @@ export async function runServerlessAudit(
         return Math.round((schemaDensity * 0.35 + linkDensity * 0.25 + headingStructure * 0.25 + contentDepth * 0.15) * 100) / 100;
       })();
 
-      await Promise.allSettled([
+      const layer4Writes = await Promise.allSettled([
         saveRetrievalSimulations(auditId, retrievalSims),
         saveMachineTrustScore(auditId, machineTrustData),
         saveTemporalAuthorityRecord(auditId, temporalAuthorityData),
@@ -1289,9 +1313,29 @@ export async function runServerlessAudit(
             })
           : Promise.resolve(),
       ]);
+      const failedWrites = layer4Writes.filter((result) => result.status === 'rejected');
+      if (failedWrites.length > 0) {
+        throw new Error(`${failedWrites.length} layer-4 result writes failed`);
+      }
     } catch (layer4Err) {
+      layer4Failed = true;
       logger.warn({ auditId, err: layer4Err }, 'Layer 4 analysis failed (non-fatal)');
+      await markAgent('retrieval-simulation', 'partial', null, 'Layer 4 retrieval simulation failed');
+      await markAgent('machine-trust', 'partial', null, 'Layer 4 machine trust failed');
     }
+
+    if (!layer4Failed) {
+      await markAgent('retrieval-simulation', 'completed', `${retrievalSims.length} pages simulated`);
+      await markAgent('machine-trust', 'completed', `Machine trust ${machineTrustData.overall}`);
+      await markAgent('temporal-authority', 'completed', temporalAuthorityData.updateFrequencyClassification);
+      await markAgent('synthetic-entity', 'completed', `Authenticity ${syntheticData.entityAuthenticityConfidence}`);
+    }
+
+    await markAgent('infrastructure', 'completed', 'Crawl and persistence completed');
+    await markAgent('reporting', 'completed', 'Report context persisted');
+    await markAgent('recommendation-mapping', 'completed', `${seoIssues.length} source recommendations`);
+    await markAgent('information-gain', 'no_data', 'Internal information-gain analysis is not part of the serverless runner yet');
+    await markAgent('scout', 'no_data', 'Scout analysis is not part of the serverless runner yet');
 
     // ── 6. Write back to selfAuditRun tables (health monitor) ────────────────
     if (selfAuditRunId) {
@@ -1482,8 +1526,9 @@ export async function runServerlessAudit(
       logger.warn({ auditId, domain, err: loopErr }, 'LoopOS StateEngine write failed (non-fatal)');
     }
 
-    await updateAuditStatus(auditId, 'complete', { pageCount: pages.length });
-    logger.info({ auditId, domain, pages: pages.length, overall }, 'Serverless audit complete');
+    const finalStatus = layer4Failed ? 'partial' : 'complete';
+    await updateAuditStatus(auditId, finalStatus, { pageCount: pages.length });
+    logger.info({ auditId, domain, pages: pages.length, overall, finalStatus }, 'Serverless audit finished');
 
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

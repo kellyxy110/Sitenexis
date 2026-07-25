@@ -37,6 +37,7 @@ export async function saveAuditScores(scores: AuditScores): Promise<AuditScore> 
         citationAnalysis: scores.citationAnalysis ? {
           citationProbabilityScore: scores.citationAnalysis.citationProbabilityScore,
         } : null,
+        citationIntelligence: scores.citationIntelligence ? scores.citationIntelligence as unknown as Prisma.InputJsonObject : null,
         semanticTrust: scores.semanticTrust ? {
           score: scores.semanticTrust.score,
           breakdown: scores.semanticTrust.breakdown,
@@ -76,6 +77,7 @@ export async function saveAuditScores(scores: AuditScores): Promise<AuditScore> 
         citationAnalysis: scores.citationAnalysis ? {
           citationProbabilityScore: scores.citationAnalysis.citationProbabilityScore,
         } : null,
+        citationIntelligence: scores.citationIntelligence ? scores.citationIntelligence as unknown as Prisma.InputJsonObject : null,
         semanticTrust: scores.semanticTrust ? {
           score: scores.semanticTrust.score,
           breakdown: scores.semanticTrust.breakdown,
@@ -161,6 +163,34 @@ export async function saveAuditScores(scores: AuditScores): Promise<AuditScore> 
   }
 
   return record;
+}
+
+export async function getCitationIntelligence(auditId: string, userId?: string) {
+  const audit = await db.audit.findFirst({
+    where: { id: auditId, ...(userId ? { userId } : {}) },
+    select: { scores: { select: { breakdown: true } } },
+  });
+  const breakdown = audit?.scores?.breakdown as Record<string, unknown> | null | undefined;
+  return (breakdown?.citationIntelligence as import('@sitenexis/shared').CitationIntelligenceResult | undefined) ?? null;
+}
+
+export async function getCitationIntelligenceHistory(userId: string, domain?: string) {
+  const audits = await db.audit.findMany({
+    where: { userId, ...(domain ? { domain } : {}), scores: { isNot: null } },
+    orderBy: { createdAt: 'desc' },
+    take: 50,
+    select: { id: true, domain: true, createdAt: true, completedAt: true, scores: { select: { breakdown: true } } },
+  });
+  return audits.map((audit) => {
+    const breakdown = audit.scores?.breakdown as Record<string, unknown> | null | undefined;
+    return {
+      auditId: audit.id,
+      domain: audit.domain,
+      createdAt: audit.createdAt,
+      completedAt: audit.completedAt,
+      citationIntelligence: breakdown?.citationIntelligence ?? null,
+    };
+  }).filter((item) => item.citationIntelligence !== null);
 }
 
 export async function getAuditScores(auditId: string): Promise<AuditScore | null> {

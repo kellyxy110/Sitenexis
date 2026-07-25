@@ -19,6 +19,23 @@ interface CitationData {
   citationBlockers: string[];
   recommendations: string[];
   pageBreakdown: PageBreakdownItem[];
+  citationIntelligence?: CitationIntelligence | null;
+}
+
+interface CitationIntelligence {
+  status: string;
+  availabilityState: string;
+  providerState: string;
+  evidenceState: string;
+  generatedAt: string;
+  summary: string;
+  confidence: number;
+  limitations: string[];
+  scores: Record<string, number | null>;
+  counts: Record<string, number>;
+  signals: Array<{ id: string; type: string; sourceUrl: string; targetUrl: string; provenance: string }>;
+  gaps: Array<{ title: string; reason: string; priority: string; nextStep: string; verification: string }>;
+  recommendations: Array<{ title: string; why: string; priority: string; expectedImpact: string; verification: string }>;
 }
 
 function scoreColor(s: number) {
@@ -75,18 +92,18 @@ export default function CitationPage() {
           <div>
             <div className="mb-1 flex items-center gap-2">
               <Quote className="h-5 w-5 text-cyan" />
-              <h1 className="text-xl font-bold text-white">Citation Probability</h1>
+              <h1 className="text-xl font-bold text-white">Citation Intelligence</h1>
             </div>
             <p className="text-sm text-[#4A6280]">
               {audit
                 ? <>For <span className="text-[#7A9AB4]">{audit.domain}</span> — <a href={`/audit/${encodeURIComponent(audit.domain)}?auditId=${audit.id}`} className="text-cyan hover:underline inline-flex items-center gap-1">full report <ExternalLink className="h-3 w-3" /></a></>
-                : 'Likelihood AI systems select your content as a citation source — factual density, authority signals, structural readiness'}
+                : 'Evidence-based analysis of the references, authority signals, entities and retrieval conditions SiteNexis observed'}
             </p>
           </div>
           {data && (
             <div className="text-right">
               <div className="text-4xl font-bold tabular-nums" style={{ color: scoreColor(data.citationProbabilityScore) }}>{data.citationProbabilityScore}</div>
-              <div className="text-xs text-[#4A6280]">Citation Probability</div>
+              <div className="text-xs text-[#4A6280]">Citation readiness</div>
               <div className="mt-0.5 text-xs font-semibold" style={{ color: scoreColor(data.citationProbabilityScore) }}>{scoreLabel(data.citationProbabilityScore)}</div>
             </div>
           )}
@@ -107,6 +124,36 @@ export default function CitationPage() {
 
         {data && (
           <div className="space-y-6">
+            {data.citationIntelligence && (
+              <>
+                <div className="rounded-xl border border-cyan/20 bg-cyan/[0.04] p-5">
+                  <h2 className="mb-2 text-sm font-semibold text-[#C8DFE8]">What SiteNexis found</h2>
+                  <p className="text-sm leading-6 text-[#7A9AB4]">{data.citationIntelligence.summary}</p>
+                  <p className="mt-2 text-xs text-[#4A6280]">State: {data.citationIntelligence.availabilityState.replaceAll('_', ' ')} · Evidence: {data.citationIntelligence.evidenceState.replaceAll('_', ' ')} · Provenance: SiteNexis crawl, structured data, sameAs analysis, internal link graph and outbound reference analysis.</p>
+                  <p className="mt-1 text-xs text-[#4A6280]">Confidence: {Math.round(data.citationIntelligence.confidence * 100)}% · Based on {data.citationIntelligence.counts.pagesAnalyzed ?? 0} crawled pages · Generated {new Date(data.citationIntelligence.generatedAt).toLocaleString()}. Scores are deterministic estimates, not guarantees of search or AI citations.</p>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                  {['citation','authority','trust','aiCitation','entity','digitalAuthority'].map((key) => (
+                    <div key={key} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+                      <div className="text-[10px] uppercase tracking-wide text-[#4A6280]">{key.replace(/([A-Z])/g, ' $1')}</div>
+                      <div className="mt-2 text-2xl font-bold text-cyan">{data.citationIntelligence?.scores[key] ?? '—'}</div>
+                    </div>
+                  ))}
+                </div>
+                <div className="grid gap-5 lg:grid-cols-2">
+                  <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
+                    <h2 className="mb-3 text-sm font-semibold text-[#C8DFE8]">Citation evidence</h2>
+                    <div className="mb-3 grid grid-cols-2 gap-2 text-xs text-[#7A9AB4]"><span>Internal: {data.citationIntelligence.counts.internalCitations}</span><span>External: {data.citationIntelligence.counts.externalReferences}</span><span>sameAs: {data.citationIntelligence.counts.sameAsReferences}</span><span>Categories: {data.citationIntelligence.counts.sourceCategories}</span></div>
+                    <div className="max-h-64 space-y-2 overflow-auto">{data.citationIntelligence.signals.slice(0, 25).map((signal) => <div key={signal.id} className="border-t border-white/[0.05] pt-2 text-xs"><span className="text-cyan">{signal.type}</span><div className="truncate text-[#7A9AB4]">{signal.sourceUrl} → {signal.targetUrl}</div></div>)}</div>
+                  </div>
+                  <div className="rounded-xl border border-amber-500/20 bg-amber-500/[0.03] p-5">
+                    <h2 className="mb-3 text-sm font-semibold text-[#C8DFE8]">Citation gaps</h2>
+                    <div className="space-y-3">{data.citationIntelligence.gaps.map((gap) => <div key={gap.title}><div className="text-xs font-semibold text-amber-300">{gap.title} · {gap.priority}</div><p className="mt-1 text-xs text-[#7A9AB4]">{gap.reason}</p><p className="mt-1 text-xs text-[#4A6280]">Next: {gap.nextStep}</p></div>)}</div>
+                  </div>
+                </div>
+                {data.citationIntelligence.limitations.length > 0 && <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 text-xs text-[#4A6280]"><span className="font-semibold text-[#7A9AB4]">Measurement limits: </span>{data.citationIntelligence.limitations.join(' ')}</div>}
+              </>
+            )}
             {/* Score + factor weights */}
             <div className="grid gap-6 lg:grid-cols-2">
               {/* Score bar */}

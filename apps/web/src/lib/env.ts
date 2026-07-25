@@ -4,9 +4,14 @@ import { z } from 'zod';
 // Preview deployments — so NODE_ENV alone can't distinguish Preview from Production.
 // VERCEL_ENV does ('production' | 'preview' | 'development'); fall back to NODE_ENV
 // off-Vercel where VERCEL_ENV is unset (e.g. Docker, bare metal).
-const isProd = process.env['VERCEL_ENV']
+// Next.js evaluates server modules during `next build` while collecting route
+// metadata/page data. That phase must not require deployment secrets: secrets
+// are runtime inputs and are still enforced on the deployed server process.
+// NEXT_PHASE is set by Next for the optimized production build only.
+const isBuild = process.env['NEXT_PHASE'] === 'phase-production-build';
+const isProd = !isBuild && (process.env['VERCEL_ENV']
   ? process.env['VERCEL_ENV'] === 'production'
-  : process.env['NODE_ENV'] === 'production';
+  : process.env['NODE_ENV'] === 'production');
 
 // In production: require a real value. In dev/test: fall back to a placeholder
 // so local development works without all secrets configured.
@@ -16,7 +21,9 @@ const prodRequired = (placeholder: string) =>
 // Secrets that must never have a guessable default in any environment.
 // In prod: required. In dev: still warn-level but allow a local fallback.
 const secret = (minLen = 16) =>
-  isProd
+  isBuild
+    ? z.string().default('build-only-secret-not-for-runtime')
+    : isProd
     ? z.string().min(minLen, `Must be at least ${minLen} characters in production`)
     : z.string().min(minLen).default('dev-secret-change-before-deploying-to-production');
 
@@ -78,9 +85,8 @@ const envSchema = z.object({
 
   NEXT_PUBLIC_APP_URL: z.string().default('http://localhost:3000'),
 
-  // Google Tag Manager + GA4 — public, safe for the browser bundle
+  // Google Tag Manager — GA4 is configured as a tag inside the GTM container.
   NEXT_PUBLIC_GTM_ID: z.string().default(''),
-  NEXT_PUBLIC_GA_MEASUREMENT_ID: z.string().default(''),
 
   PROVIDER_WEIGHTS_CONFIG: z.string().optional(),
   TRUST_DECAY_CONFIG: z.string().optional(),

@@ -71,7 +71,6 @@ GTM/GA4 tag itself to fire in the browser:
 | Variable | Value |
 |---|---|
 | `NEXT_PUBLIC_GTM_ID` | Your GTM container ID, e.g. `GTM-XXXXXXX` |
-| `NEXT_PUBLIC_GA_MEASUREMENT_ID` | Your GA4 measurement ID, e.g. `G-XXXXXXXXXX` (configured as a tag inside GTM, not read directly by app code today — kept as an env var for any future direct-gtag fallback) |
 
 ## 3. Turbo build env passthrough
 

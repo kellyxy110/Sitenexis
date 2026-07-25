@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
 import Script from 'next/script';
 import './globals.css';
@@ -30,6 +30,7 @@ export const metadata: Metadata = {
   alternates: {
     canonical: '/',
   },
+  manifest: '/manifest.webmanifest',
   icons: {
     icon: [
       { url: '/favicon.svg', type: 'image/svg+xml' },
@@ -67,6 +68,13 @@ export const metadata: Metadata = {
     description: 'SiteNexis models how AI systems retrieve, interpret, trust, and recommend your website. 12 scores, 16 agents, Intelligence Report, Decision Roadmap, Competitive Reality Simulation, Crawl4AI web extraction, real-time retrieval simulation.',
     images: ['/og-image'],
   },
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  colorScheme: 'dark',
+  themeColor: '#07111F',
 };
 
 // ─── Global structured data ───────────────────────────────────────────────────
@@ -277,6 +285,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
       <head>
+        <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
         {/* Theme flash prevention — runs synchronously before paint */}
         <script dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem('sn-theme')||'dark';document.documentElement.setAttribute('data-theme',t);}catch(e){}})();` }} />
         {/* Google Tag Manager — GA4 and all tags are configured inside the GTM container, not hardcoded here */}

@@ -141,7 +141,10 @@ export default function DashboardPage() {
   };
 
   // ── Derived data ────────────────────────────────────────────────────────────
-  const completeAudits = data?.data?.filter((r) => r.status === 'complete') ?? [];
+  const completeAudits = useMemo(
+    () => data?.data?.filter((r) => r.status === 'complete') ?? [],
+    [data?.data],
+  );
 
   const intelligenceScores: IntelligenceScores = useMemo(() => {
     if (!completeAudits.length) {

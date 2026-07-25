@@ -1,23 +1,9 @@
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore — optional peer dependency; only available when installed
-import {
-  Document,
-  Page,
-  Text,
-  View,
-  StyleSheet,
-  renderToBuffer,
-  Font,
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-} from '@react-pdf/renderer';
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+import { Document, Page, Text, View, StyleSheet, renderToBuffer, Font } from '@react-pdf/renderer';
 // @ts-ignore — react types resolved from root workspace
 import { createElement } from 'react';
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore — optional peer dependency
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore — db accessed only by report generator (architectural exception documented in CLAUDE.md)
 import { db } from '@sitenexis/db';
 import { type AuditScores, type SEOIssueSeverity } from '@sitenexis/shared';

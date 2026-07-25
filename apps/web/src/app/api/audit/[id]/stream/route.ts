@@ -43,8 +43,8 @@ export async function GET(req: NextRequest, { params }: Params): Promise<Respons
       try {
         const { getAuditById } = await import('@sitenexis/db');
 
-        const initial = await getAuditById(id);
-        if (!initial || initial.userId !== userId) {
+        const initial = await getAuditById(id, userId);
+        if (!initial) {
           send(controller, { error: 'Audit not found' });
           controller.close();
           return;
@@ -65,7 +65,7 @@ export async function GET(req: NextRequest, { params }: Params): Promise<Respons
 
           let audit: Awaited<ReturnType<typeof getAuditById>> | null = null;
           try {
-            audit = await getAuditById(id);
+            audit = await getAuditById(id, userId);
             consecutiveErrors = 0;
           } catch {
             consecutiveErrors += 1;
@@ -82,14 +82,25 @@ export async function GET(req: NextRequest, { params }: Params): Promise<Respons
 
           if (!audit) break;
 
+          const manifest = await (async () => {
+            const { getAuditManifest } = await import('@sitenexis/db');
+            return getAuditManifest(id, userId);
+          })();
+          send(controller, {
+            status: audit.status,
+            agentManifest: manifest,
+            pagesCount: audit.pageCount ?? 0,
+            timestamp: new Date().toISOString(),
+          });
+
           if (audit.status !== lastStatus) {
             lastStatus = audit.status;
             if (audit.status === 'running') {
               send(controller, { status: 'running', stage: 'crawl', timestamp: new Date().toISOString() });
-            } else if (audit.status === 'complete') {
+            } else if (audit.status === 'complete' || audit.status === 'partial') {
               send(controller, { stage: 'report', message: 'Finalising report…', timestamp: new Date().toISOString() });
               await new Promise<void>((r) => setTimeout(r, 300));
-              send(controller, { status: 'complete', pagesCount: audit.pageCount ?? 0, timestamp: new Date().toISOString() });
+              send(controller, { status: audit.status, pagesCount: audit.pageCount ?? 0, agentManifest: manifest, timestamp: new Date().toISOString() });
               controller.close();
               return;
             } else if (audit.status === 'failed') {

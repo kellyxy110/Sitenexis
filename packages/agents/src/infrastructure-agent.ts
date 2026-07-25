@@ -10,6 +10,7 @@ import {
   computeHealthScore, generateRecommendations, computeSIIScore,
   computeTopicalAuthority, computeSemanticDensity, computeAiCrawlability,
   computeGeoScore, computeSnsScore,
+  analyzeCitationIntelligence,
 } from '@sitenexis/analyzers';
 import { emitAgentEvent } from './registry';
 import { runCrawlAgent } from './crawl-agent';
@@ -72,6 +73,7 @@ export async function runInfrastructureAgent(input: AuditJobInput): Promise<void
     const linkGraph = analyzeLinkGraph(pages);
     const machineReadability = analyzeMachineReadability(pages);
     const perceptionGraph = buildPerceptionGraph(auditId, pages, entityIntelligence);
+    const citationIntelligence = analyzeCitationIntelligence({ auditId, domain, pages });
 
     // Dual-write normalized graph tables (fire-and-forget — failures never block the audit)
     Promise.allSettled([
@@ -133,6 +135,7 @@ export async function runInfrastructureAgent(input: AuditJobInput): Promise<void
       citationAnalysis,
       semanticTrust,
       perceptionGraph,
+      citationIntelligence,
     });
 
     // Compute + persist SII score (synchronous — all inputs already available)

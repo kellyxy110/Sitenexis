@@ -31,6 +31,7 @@ export const BLOG_POSTS: BlogPost[] = [
     tags: ['AI SEO', 'Machine Readability', 'Chunking', 'Content Strategy'],
     content: [
       { type: 'p', text: 'Every second, millions of web pages are being processed by AI retrieval systems — and most of those pages are losing the majority of their content in the process. Navigation menus, footers, cookie banners, boilerplate sidebars: all stripped out before the AI ever encounters your actual message. What remains is a fraction of what you wrote, broken into discrete units of roughly 300–600 tokens each. This is the reality of AI content consumption, and most websites are not built for it.' },
+      { type: 'p', text: 'NexisHub gives a complementary diagnostic view of [why useful content becomes AI-invisible](https://nexishub.vercel.app/blog/why-content-becomes-ai-invisible), connecting extraction loss to entity ambiguity, weak structure, and unsupported claims.' },
       { type: 'h2', text: 'The AI Retrieval Pipeline' },
       { type: 'p', text: 'When an AI system encounters your website, it runs content through a deterministic extraction pipeline. Raw HTML is rendered, then stripped of navigation and structural chrome. The remaining text is split into semantic chunks — discrete units that can be independently retrieved and embedded. Each chunk is converted into a vector representation and scored for relevance against incoming queries. Only the highest-scoring chunks reach the summarization and citation stage, where they become part of an AI-generated response.' },
       { type: 'p', text: 'The failure points are everywhere: chunks that split mid-sentence due to poor paragraph structure, boilerplate that inflates the noise-to-signal ratio, entities that are never explicitly defined, and claims that require context from three other paragraphs to be coherent. At each failure point, your content loses ground to sources that are structured for machine consumption.' },
@@ -66,6 +67,7 @@ export const BLOG_POSTS: BlogPost[] = [
     tags: ['Entity SEO', 'Knowledge Graph', 'Entity Intelligence', 'AI Search'],
     content: [
       { type: 'p', text: 'In the [knowledge graph](/blog/building-knowledge-graph-ai-visibility) model that underlies AI retrieval, entities are not an SEO tactic, they are the fundamental unit of information. An entity is a named, stable, real-world object with consistent, unambiguous attributes: a company, a person, a product, a place, a concept. When an AI system extracts meaning from your website, it is not parsing keywords, it is identifying entities, mapping their relationships, and scoring their consistency. If your primary entity is poorly defined, inconsistently described, or absent from key pages, the AI\'s model of your site is built on sand.' },
+      { type: 'p', text: 'NexisHub explains the operating model for [helping AI systems understand a brand entity](https://nexishub.vercel.app/blog/entity-clarity-ai-systems), including naming consistency, disambiguation, and evidence-backed attributes.' },
       { type: 'h2', text: 'What Is an Entity in AI Terms?' },
       { type: 'p', text: 'An entity exists at the intersection of three properties: it has a name (consistent across all surfaces), a type (Organisation, Person, Product, Place), and a set of attributes that remain stable across independent sources. The stability requirement is what differentiates entity-based trust from traditional authority signals. A site can have high domain authority while having completely inconsistent entity data — and an AI system will down-weight its content accordingly.' },
       { type: 'h2', text: 'The Entity Confidence Score' },
@@ -100,6 +102,7 @@ export const BLOG_POSTS: BlogPost[] = [
     tags: ['Schema Markup', 'Structured Data', 'Machine Trust', 'Technical SEO'],
     content: [
       { type: 'p', text: 'When [schema markup](/blog/schema-markup-is-a-trust-signal) was first introduced, the goal was simple: help search engines understand page content to generate rich results. In 2025, that goal has expanded dramatically. Schema is now the primary channel through which AI systems validate entity claims, verify source credibility, and determine whether your content passes the trust threshold required to appear in AI-generated responses. Most implementations optimized for the 2018 rich results landscape are actively undermining machine trust today.' },
+      { type: 'p', text: 'NexisHub extends this into a product-focused guide to [structured data, entities, and machine trust](https://nexishub.vercel.app/blog/structured-data-ai-machine-trust), with emphasis on visible evidence rather than schema-only claims.' },
       { type: 'h2', text: 'Schema as Machine Trust Infrastructure' },
       { type: 'p', text: 'AI systems use [schema markup](/blog/why-ai-ignores-schema-markup) to cross-reference claims made in body text. When your Organization schema states you were founded in 2012, and your About page body text says "established over a decade ago," those signals are consistent. When your Article schema attributes authorship to "Content Team" while the byline says "Sarah Johnson," those signals contradict. Every contradiction is a trust penalty. AI systems do not award partial credit for partial consistency.' },
       { type: 'h2', text: 'The Trust Alignment Problem' },
@@ -167,6 +170,7 @@ export const BLOG_POSTS: BlogPost[] = [
     tags: ['Citation Probability', 'AI Citations', 'Content Strategy', 'AI Visibility'],
     content: [
       { type: 'p', text: 'When an AI system generates a response and cites your page, you gain a form of visibility that no traditional SEO metric captures: your content becomes the source for an AI-generated answer that may be seen by thousands of users without a single click on your link. Citation probability — the likelihood that an AI system selects your content as a source — is now one of the most consequential performance metrics in digital marketing. It is also one of the most improvable.' },
+      { type: 'p', text: 'NexisHub also covers [measuring AI visibility without vanity metrics](https://nexishub.vercel.app/blog/measure-ai-visibility), including evidence logs, prompt samples, citation observations, and repeatable review cycles.' },
       { type: 'h2', text: 'What Makes Content Citation-Worthy' },
       { type: 'p', text: 'AI systems select citations based on a combination of factors that differ significantly from traditional ranking signals. Link count and Domain Authority play a secondary role. What AI systems primarily weight are the precision and density of factual claims, the depth of topical authority on the subject, and the structural characteristics that make content directly quotable.' },
       { type: 'list', items: [
@@ -383,6 +387,7 @@ export const BLOG_POSTS: BlogPost[] = [
     tags: ['ChatGPT SEO', 'Perplexity SEO', 'Claude SEO', 'Multi-AI Strategy'],
     content: [
       { type: 'p', text: 'Not all AI systems retrieve and cite content the same way. ChatGPT with browsing, Perplexity, Claude, and Google AI Overviews each have distinct retrieval architectures, different trust models, and different citation behaviors. A content strategy that optimizes only for one surface will leave significant AI visibility opportunities unrealized. Understanding the behavioral matrix of the major AI providers is the foundation of multi-surface AI content strategy.' },
+      { type: 'p', text: 'NexisHub compares this from the publisher side in [how major AI platforms discover sources](https://nexishub.vercel.app/blog/how-ai-platforms-discover-sources), separating documented discovery behavior from observation and inference.' },
       { type: 'h2', text: 'Provider-Specific Retrieval Behavior' },
       { type: 'list', items: [
         'Google AI Overviews: weights E-E-A-T signals, structured data, and featured snippet eligibility. Citation behavior is direct answer extraction with source attribution.',
@@ -512,6 +517,7 @@ export const BLOG_POSTS: BlogPost[] = [
     tags: ['GEO', 'Generative Engine Optimisation', 'AI Search', 'AI Visibility'],
     content: [
       { type: 'p', text: 'Generative Engine Optimisation (GEO) is the discipline of structuring web content so that AI systems — including ChatGPT, Perplexity, Claude, Google AI Overviews, and Gemini — retrieve, understand, cite, and recommend it in their generated responses. GEO is distinct from traditional SEO: where SEO optimises for ranking position in a list of links, GEO optimises for direct inclusion in AI-generated answers, citations, and recommendations. As AI systems become the primary discovery layer for information queries, GEO is becoming the most consequential content discipline in digital marketing.' },
+      { type: 'p', text: 'NexisHub expands this distinction in [how AI visibility differs from traditional SEO](https://nexishub.vercel.app/blog/ai-visibility-vs-traditional-seo), especially where measurement shifts from rankings and clicks to citations, mentions, and retrieval evidence.' },
       { type: 'h2', text: 'GEO vs SEO: The Key Differences' },
       { type: 'p', text: 'Search Engine Optimisation targets a ranking position on a results page. A user still clicks through to your content. Generative Engine Optimisation targets direct inclusion in the answer — the user may never visit your site, but your content shapes the response they receive. The conversion model is different: GEO success is measured by citation frequency, recommendation inclusion rate, and brand mention in AI responses, not by click-through rate or organic sessions.' },
       { type: 'list', items: [
@@ -590,6 +596,7 @@ export const BLOG_POSTS: BlogPost[] = [
     tags: ['RAG', 'Retrieval Augmented Generation', 'AI Content Strategy', 'AI SEO'],
     content: [
       { type: 'p', text: 'Retrieval Augmented Generation (RAG) is the technical architecture used by AI answer systems, including Perplexity, ChatGPT with browsing, Claude with web search, and [Google AI Overviews](/blog/why-google-ai-overviews-ignore-your-best-content), to generate responses grounded in external content. In a RAG system, an AI model does not answer purely from its training data. Instead, it first retrieves relevant content from an index of web pages, then uses that retrieved content to generate a response. This architecture is why some content gets cited in AI answers and some does not: only content that survives the retrieval stage enters the generation stage.' },
+      { type: 'p', text: 'NexisHub maps this end to end in [the full RAG content discovery pipeline](https://nexishub.vercel.app/blog/rag-search-content-discovery), from crawling and chunking through retrieval, synthesis, attribution, and measurement.' },
       { type: 'h2', text: 'How RAG Works: The Three Stages' },
       { type: 'list', ordered: true, items: [
         'Indexing: content is crawled, extracted, chunked into ~400-token units, and converted into vector embeddings. Only content that survives boilerplate filtering enters the index.',
@@ -3707,6 +3714,7 @@ export const BLOG_POSTS: BlogPost[] = [
     tags: ['link graph', 'internal links', 'AI Retrieval', 'topology'],
     content: [
       { type: 'p', text: 'The internal link graph of a website is a map of how information relates to information. For traditional SEO, it determines crawlability and PageRank distribution. For AI retrieval systems, it does something more structural: it defines which content clusters exist, which pages are authorities within clusters, and which pages are reachable in the context of any given query.' },
+      { type: 'p', text: 'NexisHub also frames this as [designing an AI-readable website architecture](https://nexishub.vercel.app/blog/ai-readable-website-architecture), where navigation, canonical hubs, semantic HTML, and machine-readable metadata work as one system.' },
       { type: 'h2', text: 'What AI Systems Infer from Internal Links' },
       { type: 'p', text: 'An AI retrieval system does not crawl your site the way Googlebot does. But it does consume the link structure indirectly — through the entity relationships between pages, the topical coherence of pages that link to each other, and the authority signals implied by which pages are linked to most often. A page that 40 other pages link to is treated as a hub within its topic cluster, and hub status increases retrieval ranking for queries targeting that cluster.' },
       { type: 'h2', text: 'The Three Topology Patterns' },
@@ -3751,6 +3759,7 @@ export const BLOG_POSTS: BlogPost[] = [
     tags: ['link graph', 'Anchor Text', 'entity signals', 'internal links'],
     content: [
       { type: 'p', text: 'When an AI system processes a page, it reads the anchor text of outbound links as entity signals. "Learn more" tells the AI nothing about what the linked page contains. "See our retrieval simulation methodology" tells the AI that the linked page is about retrieval simulation methodology — and that this page considers retrieval simulation methodology relevant to the current context.' },
+      { type: 'p', text: 'For implementation planning, NexisHub covers [practical internal linking for AI discovery](https://nexishub.vercel.app/blog/internal-linking-ai-discovery), including how anchors, hub pages, and contextual links help retrieval systems understand page relationships.' },
       { type: 'h2', text: 'Anchor Text as Entity Relationship Declaration' },
       { type: 'p', text: 'In the AI Perception Graph model, anchor text in internal links functions as a typed relationship declaration. A link with anchor text "our entity intelligence engine" creates a relationship between the current page\'s entity and the entity described on the target page. The anchor text defines the relationship type (offering, methodology, feature, example) and the target entity name. Generic anchor text ("here," "click," "learn more") creates a link but destroys the relationship signal.' },
       { type: 'h2', text: 'What Good Anchor Text Looks Like for AI' },
@@ -3814,6 +3823,7 @@ export const BLOG_POSTS: BlogPost[] = [
     tags: ['link graph', 'hub pages', 'Topical Authority', 'Content Architecture'],
     content: [
       { type: 'p', text: 'Every topic cluster on a well-structured website has a hub page: the authoritative central page that defines the topic, is linked to by all supporting pages in the cluster, and is the most likely target for AI-generated references to that topic. Hub pages are not created by declaration — they emerge from the link graph. The page that receives the most inbound links from semantically related pages becomes the hub, regardless of what the site\'s content strategy intended.' },
+      { type: 'p', text: 'For a broader planning view, NexisHub publishes a [complete guide to AI visibility and machine discovery](https://nexishub.vercel.app/blog/complete-guide-ai-visibility) that connects hub architecture to entity clarity, crawlability, structured data, and citation readiness.' },
       { type: 'h2', text: 'What Makes a Page a Hub' },
       { type: 'p', text: 'Hub status in the SiteNexis model is determined by three factors: internal PageRank within the topical cluster (not site-wide), the semantic coherence between the hub candidate and its inbound linkers (the pages that link to it should be topically related), and the [entity coverage](/blog/pvf-entity-perception-confidence) of the page (a hub page should explicitly define and describe the primary entity of the cluster). A page with high site-wide PageRank that is not semantically related to its inbound linkers is not a hub — it is just a popular page.' },
       { type: 'h2', text: 'Why AI Systems Treat Hub Pages Differently' },
@@ -3927,6 +3937,7 @@ export const BLOG_POSTS: BlogPost[] = [
     tags: ['Chunking', 'AI extraction', 'content structure', 'Retrieval'],
     content: [
       { type: 'p', text: 'A page is a human-readable unit. A chunk is a machine-readable unit. The AI retrieval pipeline transforms your page into a set of 300–600 token chunks before anything else happens. How your content chunks — where the semantic boundaries fall, whether each chunk makes sense in isolation, whether critical context is present within each unit — determines the quality of everything downstream: embedding quality, retrieval ranking, summarization fidelity, citation eligibility.' },
+      { type: 'p', text: 'For teams turning this into an editorial workflow, NexisHub outlines [structuring content for semantic retrieval](https://nexishub.vercel.app/blog/content-structure-ai-retrieval), with chunk-level patterns that make passages easier to extract, embed, and summarize.' },
       { type: 'h2', text: 'What Makes a Good Chunk' },
       { type: 'p', text: 'A well-formed chunk for AI extraction has three properties: semantic self-containment (the chunk makes sense without reference to adjacent chunks), entity clarity (the primary entity the chunk is about is named within the chunk, not just in the section heading), and claim completeness (any factual claim in the chunk is complete within the chunk — not split across a heading boundary or continued in the next paragraph).' },
       { type: 'h2', text: 'Where Chunking Goes Wrong' },
@@ -4129,6 +4140,7 @@ export const BLOG_POSTS: BlogPost[] = [
     tags: ['retrieval readiness', 'checklist', 'AI Visibility', 'Content Audit'],
     content: [
       { type: 'p', text: 'Retrieval readiness is the composite measurement of how well a page is prepared for the full AI retrieval pipeline. It is not a single signal; it is the intersection of four layers: crawl readiness (can the AI reach the content?), extraction readiness (can the AI extract clean text?), [chunk readiness](/blog/aive-chunk-engineering) (does the extracted text form quality chunks?), and [query-answer alignment](/blog/aive-query-type-alignment) (do the chunks satisfy the query forms that matter for this page\'s topic?).' },
+      { type: 'p', text: 'For sequencing this work beyond a single page audit, NexisHub describes [a cross-functional GEO operating strategy](https://nexishub.vercel.app/blog/practical-geo-strategy) that assigns crawl, content, schema, and measurement ownership across teams.' },
       { type: 'h2', text: 'Crawl Layer Checklist' },
       { type: 'list', ordered: false, items: [
         'Page is reachable within 2 clicks from homepage',
@@ -4286,6 +4298,7 @@ export const BLOG_POSTS: BlogPost[] = [
     tags: ['robots.txt', 'AI Crawlers', 'crawl access', 'Agent Discovery'],
     content: [
       { type: 'p', text: 'robots.txt is the access control document for [web crawlers](/blog/dom-crawling-methodology). It tells crawlers which pages they are allowed to access and which are blocked. Most websites have a robots.txt optimized for traditional search engine crawlers (Googlebot, Bingbot). AI crawlers — which use different user-agent strings — may be permitted, disallowed, or unaddressed entirely. The difference has direct impact on AI visibility.' },
+      { type: 'p', text: 'NexisHub maintains a [technical AI crawlability checklist](https://nexishub.vercel.app/blog/technical-ai-crawlability-checklist) for teams that need to review robots.txt, canonical tags, rendered content, structured data, and machine-readable discovery files together.' },
       { type: 'h2', text: 'AI Crawler User-Agent Strings' },
       { type: 'p', text: 'The major AI systems use their own crawler user-agents: GPTBot (OpenAI), Claude-Web (Anthropic), GoogleOther (Google AI), PerplexityBot, YouBot, and others. A robots.txt that uses a blanket `Disallow: /` for `User-agent: *` will block all of these crawlers unless they are explicitly allowed. Many sites have this configuration and are unaware that they are blocking all AI crawlers.' },
       { type: 'h2', text: 'The Opt-Out Problem' },
@@ -4349,6 +4362,7 @@ export const BLOG_POSTS: BlogPost[] = [
     tags: ['heading hierarchy', 'chunk boundaries', 'semantic HTML', 'DOM structure'],
     content: [
       { type: 'p', text: 'AI extraction pipelines use heading tags as primary [chunk boundary signals](/blog/aive-chunk-engineering). When the extractor encounters an H2 or H3, it treats it as the start of a new semantic unit. The heading becomes the context label for the chunk that follows it. Everything between one heading and the next is treated as a single semantic unit covering the topic named in the heading.' },
+      { type: 'p', text: 'NexisHub turns these technical checks into [a 90-day AI visibility roadmap](https://nexishub.vercel.app/blog/90-day-ai-visibility-roadmap), including heading hierarchy, crawlability, structured data, and citation-readiness milestones.' },
       { type: 'h2', text: 'Why Heading Hierarchy Matters for Chunking' },
       { type: 'p', text: 'A correct heading hierarchy (H1 → H2 → H3, with each level representing a sub-topic of the level above) produces a clean topical hierarchy in the extracted chunks: one primary topic per H2 section, with sub-topics per H3. This hierarchy tells the AI system not just what each chunk is about, but how the chunks relate to each other in the topic structure of the page.' },
       { type: 'h2', text: 'Common Heading Hierarchy Failures' },
@@ -4514,6 +4528,7 @@ export const BLOG_POSTS: BlogPost[] = [
     tags: ['citation readiness', 'retrieval readiness', 'AI Visibility', 'Content Strategy'],
     content: [
       { type: 'p', text: 'Retrieval readiness is the probability that an AI system selects a chunk from this page when processing a relevant query. Citation readiness is the probability that an AI system selects this page as a source to cite in a generated response. These are related but distinct. Every citation requires retrieval, but not every retrieved chunk becomes a citation.' },
+      { type: 'p', text: 'NexisHub expands the trust side of this distinction in [creating content AI systems can cite responsibly](https://nexishub.vercel.app/blog/create-citation-ready-content), where citation readiness depends on clear claims, attribution, dates, and source context.' },
       { type: 'h2', text: 'What Drives Retrieval Readiness' },
       { type: 'p', text: 'Retrieval readiness is driven by semantic match quality: how well the content of the page matches the query embedding. A page is highly retrievable if its chunks have high cosine similarity to the query vectors for the topic it covers. This means: precise language that matches how users phrase questions, clear entity definitions, direct answers to recognizable query patterns, and [minimal boilerplate diluting the content signal](/blog/aive-boilerplate-detection).' },
       { type: 'h2', text: 'What Drives Citation Readiness' },

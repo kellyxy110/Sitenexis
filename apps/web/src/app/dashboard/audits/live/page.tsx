@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { Globe, ArrowLeft, CheckCircle2, Loader2, Circle, ExternalLink } from 'lucide-react';
 
-type AgentStatus = 'pending' | 'running' | 'completed' | 'failed' | 'skipped';
+type AgentStatus = 'pending' | 'running' | 'completed' | 'partial' | 'failed' | 'skipped';
 
 interface AgentState {
   id: string;
@@ -39,6 +39,7 @@ function agentStatusIcon(status: AgentStatus) {
   if (status === 'completed') return <CheckCircle2 className="h-4 w-4 text-teal" />;
   if (status === 'running')   return <Loader2 className="h-4 w-4 text-cyan animate-spin" />;
   if (status === 'failed')    return <Circle className="h-4 w-4 text-red-400 fill-red-400/30" />;
+  if (status === 'partial')   return <Circle className="h-4 w-4 text-amber-400 fill-amber-400/30" />;
   if (status === 'skipped')   return <Circle className="h-4 w-4 text-[#334155]" />;
   return <Circle className="h-4 w-4 text-[#334155]" />;
 }
@@ -95,7 +96,20 @@ export default function LiveAuditPage() {
 
     es.onmessage = (evt) => {
       try {
-        const msg = JSON.parse(evt.data as string) as { agentId?: string; event?: string; payload?: Record<string, unknown>; status?: string };
+        const msg = JSON.parse(evt.data as string) as {
+          agentId?: string; event?: string; payload?: Record<string, unknown>; status?: string;
+          agentManifest?: { agents?: Record<string, { status: string; keyOutput: string | null; durationMs: number | null }> };
+        };
+
+        if (msg.agentManifest?.agents) {
+          setAgents((prev) => prev.map((agent) => {
+            const state = msg.agentManifest?.agents?.[agent.id];
+            if (!state) return agent;
+            const status = state.status === 'no_data' || state.status === 'not_configured' || state.status === 'not_applicable'
+              ? 'skipped' : state.status as AgentStatus;
+            return { ...agent, status, message: [state.keyOutput, state.durationMs != null ? `${(state.durationMs / 1000).toFixed(1)}s` : null].filter(Boolean).join(' · ') };
+          }));
+        }
 
         if (msg.agentId) {
           setAgents((prev) => prev.map((a) =>
@@ -105,7 +119,7 @@ export default function LiveAuditPage() {
           ));
         }
 
-        if (msg.status === 'complete' || msg.status === 'failed') {
+        if (msg.status === 'complete' || msg.status === 'partial' || msg.status === 'failed') {
           setDone(true);
           setRunning(false);
           es.close();
@@ -127,7 +141,9 @@ export default function LiveAuditPage() {
     return () => { evtRef.current?.close(); };
   }, []);
 
-  const completedCount = agents.filter((a) => a.status === 'completed').length;
+  const completedCount = agents.filter((a) => a.status === 'completed' || a.status === 'partial' || a.status === 'skipped').length;
+  const partialCount = agents.filter((a) => a.status === 'partial').length;
+  const failedCount = agents.filter((a) => a.status === 'failed').length;
   const progressPct = Math.round((completedCount / agents.length) * 100);
 
   return (
@@ -178,7 +194,7 @@ export default function LiveAuditPage() {
             <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
               <div className="mb-2 flex items-center justify-between text-xs">
                 <span className="font-semibold text-white">{domain}</span>
-                <span className="text-[#4A6280]">{completedCount}/{agents.length} agents complete</span>
+                <span className="text-[#4A6280]">{completedCount}/{agents.length} terminal · {partialCount} partial · {failedCount} failed</span>
               </div>
               <div className="h-2 rounded-full bg-white/10">
                 <div
@@ -188,7 +204,7 @@ export default function LiveAuditPage() {
               </div>
               {done && !error && auditId && (
                 <div className="mt-3 flex items-center justify-between">
-                  <span className="text-sm font-semibold text-green-400">Audit complete</span>
+                    <span className={`text-sm font-semibold ${partialCount || failedCount ? 'text-amber-300' : 'text-green-400'}`}>{partialCount || failedCount ? 'Audit partially complete' : 'Audit complete'}</span>
                   <a
                     href={`/audit/${encodeURIComponent(domain)}?auditId=${auditId}`}
                     className="inline-flex items-center gap-1.5 rounded-lg border border-teal/20 bg-teal/10 px-3 py-1.5 text-xs font-semibold text-teal hover:bg-teal/20 transition-colors"
@@ -202,7 +218,7 @@ export default function LiveAuditPage() {
 
             {/* Agent pipeline */}
             <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-6">
-              <h2 className="mb-4 text-sm font-semibold text-[#C8DFE8]">16-Agent Pipeline</h2>
+              <h2 className="mb-4 text-sm font-semibold text-[#C8DFE8]">Agent Pipeline</h2>
               <div className="space-y-1">
                 {([1,2,3,4,5,6,7] as const).map((phase) => {
                   const phaseAgents = agents.filter((a) => a.phase === phase);
@@ -213,10 +229,11 @@ export default function LiveAuditPage() {
                         {phaseAgents.map((agent) => (
                           <div key={agent.id} className="flex items-center gap-2 rounded-lg border border-white/[0.04] bg-white/[0.02] px-3 py-2">
                             {agentStatusIcon(agent.status)}
-                            <span className="text-xs" style={{
+                            <span className="text-xs" title={agent.message} style={{
                               color: agent.status === 'completed' ? '#0BCEBC'
                                    : agent.status === 'running'   ? '#00C8FF'
                                    : agent.status === 'failed'    ? '#EF4444'
+                                   : agent.status === 'partial'   ? '#F59E0B'
                                    : '#4A6280'
                             }}>
                               {agent.label}
