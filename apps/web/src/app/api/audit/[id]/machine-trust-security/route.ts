@@ -41,7 +41,16 @@ export async function GET(req: NextRequest, { params }: Params): Promise<NextRes
       return resourcesForPage;
     });
     const state = resolveGTLState(audit.status, resources.length > 0);
-    return gtlResponse(state, buildMachineTrustSecurityReport({ resources, expectedMachineResources: ['machine_resource', 'structured_data', 'response_headers'] }));
+    const report = buildMachineTrustSecurityReport({ resources, expectedMachineResources: ['machine_resource', 'structured_data', 'response_headers'] });
+
+    if (audit.status === 'complete') {
+      const { saveMachineTrustSecurityRecord } = await import('@sitenexis/db');
+      await saveMachineTrustSecurityRecord(id, report).catch((err: unknown) => {
+        logger.error({ err }, 'Failed to persist machine-trust-security history record');
+      });
+    }
+
+    return gtlResponse(state, report);
   } catch (err) {
     logger.error({ err }, 'GET /api/audit/[id]/machine-trust-security failed');
     return NextResponse.json({ error: 'Failed to build Machine Trust security report' }, { status: 500 });

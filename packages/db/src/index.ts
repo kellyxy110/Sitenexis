@@ -21,3 +21,4 @@ export * from './queries/google-integrations';
 export * from './queries/page-intelligence';
 export * from './queries/admin';
 export * from './queries/ai-metrics';
+export * from './queries/machine-trust-security';
