@@ -91,6 +91,7 @@ export { analyzeMachineReadability } from './machine-readability/engine';
 export { analyzeEntityIntelligence } from './entity/engine';
 export { analyzeCitationProbability } from './citation/engine';
 export { analyzeCitationIntelligence, CITATION_INTELLIGENCE_ENGINE_VERSION } from './citation-intelligence/engine';
+export { buildMachineResourceStudioReport } from './machine-resource-studio/engine';
 export type { CitationDiscoveryProvider, CitationDiscoveryRequest, CitationDiscoveryResponse } from './citation-intelligence/provider';
 export { analyzeSemanticTrust } from './semantic-trust/engine';
 export { buildPerceptionGraph } from './perception-graph/engine';

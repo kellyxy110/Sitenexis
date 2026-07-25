@@ -33,6 +33,7 @@ import {
   BookOpen,
   Route,
   TrendingUp,
+  Database,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -73,6 +74,7 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: BookOpen,
         badge: 'AI',
       },
+      { id: 'machine-resources', label: 'Machine Resource Studio', href: '/dashboard/machine-resources', icon: Database, badge: 'MRS' },
       {
         id: 'health',
         label: 'SiteNexis Health',

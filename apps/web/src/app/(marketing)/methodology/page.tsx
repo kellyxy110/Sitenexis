@@ -305,6 +305,19 @@ export default function MethodologyPage() {
         </div>
       </section>
 
+      {/* ── Machine Resource Studio ── */}
+      <section className="border-t border-white/[0.05] bg-[#07111F] py-20 px-6">
+        <div className="mx-auto max-w-4xl">
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan/70">Reporting layer</p>
+          <h2 className="mb-4 text-[28px] font-bold text-white">Machine Resource Studio</h2>
+          <p className="mb-8 max-w-2xl text-[15px] leading-[1.75] text-slate-400">Machine Resource Studio is the explanation layer above the audit records. It does not replace the scoring engines. It reads their stored results and connects each explanation and recommendation to evidence from the crawl or an issue record.</p>
+          <div className="grid gap-4 md:grid-cols-3">
+            {[['Scores', 'The studio shows stored scores and labels each formula. Missing scores remain unavailable.'], ['Narrative', 'The executive, technical, and AI explanations are generated from the audit state and its evidence.'], ['Action', 'Recommendations include priority, effort, impact, confidence, and source evidence.']].map(([title, body]) => <div key={title} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5"><h3 className="mb-2 text-[14px] font-semibold text-white">{title}</h3><p className="text-[13px] leading-[1.7] text-slate-400">{body}</p></div>)}
+          </div>
+          <div className="mt-6 rounded-xl border border-cyan/15 bg-cyan/[0.04] p-5"><p className="text-[12px] leading-[1.7] text-slate-400"><span className="font-semibold text-cyan">Evidence rule: </span>A recommendation needs a source issue or crawl record. A missing agent result produces a limitation message. It does not produce a zero score or an invented recommendation.</p></div>
+        </div>
+      </section>
+
       {/* ── Graph Truth Discipline ── */}
       <section className="border-t border-white/[0.05] bg-[#07111F] py-20 px-6">
         <div className="mx-auto max-w-4xl">

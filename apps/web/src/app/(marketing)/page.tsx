@@ -115,6 +115,7 @@ const INTEL_CARDS = [
   { label: 'Competitive Intel',      sub: 'Scrapy' },
   { label: 'Decision Roadmap',       sub: 'v4' },
   { label: 'Intelligence Report',    sub: 'Editorial' },
+  { label: 'Machine Resource Studio', sub: 'Evidence' },
   { label: 'Competitive Simulation', sub: 'v4' },
 ];
 
@@ -380,6 +381,11 @@ export default function HomePage() {
         '@type': 'Question',
         name: 'What is the Intelligence Report?',
         acceptedAnswer: { '@type': 'Answer', text: 'The Intelligence Report is a Grok-style editorial audit narrative generated for every completed scan. It synthesizes all twelve module scores and the top critical issues into six named sections — Signal Summary, SEO Posture, AI Visibility, Machine Trust, Entity Health, and Strategic Verdict — each with an X.X/10 subscale and a composite verdict. It reads like a senior analyst\'s assessment rather than a raw score dashboard.' },
+      },
+      {
+        '@type': 'Question',
+        name: 'What is Machine Resource Studio?',
+        acceptedAnswer: { '@type': 'Answer', text: 'Machine Resource Studio turns stored crawl pages, audit scores, AI visibility results, and issue records into an evidence-backed report. It shows score cards, explanations, issue distribution, confidence, provenance, and prioritised recommendations. It does not create a recommendation when the required evidence is missing.' },
       },
       {
         '@type': 'Question',
@@ -1208,6 +1214,24 @@ export default function HomePage() {
               </div>
             </Reveal>
           </div>
+        </div>
+      </section>
+
+      <section className="border-t border-white/[0.05] bg-[#07111F] py-24 px-6">
+        <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[1.1fr_0.9fr]">
+          <Reveal>
+            <div>
+              <p className="mb-4 text-[11px] font-semibold tracking-[0.18em] text-cyan/70 uppercase">Machine Resource Studio</p>
+              <h2 className="text-[clamp(2rem,4vw,3rem)] font-bold leading-[1.1] tracking-[-0.03em] text-white">Turn crawl data into <span className="text-gradient-cyan">clear decisions.</span></h2>
+              <p className="mt-6 max-w-2xl text-[16px] leading-[1.8] text-[#94A3B8]">Machine Resource Studio explains what the crawl found, why the finding matters to Google and AI systems, and which fix should come first. Each score shows its formula, evidence count, confidence, and limits.</p>
+              <Link href="/dashboard/machine-resources" className="mt-8 inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-semibold text-[#030907] transition-colors hover:bg-slate-100">Explore the studio <ArrowRight size={14} /></Link>
+            </div>
+          </Reveal>
+          <Reveal delay={0.15}>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {[['Evidence first', 'Recommendations link to crawl pages or issue records.'], ['Explainable scores', 'Every score card shows the formula and confidence.'], ['Google and AI views', 'Read technical impact and machine interpretation impact separately.'], ['Honest limits', 'Missing data stays unavailable. It does not become zero.']].map(([title, body]) => <div key={title} className="rounded-xl border border-white/[0.07] bg-white/[0.03] p-5"><h3 className="text-sm font-semibold text-white">{title}</h3><p className="mt-2 text-xs leading-6 text-slate-400">{body}</p></div>)}
+            </div>
+          </Reveal>
         </div>
       </section>
 
