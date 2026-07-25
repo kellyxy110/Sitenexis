@@ -58,6 +58,8 @@ export interface CrawledPage {
   openGraph?: { title?: string; description?: string; image?: string; type?: string };
   /** Lower-cased HTTP response headers (homepage/page). Powers the security-header scanner. */
   responseHeaders?: Record<string, string>;
+  /** `<script src="...">` URLs found before script tags are stripped. Powers outdated-library detection. */
+  scriptSources?: string[];
 }
 
 export interface CrawlResult {

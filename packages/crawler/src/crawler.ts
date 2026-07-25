@@ -215,7 +215,7 @@ export async function crawlDomain(
 
 // ─── HTML parsing ─────────────────────────────────────────────────────────────
 
-function parseHtml(
+export function parseHtml(
   url: string,
   html: string,
   statusCode: number,
@@ -224,6 +224,28 @@ function parseHtml(
   responseTimeMs: number
 ): CrawledPage {
   const $ = cheerio.load(html);
+
+  // Extract script-derived signals BEFORE stripping <script> tags below —
+  // JSON-LD schema markup and library version sources live inside <script>,
+  // so removing them first would silently zero out both every time.
+  const schemaMarkup: unknown[] = [];
+  $('script[type="application/ld+json"]').each((_, el) => {
+    try {
+      const raw = $(el).html() ?? '';
+      if (raw.trim()) {
+        const parsed: unknown = JSON.parse(raw);
+        schemaMarkup.push(...flattenJsonLd(parsed));
+      }
+    } catch {
+      // ignore invalid JSON-LD
+    }
+  });
+
+  const scriptSources: string[] = [];
+  $('script[src]').each((_, el) => {
+    const src = $(el).attr('src');
+    if (src) scriptSources.push(src);
+  });
 
   // Remove noise before extracting body text
   $('script, style, noscript, svg, iframe').remove();
@@ -274,19 +296,6 @@ function parseHtml(
     if (src) images.push({ src, alt });
   });
 
-  const schemaMarkup: unknown[] = [];
-  $('script[type="application/ld+json"]').each((_, el) => {
-    try {
-      const raw = $(el).html() ?? '';
-      if (raw.trim()) {
-        const parsed: unknown = JSON.parse(raw);
-        schemaMarkup.push(...flattenJsonLd(parsed));
-      }
-    } catch {
-      // ignore invalid JSON-LD
-    }
-  });
-
   const { internalLinkRefs, externalLinkMeta } = extractLinkRefs(html, url, domain);
 
   return {
@@ -310,6 +319,7 @@ function parseHtml(
     crawledAt: new Date(),
     internalLinkRefs,
     externalLinkMeta,
+    scriptSources,
   };
 }
 
