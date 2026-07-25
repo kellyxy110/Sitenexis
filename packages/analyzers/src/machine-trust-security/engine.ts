@@ -4,13 +4,30 @@ import type {
   MachineTrustResource,
   MachineTrustSecurityReport,
   MachineTrustSeverity,
+  PageInteractionBlockerProbe,
   PromptInjectionSignal,
 } from '@sitenexis/shared';
 
 export interface MachineTrustSecurityInput {
   resources: MachineTrustResource[];
   expectedMachineResources?: string[];
+  /** Present only when a Layer-4 browser-agent probe ran for this audit. */
+  interactionBlockerProbes?: PageInteractionBlockerProbe[];
 }
+
+const BLOCKER_TITLES: Record<string, string> = {
+  cookie_consent_wall: 'Cookie consent overlay blocks agent access',
+  captcha_challenge: 'CAPTCHA challenge blocks agent access',
+  login_wall: 'Login wall blocks agent access',
+  unclassified_overlay: 'Unclassified overlay blocks agent access',
+};
+
+const BLOCKER_RECOMMENDATIONS: Record<string, string> = {
+  cookie_consent_wall: 'Ensure content is present in the DOM before consent interaction is required, or provide a machine-readable path that does not depend on dismissing the banner.',
+  captcha_challenge: 'CAPTCHA on content pages blocks legitimate AI agents and search/browsing crawlers along with bots. Restrict it to sensitive actions only.',
+  login_wall: 'Public content behind a login wall is invisible to AI retrieval and browser agents. Consider what can be exposed without authentication.',
+  unclassified_overlay: 'Review the overlay to confirm it does not prevent legitimate agents or crawlers from reaching page content.',
+};
 
 interface SignalRule {
   code: string;
@@ -41,6 +58,7 @@ const WEIGHTS = {
   contentProvenance: 5,
   securityHeaders: 5,
   monitoring: 5,
+  interactionBlockerFreedom: 10,
 } as const;
 
 function excerpt(text: string, index: number): string {
@@ -88,6 +106,28 @@ export function buildMachineTrustSecurityReport(input: MachineTrustSecurityInput
     }
   }
 
+  const blockerProbes = input.interactionBlockerProbes ?? [];
+  for (const probe of blockerProbes) {
+    for (const blocker of probe.blockers) {
+      const severity: MachineTrustSeverity = blocker.type === 'cookie_consent_wall' ? 'info' : 'warning';
+      const coverageNote = blocker.viewportCoveragePercent !== null ? ` (covers ~${blocker.viewportCoveragePercent}% of viewport at load)` : '';
+      const evidenceId = `evidence-${evidence.length + 1}`;
+      evidence.push({ id: evidenceId, resourceId: probe.url, source: probe.url, excerpt: `Matched: ${blocker.selectorMatched}${coverageNote}`, detectionMethod: 'header_check' });
+      findings.push({
+        id: `finding-${findings.length + 1}`,
+        code: `interaction_blocker_${blocker.type}`,
+        category: 'interaction_blocker',
+        severity,
+        title: BLOCKER_TITLES[blocker.type] ?? 'Interaction blocker detected',
+        explanation: 'A real browser-driven agent visiting this page encountered this element before the underlying content. This is not a prompt-injection risk, but it can prevent autonomous agents and browsing crawlers from completing a task even though the content is technically present.',
+        recommendation: BLOCKER_RECOMMENDATIONS[blocker.type] ?? 'Review this element for impact on automated access.',
+        resourceId: null,
+        evidenceIds: [evidenceId],
+        confidence: 0.85,
+      });
+    }
+  }
+
   const expected = input.expectedMachineResources ?? [];
   const seenKinds = new Set(input.resources.map((resource) => resource.kind));
   for (const kind of expected) {
@@ -100,11 +140,18 @@ export function buildMachineTrustSecurityReport(input: MachineTrustSecurityInput
   const injectionScore = Math.max(0, 100 - Math.min(100, promptFindings.reduce((total, finding) => total + (finding.severity === 'critical' ? 35 : 15), 0)));
   const integrityScore = scoreFromFindings(findings, 'resource_integrity');
   const headerScore = resourceHeadersScore(input.resources);
-  const breakdown = { promptInjectionRisk: injectionScore, machineResourceIntegrity: integrityScore, structuredDataIntegrity: seenKinds.has('structured_data') ? 100 : null, aiCrawlerCompatibility: expected.length === 0 ? null : Math.round((seenKinds.size / Math.max(1, expected.length)) * 100), thirdPartyScriptTrust: null, dataLeakageRisk: scoreFromFindings(findings, 'data_exfiltration'), agentSafety: promptScore, contentProvenance: input.resources.length > 0 ? 100 : null, securityHeaders: headerScore, monitoring: null } satisfies MachineTrustSecurityReport['scoreBreakdown'];
+  const blockerFindings = findings.filter((finding) => finding.category === 'interaction_blocker');
+  const interactionBlockerFreedom = blockerProbes.length === 0 ? null : Math.max(0, 100 - blockerFindings.reduce((total, finding) => total + (finding.severity === 'warning' ? 25 : 8), 0));
+  const breakdown = { promptInjectionRisk: injectionScore, machineResourceIntegrity: integrityScore, structuredDataIntegrity: seenKinds.has('structured_data') ? 100 : null, aiCrawlerCompatibility: expected.length === 0 ? null : Math.round((seenKinds.size / Math.max(1, expected.length)) * 100), thirdPartyScriptTrust: null, dataLeakageRisk: scoreFromFindings(findings, 'data_exfiltration'), agentSafety: promptScore, contentProvenance: input.resources.length > 0 ? 100 : null, securityHeaders: headerScore, monitoring: null, interactionBlockerFreedom } satisfies MachineTrustSecurityReport['scoreBreakdown'];
   const weighted = Object.entries(WEIGHTS).reduce((total, [key, weight]) => { const value = breakdown[key as keyof typeof breakdown]; return value === null ? total : total + value * weight; }, 0);
   const availableWeight = Object.entries(WEIGHTS).reduce((total, [key, weight]) => total + (breakdown[key as keyof typeof breakdown] === null ? 0 : weight), 0);
   const overallScore = availableWeight === 0 ? null : Math.round(weighted / availableWeight);
-  return { version: 'machine-trust-security-v1', assessedAt: new Date().toISOString(), overallScore, confidence: input.resources.length > 0 ? 0.9 : 0, scoreBreakdown: breakdown, findings: findings.sort((a, b) => (a.severity === 'critical' ? 0 : a.severity === 'warning' ? 1 : 2) - (b.severity === 'critical' ? 0 : b.severity === 'warning' ? 1 : 2)), evidence, resourcesAssessed: input.resources.length, limitations: ['This scanner is deterministic and does not execute JavaScript, tools, browser actions, or encoded payloads.', 'A clean result does not prove that a site is secure. It means that these supplied resources did not match the current rules.', 'Security headers and machine resources are scored only when the crawl supplies them.'] };
+  const limitations = ['This scanner is deterministic and does not execute JavaScript, tools, or encoded payloads.', 'A clean result does not prove that a site is secure. It means that these supplied resources did not match the current rules.', 'Security headers and machine resources are scored only when the crawl supplies them.'];
+  limitations.push(blockerProbes.length > 0
+    ? 'Interaction-blocker findings come from a real headless-browser session on a sample of pages (Layer 4) and only cover known selector/redirect signatures.'
+    : 'No browser-agent probe ran for this audit, so interaction-blocker findings and score are not available.');
+
+  return { version: 'machine-trust-security-v1.1', assessedAt: new Date().toISOString(), overallScore, confidence: input.resources.length > 0 ? 0.9 : 0, scoreBreakdown: breakdown, findings: findings.sort((a, b) => (a.severity === 'critical' ? 0 : a.severity === 'warning' ? 1 : 2) - (b.severity === 'critical' ? 0 : b.severity === 'warning' ? 1 : 2)), evidence, resourcesAssessed: input.resources.length, limitations };
 }
 
 function resourceHeadersScore(resources: MachineTrustResource[]): number | null {

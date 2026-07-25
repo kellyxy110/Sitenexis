@@ -125,6 +125,7 @@ model Audit {
   retrievalSimulations     RetrievalSimulation[]
   machineTrustScore        MachineTrustScore?
   machineTrustSecurityRecord MachineTrustSecurityRecord?
+  browserAgentProbes       BrowserAgentProbe[]
   temporalAuthorityRecord  TemporalAuthorityRecord?
   recommendationSurfaceMap RecommendationSurfaceMap?
   syntheticEntityFlags     SyntheticEntityFlag[]
@@ -445,6 +446,21 @@ model MachineTrustSecurityRecord {
   audit  Audit @relation(fields: [auditId], references: [id])
 
   @@map("machine_trust_security_records")
+}
+
+model BrowserAgentProbe {
+  id          String   @id @default(cuid())
+  auditId     String   @map("audit_id")
+  pageUrl     String   @map("page_url")
+  blockers    Json     @default("[]")
+  probeStatus String   @map("probe_status")
+  probedAt    DateTime @default(now()) @map("probed_at")
+
+  audit Audit @relation(fields: [auditId], references: [id])
+
+  @@unique([auditId, pageUrl])
+  @@index([auditId])
+  @@map("browser_agent_probes")
 }
 
 model RecommendationSurfaceMap {

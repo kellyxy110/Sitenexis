@@ -40,8 +40,15 @@ export async function GET(req: NextRequest, { params }: Params): Promise<NextRes
       if (page.responseHeaders) resourcesForPage.push({ id: `${page.id}-headers`, kind: 'response_headers', url: page.url, content: JSON.stringify(page.responseHeaders), headers: page.responseHeaders, fetchedAt: new Date().toISOString() });
       return resourcesForPage;
     });
+    const { getBrowserAgentProbes } = await import('@sitenexis/db');
+    const interactionBlockerProbes = await getBrowserAgentProbes(id).catch(() => []);
+
     const state = resolveGTLState(audit.status, resources.length > 0);
-    const report = buildMachineTrustSecurityReport({ resources, expectedMachineResources: ['machine_resource', 'structured_data', 'response_headers'] });
+    const report = buildMachineTrustSecurityReport({
+      resources,
+      expectedMachineResources: ['machine_resource', 'structured_data', 'response_headers'],
+      ...(interactionBlockerProbes.length > 0 ? { interactionBlockerProbes } : {}),
+    });
 
     if (audit.status === 'complete') {
       const { saveMachineTrustSecurityRecord } = await import('@sitenexis/db');

@@ -36,7 +36,7 @@ export interface MachineTrustEvidence {
 export interface MachineTrustFinding {
   id: string;
   code: string;
-  category: PromptInjectionSignal | 'resource_integrity' | 'security_headers' | 'coverage';
+  category: PromptInjectionSignal | 'resource_integrity' | 'security_headers' | 'coverage' | 'interaction_blocker';
   severity: MachineTrustSeverity;
   title: string;
   explanation: string;
@@ -57,6 +57,33 @@ export interface MachineTrustScoreBreakdown {
   contentProvenance: number | null;
   securityHeaders: number | null;
   monitoring: number | null;
+  /** null when no browser-agent probe ran for this audit (e.g. plan does not include Layer 4). */
+  interactionBlockerFreedom: number | null;
+}
+
+/**
+ * A blocking element a real browser-driven agent would encounter on the
+ * rendered page — distinct from prompt injection, since these don't attempt
+ * to steer an AI system, they simply stand between it and the content.
+ */
+export type InteractionBlockerType =
+  | 'cookie_consent_wall'
+  | 'captcha_challenge'
+  | 'login_wall'
+  | 'unclassified_overlay';
+
+export interface DetectedInteractionBlocker {
+  type: InteractionBlockerType;
+  /** The CSS selector or redirect signal that matched — full transparency, no black box. */
+  selectorMatched: string;
+  /** Approximate % of the viewport the element covers at load, when measurable. */
+  viewportCoveragePercent: number | null;
+}
+
+export interface PageInteractionBlockerProbe {
+  url: string;
+  blockers: DetectedInteractionBlocker[];
+  probeStatus: 'ok' | 'unreachable' | 'timeout';
 }
 
 export interface MachineTrustSecurityReport {

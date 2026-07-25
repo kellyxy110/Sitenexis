@@ -5,6 +5,7 @@ const h = vi.hoisted(() => ({
   requireAuth: vi.fn(),
   getAuditWithResults: vi.fn(),
   saveMachineTrustSecurityRecord: vi.fn(),
+  getBrowserAgentProbes: vi.fn(),
 }));
 
 vi.mock('@/lib/auth', () => ({
@@ -15,6 +16,7 @@ vi.mock('@/lib/logger', () => ({ logger: { warn: vi.fn(), error: vi.fn(), info: 
 vi.mock('@sitenexis/db', () => ({
   getAuditWithResults: h.getAuditWithResults,
   saveMachineTrustSecurityRecord: h.saveMachineTrustSecurityRecord,
+  getBrowserAgentProbes: h.getBrowserAgentProbes,
 }));
 
 const { GET } = await import('../route');
@@ -35,6 +37,7 @@ beforeEach(() => {
   h.requireAuth.mockResolvedValue({ id: 'user-1', email: 'a@b.com' });
   h.getAuditWithResults.mockResolvedValue(completeAudit);
   h.saveMachineTrustSecurityRecord.mockResolvedValue(undefined);
+  h.getBrowserAgentProbes.mockResolvedValue([]);
 });
 
 describe('GET /api/audit/[id]/machine-trust-security', () => {
@@ -64,7 +67,7 @@ describe('GET /api/audit/[id]/machine-trust-security', () => {
     expect(json.state).toBe('complete');
     expect(json.data.overallScore).not.toBeNull();
     expect(h.saveMachineTrustSecurityRecord).toHaveBeenCalledTimes(1);
-    expect(h.saveMachineTrustSecurityRecord).toHaveBeenCalledWith('audit-1', expect.objectContaining({ version: 'machine-trust-security-v1' }));
+    expect(h.saveMachineTrustSecurityRecord).toHaveBeenCalledWith('audit-1', expect.objectContaining({ version: 'machine-trust-security-v1.1' }));
   });
 
   it('does not persist a history record when the audit is not yet complete', async () => {
@@ -72,5 +75,15 @@ describe('GET /api/audit/[id]/machine-trust-security', () => {
     const res = await GET(req(), params);
     expect(res.status).toBe(200);
     expect(h.saveMachineTrustSecurityRecord).not.toHaveBeenCalled();
+  });
+
+  it('folds persisted browser-agent-readiness probes into the report', async () => {
+    h.getBrowserAgentProbes.mockResolvedValueOnce([
+      { url: 'https://example.com', probeStatus: 'ok', blockers: [{ type: 'captcha_challenge', selectorMatched: '.cf-turnstile', viewportCoveragePercent: 30 }] },
+    ]);
+    const res = await GET(req(), params);
+    const json = await res.json();
+    expect(json.data.findings.some((f: { category: string }) => f.category === 'interaction_blocker')).toBe(true);
+    expect(json.data.scoreBreakdown.interactionBlockerFreedom).not.toBeNull();
   });
 });

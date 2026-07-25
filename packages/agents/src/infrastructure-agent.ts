@@ -26,6 +26,7 @@ import { runMachineTrustAgent } from './machine-trust-agent';
 import { runTemporalAuthorityAgent } from './temporal-authority-agent';
 import { runRecommendationMappingAgent } from './recommendation-mapping-agent';
 import { runSyntheticEntityAgent } from './synthetic-entity-agent';
+import { runBrowserAgentReadinessAgent } from './browser-agent-readiness-agent';
 import { runVisualizationAgent } from './visualization-agent';
 import { runReportingAgent } from './reporting-agent';
 
@@ -105,6 +106,7 @@ export async function runInfrastructureAgent(input: AuditJobInput): Promise<void
           ),
         }, domain),
         runSyntheticEntityAgent(auditId, pages, entityIntelligence),
+        runBrowserAgentReadinessAgent(auditId, pages, linkGraph.nodes),
       ]);
       void retrievalSimulations;
     }

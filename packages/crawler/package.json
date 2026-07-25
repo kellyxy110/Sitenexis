@@ -16,6 +16,10 @@
     "./puppeteer-adapter": {
       "types": "./dist/puppeteer.adapter.d.ts",
       "default": "./dist/puppeteer.adapter.js"
+    },
+    "./interaction-blocker-probe": {
+      "types": "./dist/interaction-blocker-probe.d.ts",
+      "default": "./dist/interaction-blocker-probe.js"
     }
   },
   "scripts": {
