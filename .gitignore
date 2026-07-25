@@ -35,3 +35,4 @@ packages/db/seed-demo.sql
 scripts/launch-validation/.coverage-snapshot.json
 
 .env*
+.vercel
