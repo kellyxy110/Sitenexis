@@ -34,7 +34,7 @@ export function buildFullAnalyzerPrompt(params: {
   platform: string;
   niche?: string;
 }): string {
-  return `Perform a full intelligence analysis on this ad:
+  return `Perform a full intelligence analysis on this ad. The report must teach the user what happened, why it happened, and what to do next. Write the explanatory fields as natural senior-strategist paragraphs, not bullet fragments. Do not claim measured performance or access to private platform data; scores are informed estimates based on the supplied creative.
 
 AD: ${params.adTranscript}
 PLATFORM: ${params.platform}
@@ -42,6 +42,16 @@ NICHE: ${params.niche ?? 'unknown'}
 
 Return JSON:
 {
+  "report": {
+    "executiveSummary": "one concise paragraph explaining the creative's central strategy and current condition",
+    "whyItWorks": "one paragraph explaining the strongest persuasion mechanism and the evidence in the ad",
+    "psychology": "one paragraph explaining the psychological triggers and how they move the audience",
+    "emotionalJourney": "one paragraph describing the emotional progression from hook to CTA",
+    "trustAndProof": "one paragraph assessing trust signals, proof, objections, and credibility gaps",
+    "platformFit": "one paragraph explaining how well the structure fits the requested platform and why",
+    "missingElements": ["specific missing element 1"],
+    "nextMove": "one paragraph with the highest-leverage improvement to make next"
+  },
   "hook": { "text": "", "type": "curiosity|shock|authority|story|fear|transformation", "score": 0 },
   "emotions": { "primary": "", "stack": [], "intensity": 0 },
   "funnel": { "stage": "TOFU|MOFU|BOFU", "journey": "awareness|consideration|conversion" },

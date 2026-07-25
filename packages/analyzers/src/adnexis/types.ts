@@ -1,4 +1,14 @@
 export interface AdAnalysisResult {
+  report?: {
+    executiveSummary: string;
+    whyItWorks: string;
+    psychology: string;
+    emotionalJourney: string;
+    trustAndProof: string;
+    platformFit: string;
+    missingElements: string[];
+    nextMove: string;
+  };
   hook: {
     text: string;
     type: 'curiosity' | 'shock' | 'authority' | 'story' | 'fear' | 'transformation';

@@ -38,13 +38,14 @@ export default function VaultPage() {
     const params = new URLSearchParams();
     if (platform !== 'ALL') params.set('platform', platform);
     if (hookType !== 'ALL') params.set('hookType', hookType);
+    if (search.trim()) params.set('search', search.trim());
     const res = await fetch(`/api/ads?${params}`);
     if (res.ok) {
       const data = (await res.json()) as { ads: Ad[] };
       setAds(data.ads ?? []);
     }
     setLoading(false);
-  }, [platform, hookType]);
+  }, [platform, hookType, search]);
 
   useEffect(() => { void fetchAds(); }, [fetchAds]);
 

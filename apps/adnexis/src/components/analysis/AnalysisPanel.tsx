@@ -26,6 +26,30 @@ export function AnalysisPanel({ analysis, transcript: _transcript }: AnalysisPan
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {analysis.report && (
+        <div className="bg-bg-card border border-purple/30 rounded-xl p-4 sm:p-6 space-y-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-purple-light mb-1">Advertising MRI</p>
+            <h3 className="text-lg font-semibold text-text-primary">What happened, why, and what to do next</h3>
+          </div>
+          <p className="text-sm leading-6 text-text-primary">{analysis.report.executiveSummary}</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm leading-6">
+            <div><p className="font-semibold text-text-primary mb-1">Why it works</p><p className="text-text-secondary">{analysis.report.whyItWorks}</p></div>
+            <div><p className="font-semibold text-text-primary mb-1">Psychology</p><p className="text-text-secondary">{analysis.report.psychology}</p></div>
+            <div><p className="font-semibold text-text-primary mb-1">Emotional journey</p><p className="text-text-secondary">{analysis.report.emotionalJourney}</p></div>
+            <div><p className="font-semibold text-text-primary mb-1">Trust and proof</p><p className="text-text-secondary">{analysis.report.trustAndProof}</p></div>
+            <div><p className="font-semibold text-text-primary mb-1">Platform fit</p><p className="text-text-secondary">{analysis.report.platformFit}</p></div>
+            <div><p className="font-semibold text-text-primary mb-1">Next move</p><p className="text-text-secondary">{analysis.report.nextMove}</p></div>
+          </div>
+          {analysis.report.missingElements.length > 0 && (
+            <div>
+              <p className="font-semibold text-text-primary mb-2">Missing elements</p>
+              <div className="flex flex-wrap gap-2">{analysis.report.missingElements.map((item) => <span key={item} className="text-xs bg-amber-400/10 text-amber-300 px-2 py-1 rounded-full">{item}</span>)}</div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Score rings */}
       <div className="bg-bg-card border border-border rounded-xl p-4 sm:p-6">
         <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wide mb-4 sm:mb-5">Performance Scores</h3>

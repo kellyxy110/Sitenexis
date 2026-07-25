@@ -3,9 +3,12 @@ import { z } from 'zod';
 import { requireAuth, AuthError, unauthorizedResponse } from '@/lib/auth';
 import { createAd, listAdsByUser } from '@sitenexis/db';
 
+const platformSchema = z.enum(['meta', 'tiktok', 'youtube', 'native', 'other']);
+const mediaTypeSchema = z.enum(['video', 'image', 'text', 'carousel']);
+
 const createAdSchema = z.object({
-  platform:   z.string().min(1).max(100),
-  mediaType:  z.string().max(100).optional(),
+  platform: z.string().trim().toLowerCase().pipe(platformSchema),
+  mediaType: z.string().trim().toLowerCase().pipe(mediaTypeSchema).optional(),
   sourceUrl:  z.string().url().max(2048)
     .refine((u) => /^https?:\/\//i.test(u), { message: 'Only http/https URLs allowed' })
     .optional(),
@@ -19,14 +22,16 @@ export async function GET(req: NextRequest) {
     const user = await requireAuth(req);
     const { searchParams } = new URL(req.url);
     const page = Number(searchParams.get('page') ?? '1');
-    const platform = searchParams.get('platform') ?? undefined;
+    const platformValue = searchParams.get('platform')?.trim().toLowerCase();
+    const platform = platformValue && platformValue !== 'all' ? platformValue : undefined;
     const hookType = searchParams.get('hookType') ?? undefined;
+    const search = searchParams.get('search') ?? undefined;
 
-    const { data: ads, total } = await listAdsByUser(user.id, { page, platform, hookType });
+    const { data: ads, total } = await listAdsByUser(user.id, { page, platform, hookType, search });
     return NextResponse.json({ ads, total });
   } catch (e) {
     if (e instanceof AuthError) return unauthorizedResponse();
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: 'Unable to load ads right now.' }, { status: 500 });
   }
 }
 
@@ -44,6 +49,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(ad, { status: 201 });
   } catch (e) {
     if (e instanceof AuthError) return unauthorizedResponse();
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Ad creation failed', e);
+    return NextResponse.json({ error: 'Unable to save this ad right now.' }, { status: 500 });
   }
 }

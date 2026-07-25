@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { requireAuth, AuthError, unauthorizedResponse } from '@/lib/auth';
 import { rateLimit } from '@/lib/rate-limit';
 import { env } from '@/lib/env';
-import { getAdById, saveAdAnalysis } from '@sitenexis/db';
+import { getAdById, saveAdAnalysis, setAdAnalysisStatus } from '@sitenexis/db';
 
 import { analyzeAdFull } from '@sitenexis/analyzers/adnexis';
 
@@ -17,6 +17,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     if (!ad) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     if (ad.userId !== user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
+    await setAdAnalysisStatus(id, 'running');
 
     const analysis = await analyzeAdFull(
       {
@@ -51,6 +53,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json(updated);
   } catch (e) {
     if (e instanceof AuthError) return unauthorizedResponse();
-    return NextResponse.json({ error: 'Analysis failed' }, { status: 500 });
+    const { id } = await params;
+    try { await setAdAnalysisStatus(id, 'failed'); } catch { /* preserve the original failure */ }
+    const message = e instanceof Error ? e.message : 'Unknown analysis error';
+    const unavailable = message.includes('No AI provider configured') || message.includes('All AI providers failed');
+    console.error('Ad analysis failed', e);
+    return NextResponse.json(
+      { error: unavailable ? 'Analysis is temporarily unavailable. Configure an AI provider and try again.' : 'The ad could not be analyzed. Please try again.', code: unavailable ? 'AI_UNAVAILABLE' : 'ANALYSIS_FAILED' },
+      { status: unavailable ? 503 : 502 },
+    );
   }
 }

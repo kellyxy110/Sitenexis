@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, BookOpen, Zap, Wand2, LogOut, BookMarked, Sparkles, Menu, X } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Zap, Wand2, LogOut, BookMarked, Sparkles, Menu, X, BarChart3 } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 import { cn } from '@/lib/utils';
 
@@ -12,6 +12,7 @@ const NAV = [
   { href: '/vault',     label: 'Swipe Vault', icon: BookOpen },
   { href: '/analyze',   label: 'Analyze Ad',  icon: Zap },
   { href: '/generate',  label: 'Generate',    icon: Wand2 },
+  { href: '/campaigns', label: 'Campaigns',   icon: BarChart3 },
 ];
 
 function SidebarContent({ onClose }: { onClose?: () => void }) {
