@@ -27,6 +27,7 @@ import {
   Sparkles,
   Link2,
   Shield,
+  ShieldAlert,
   Clock,
   Radio,
   Fingerprint,
@@ -139,6 +140,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: 'Machine Trust',
     items: [
       { id: 'machine-trust',  label: 'Trust Score',          href: '/dashboard/machine-trust',   icon: Shield, permission: 'layer4Analysis' },
+      { id: 'machine-trust-security', label: 'AI Security', href: '/dashboard/machine-trust-security', icon: ShieldAlert, permission: 'layer4Analysis' },
       { id: 'temporal',        label: 'Temporal Authority',   href: '/dashboard/temporal',        icon: Clock, permission: 'layer4Analysis' },
       { id: 'surfaces',        label: 'Recommendation Surfaces', href: '/dashboard/surfaces',    icon: Radio, permission: 'layer4Analysis' },
       { id: 'authenticity',    label: 'Entity Authenticity',  href: '/dashboard/authenticity',    icon: Fingerprint, permission: 'layer4Analysis' },
