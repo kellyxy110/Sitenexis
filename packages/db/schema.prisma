@@ -126,6 +126,7 @@ model Audit {
   machineTrustScore        MachineTrustScore?
   machineTrustSecurityRecord MachineTrustSecurityRecord?
   browserAgentProbes       BrowserAgentProbe[]
+  aiGovernanceReport       AiGovernanceReport?
   temporalAuthorityRecord  TemporalAuthorityRecord?
   recommendationSurfaceMap RecommendationSurfaceMap?
   syntheticEntityFlags     SyntheticEntityFlag[]
@@ -446,6 +447,26 @@ model MachineTrustSecurityRecord {
   audit  Audit @relation(fields: [auditId], references: [id])
 
   @@map("machine_trust_security_records")
+}
+
+model AiGovernanceReport {
+  id                    String   @id @default(cuid())
+  auditId               String   @unique @map("audit_id")
+  overallScore          Int      @map("overall_score")
+  scoreBreakdown        Json     @map("score_breakdown")
+  contentSignal         Json?    @map("content_signal")
+  namedBotAccess        Json     @default("[]") @map("named_bot_access")
+  hasLlmsTxt            Boolean  @default(false) @map("has_llms_txt")
+  hasAiTxt              Boolean  @default(false) @map("has_ai_txt")
+  hasSecurityTxt        Boolean  @default(false) @map("has_security_txt")
+  hasSitemapDeclaration Boolean  @default(false) @map("has_sitemap_declaration")
+  issues                Json     @default("[]")
+  limitations           String[] @default([])
+  createdAt             DateTime @default(now()) @map("created_at")
+
+  audit Audit @relation(fields: [auditId], references: [id])
+
+  @@map("ai_governance_reports")
 }
 
 model BrowserAgentProbe {

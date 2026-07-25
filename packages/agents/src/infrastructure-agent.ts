@@ -27,6 +27,7 @@ import { runTemporalAuthorityAgent } from './temporal-authority-agent';
 import { runRecommendationMappingAgent } from './recommendation-mapping-agent';
 import { runSyntheticEntityAgent } from './synthetic-entity-agent';
 import { runBrowserAgentReadinessAgent } from './browser-agent-readiness-agent';
+import { runAiGovernanceAgent } from './ai-governance-agent';
 import { runVisualizationAgent } from './visualization-agent';
 import { runReportingAgent } from './reporting-agent';
 
@@ -52,10 +53,11 @@ export async function runInfrastructureAgent(input: AuditJobInput): Promise<void
       ...(maxPages !== undefined ? { maxPages } : {}),
     });
 
-    // Phase 2 — SEO + Schema (parallel)
+    // Phase 2 — SEO + Schema + AI Governance (parallel; AI Governance is cheap, available to every plan)
     const [seo, schema] = await Promise.all([
       runSEOAgent(auditId, pages),
       runSchemaAgent(auditId, pages),
+      runAiGovernanceAgent(auditId, domain),
     ]);
 
     // Phase 3 — Retrieval + Entity + Performance (parallel)

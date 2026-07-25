@@ -32,7 +32,8 @@ export type AgentId =
   | 'synthetic-entity'
   | 'information-gain'
   | 'scout'
-  | 'browser-agent-readiness';
+  | 'browser-agent-readiness'
+  | 'ai-governance';
 
 const connection = createRedisClient(true);
 

@@ -144,6 +144,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { id: 'temporal',        label: 'Temporal Authority',   href: '/dashboard/temporal',        icon: Clock, permission: 'layer4Analysis' },
       { id: 'surfaces',        label: 'Recommendation Surfaces', href: '/dashboard/surfaces',    icon: Radio, permission: 'layer4Analysis' },
       { id: 'authenticity',    label: 'Entity Authenticity',  href: '/dashboard/authenticity',    icon: Fingerprint, permission: 'layer4Analysis' },
+      { id: 'ai-governance',   label: 'AI Governance',        href: '/dashboard/ai-governance',   icon: ListChecks },
     ],
   },
   {

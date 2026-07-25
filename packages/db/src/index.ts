@@ -23,3 +23,4 @@ export * from './queries/admin';
 export * from './queries/ai-metrics';
 export * from './queries/machine-trust-security';
 export * from './queries/browser-agent-probe';
+export * from './queries/ai-governance';
