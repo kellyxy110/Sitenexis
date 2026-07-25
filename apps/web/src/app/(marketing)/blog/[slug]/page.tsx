@@ -6,6 +6,7 @@ import { BLOG_POSTS, getPost, getRelatedPosts, getSeriesInfo, type ContentBlock,
 import { MarketingNav } from '@/components/marketing/MarketingNav'
 import { Footer } from '@/components/marketing/Footer'
 import { ShareButtons } from '@/components/ShareButtons'
+import { getNexisHubRelatedGuide, type NexisHubRelatedGuide } from '@/lib/nexishub-related'
 
 // ── Static generation ─────────────────────────────────────────────────────────
 
@@ -251,6 +252,22 @@ function RelatedCard({ post }: { post: ReturnType<typeof getPost> & object }) {
   )
 }
 
+function NexisHubRelatedGuide({ guide }: { guide: NexisHubRelatedGuide }) {
+  return (
+    <aside className="my-10 rounded-2xl border border-violet-400/[0.18] bg-gradient-to-br from-violet-500/[0.08] to-cyan-500/[0.04] p-6" aria-label="Related NexisHub field guide">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-violet-300/80">NexisHub field guide</p>
+      <h2 className="mt-3 text-[1.2rem] font-bold leading-[1.3] tracking-[-0.02em] text-white">{guide.title}</h2>
+      <p className="mt-3 text-[14px] leading-[1.75] text-slate-400">{guide.description}</p>
+      <p className="mt-4 text-[13px] leading-[1.75] text-slate-300">
+        For the broader implementation framework, read NexisHub&apos;s{' '}
+        <a href={guide.href} className="text-cyan-400 underline decoration-cyan-400/30 underline-offset-2 transition-all hover:decoration-cyan-400/70">
+          {guide.anchor}
+        </a>.
+      </p>
+    </aside>
+  )
+}
+
 // ── Watermark ────────────────────────────────────────────────────────────────
 
 function BlogWatermark() {
@@ -302,6 +319,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   const seriesInfo = getSeriesInfo(post.slug)
   const style = getStyle(post.category)
   const allPosts = BLOG_POSTS.map(p => getPost(p.slug))
+  const nexisHubGuide = getNexisHubRelatedGuide(post.slug)
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://sitenexis.vercel.app'
 
   const articleSchema = {
@@ -397,6 +415,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                 {post.content.map((block, i) => (
                   <RenderBlock key={i} block={block} allPosts={allPosts} />
                 ))}
+                {nexisHubGuide && <NexisHubRelatedGuide guide={nexisHubGuide} />}
               </div>
 
               {/* Series prev/next */}
