@@ -127,6 +127,7 @@ model Audit {
   machineTrustSecurityRecord MachineTrustSecurityRecord?
   browserAgentProbes       BrowserAgentProbe[]
   aiGovernanceReport       AiGovernanceReport?
+  redLabReport             RedLabReport?
   temporalAuthorityRecord  TemporalAuthorityRecord?
   recommendationSurfaceMap RecommendationSurfaceMap?
   syntheticEntityFlags     SyntheticEntityFlag[]
@@ -467,6 +468,23 @@ model AiGovernanceReport {
   audit Audit @relation(fields: [auditId], references: [id])
 
   @@map("ai_governance_reports")
+}
+
+model RedLabReport {
+  id                  String   @id @default(cuid())
+  auditId             String   @unique @map("audit_id")
+  overallScore        Int      @map("overall_score")
+  scoreBreakdown      Json     @map("score_breakdown")
+  exposedPaths        Json     @default("[]") @map("exposed_paths")
+  vulnerableLibraries Json     @default("[]") @map("vulnerable_libraries")
+  pathsChecked        Int      @default(0) @map("paths_checked")
+  issues              Json     @default("[]")
+  limitations         String[] @default([])
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  audit Audit @relation(fields: [auditId], references: [id])
+
+  @@map("redlab_reports")
 }
 
 model BrowserAgentProbe {

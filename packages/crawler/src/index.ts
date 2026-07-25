@@ -17,3 +17,4 @@ export {
 export { RobotsParser, fetchRobotsTxt, type RobotsRules } from './robots';
 export { fetchSitemapUrls } from './sitemap';
 export { extractChunks, extractLinkRefs, type PageChunk } from './extractor';
+export { probeSensitivePaths, type PathProbeResult } from './sensitive-path-probe';

@@ -96,6 +96,8 @@ export { buildMachineTrustSecurityReport } from './machine-trust-security/engine
 export type { MachineTrustSecurityInput } from './machine-trust-security/engine';
 export { buildAiGovernanceReport } from './ai-governance/engine';
 export type { AiGovernanceInput } from './ai-governance/engine';
+export { buildRedLabReport } from './redlab/engine';
+export type { RedLabInput, PathProbeResult } from './redlab/engine';
 export type { CitationDiscoveryProvider, CitationDiscoveryRequest, CitationDiscoveryResponse } from './citation-intelligence/provider';
 export { analyzeSemanticTrust } from './semantic-trust/engine';
 export { buildPerceptionGraph } from './perception-graph/engine';

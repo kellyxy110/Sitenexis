@@ -28,6 +28,7 @@ import { runRecommendationMappingAgent } from './recommendation-mapping-agent';
 import { runSyntheticEntityAgent } from './synthetic-entity-agent';
 import { runBrowserAgentReadinessAgent } from './browser-agent-readiness-agent';
 import { runAiGovernanceAgent } from './ai-governance-agent';
+import { runRedLabAgent } from './redlab-agent';
 import { runVisualizationAgent } from './visualization-agent';
 import { runReportingAgent } from './reporting-agent';
 
@@ -109,6 +110,7 @@ export async function runInfrastructureAgent(input: AuditJobInput): Promise<void
         }, domain),
         runSyntheticEntityAgent(auditId, pages, entityIntelligence),
         runBrowserAgentReadinessAgent(auditId, pages, linkGraph.nodes),
+        runRedLabAgent(auditId, domain, pages),
       ]);
       void retrievalSimulations;
     }

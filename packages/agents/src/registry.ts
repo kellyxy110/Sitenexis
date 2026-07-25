@@ -33,7 +33,8 @@ export type AgentId =
   | 'information-gain'
   | 'scout'
   | 'browser-agent-readiness'
-  | 'ai-governance';
+  | 'ai-governance'
+  | 'redlab';
 
 const connection = createRedisClient(true);
 

@@ -6,3 +6,4 @@ export * from './citation-intelligence';
 export * from './machine-resource-studio';
 export * from './machine-trust-security';
 export * from './ai-governance';
+export * from './redlab';

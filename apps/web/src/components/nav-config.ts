@@ -35,6 +35,7 @@ import {
   Route,
   TrendingUp,
   Database,
+  Crosshair,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -145,6 +146,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { id: 'surfaces',        label: 'Recommendation Surfaces', href: '/dashboard/surfaces',    icon: Radio, permission: 'layer4Analysis' },
       { id: 'authenticity',    label: 'Entity Authenticity',  href: '/dashboard/authenticity',    icon: Fingerprint, permission: 'layer4Analysis' },
       { id: 'ai-governance',   label: 'AI Governance',        href: '/dashboard/ai-governance',   icon: ListChecks },
+      { id: 'redlab',          label: 'RedLab',               href: '/dashboard/redlab',           icon: Crosshair, permission: 'layer4Analysis' },
     ],
   },
   {
