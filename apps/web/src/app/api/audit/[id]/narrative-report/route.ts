@@ -128,10 +128,12 @@ export async function GET(req: NextRequest, { params }: Params): Promise<NextRes
     } | null;
 
     const surface = surfaceMap as {
-      aiOverviewsProbability: number;
-      chatProbability: number;
-      voiceProbability: number;
-      agentProbability: number;
+      surfaces: {
+        aiOverviews: { inclusionProbability: number };
+        chatRecommendation: { inclusionProbability: number };
+        voiceRetrieval: { inclusionProbability: number };
+        agentDiscovery: { inclusionProbability: number };
+      };
     } | null;
 
     const temporal = temporalRecord as { updateFrequencyClassification?: string } | null;
@@ -164,10 +166,10 @@ export async function GET(req: NextRequest, { params }: Params): Promise<NextRes
         contradictionAbsenceScore: trust.contradictionAbsenceScore,
       } : null,
       surfaceSummary: surface ? {
-        aiOverviewsProbability: surface.aiOverviewsProbability,
-        chatProbability: surface.chatProbability,
-        voiceProbability: surface.voiceProbability,
-        agentProbability: surface.agentProbability,
+        aiOverviewsProbability: surface.surfaces.aiOverviews.inclusionProbability,
+        chatProbability: surface.surfaces.chatRecommendation.inclusionProbability,
+        voiceProbability: surface.surfaces.voiceRetrieval.inclusionProbability,
+        agentProbability: surface.surfaces.agentDiscovery.inclusionProbability,
       } : null,
       schemaTypes: [],
       updateFrequency: temporal?.updateFrequencyClassification ?? null,
