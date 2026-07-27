@@ -8,6 +8,15 @@
 import { logger } from '@/lib/logger';
 import { getGroqAdapter, getFetchExtractionAdapter, getCrawl4aiExtractionAdapter, estimateCost } from '@sitenexis/adapters';
 import { recordAiCallMetric } from '@sitenexis/db';
+import { probeAiGovernance } from '@sitenexis/crawler';
+import {
+  buildAiGovernanceReport,
+  computeSIIScore,
+  runScoutAnalysis,
+  analyzeLinkGraph,
+  analyzeMachineReadability,
+  analyzePerformance,
+} from '@sitenexis/analyzers';
 import type { CrawledPage } from '@sitenexis/shared';
 import type { AgentResultStatus, AuditAgentState } from '@sitenexis/shared';
 import type {
@@ -1021,28 +1030,65 @@ export async function runServerlessAudit(
     await markAgent('seo', 'completed', `${seoIssues.length} findings`);
     await markAgent('schema', 'completed', `${schemaUrls.length} pages with schema`);
 
-    // Run both Groq calls in parallel with the heuristic fallback
+    // Real (not hardcoded) link graph + machine readability — same deterministic
+    // analyzers the Railway pipeline uses, pure functions over crawled pages.
+    const linkGraphResult = analyzeLinkGraph(pages);
+    const machineReadabilityResult = analyzeMachineReadability(pages);
+
+    // Run Groq calls, Lighthouse/performance, AI Governance probe, and Scout
+    // analysis in parallel with the heuristic fallback. Each is independently
+    // wrapped so one failing never blocks the others or the audit as a whole.
     const heuristicScores = scoreAIVisibility(pages);
-    const [groqScores, perceptionGraph] = await Promise.all([
+    const [groqScores, perceptionGraph, performanceResult, aiGovernanceProbe, scoutResult] = await Promise.all([
       callGroqAnalysis(pages, domain),
       callGroqPerceptionGraph(pages, domain),
+      analyzePerformance(pages).catch(() => null),
+      probeAiGovernance(domain).catch(() => null),
+      runScoutAnalysis({
+        domain,
+        pages: pages.map((p) => ({
+          url: p.url,
+          title: p.title ?? '',
+          headings: p.headings.map((h) => h.text),
+          bodyText: p.bodyText,
+          wordCount: p.wordCount,
+          hasSchema: p.hasStructuredData,
+          schemaTypes: p.schemaTypes,
+        })),
+      }).catch(() => null),
     ]);
     const aiScores = {
-      aiScore:                  groqScores?.aiVisibilityScore      ?? heuristicScores.aiScore,
-      machineReadabilityScore:  groqScores?.machineReadabilityScore  ?? heuristicScores.machineReadabilityScore,
+      // Machine readability uses the real deterministic analyzer, not an LLM guess.
+      machineReadabilityScore:  machineReadabilityResult.score,
       entityConfidenceScore:    groqScores?.entityConfidenceScore    ?? heuristicScores.entityConfidenceScore,
       retrievalReadinessScore:  groqScores?.retrievalReadinessScore  ?? heuristicScores.retrievalReadinessScore,
       citationProbabilityScore: groqScores?.citationProbabilityScore ?? heuristicScores.citationProbabilityScore,
       semanticTrustScore:       groqScores?.semanticTrustScore       ?? heuristicScores.semanticTrustScore,
       recommendationConfidence: groqScores?.recommendationConfidence ?? heuristicScores.recommendationConfidence,
+      aiScore: 0, // set below from the real weighted composite (CLAUDE.md §19)
     };
+    aiScores.aiScore = Math.round(
+      aiScores.machineReadabilityScore * 0.15 +
+      aiScores.entityConfidenceScore * 0.20 +
+      aiScores.retrievalReadinessScore * 0.20 +
+      aiScores.citationProbabilityScore * 0.20 +
+      aiScores.semanticTrustScore * 0.15 +
+      schemaScore * 0.10,
+    );
     await markAgent('entity', 'completed', `Entity confidence ${aiScores.entityConfidenceScore}`);
     await markAgent('retrieval', 'completed', `Retrieval readiness ${aiScores.retrievalReadinessScore}`);
     await markAgent('citation', 'completed', `Citation readiness ${aiScores.citationProbabilityScore}`);
     await markAgent('semantic-trust', 'completed', `Semantic trust ${aiScores.semanticTrustScore}`);
-    await markAgent('performance', 'no_data', 'Performance metrics were not collected by the fetch crawler');
+    if (performanceResult) {
+      await markAgent('performance', 'completed', `Performance ${performanceResult.score}`);
+    } else {
+      await markAgent('performance', 'no_data', 'Performance analysis failed');
+    }
 
-    const overall = Math.round(seoScore * 0.25 + aiScores.aiScore * 0.40 + schemaScore * 0.15 + 60 * 0.20);
+    const overall = Math.round(
+      seoScore * 0.25 + aiScores.aiScore * 0.40 + schemaScore * 0.15
+      + ((linkGraphResult.score + (performanceResult?.score ?? 60)) / 2) * 0.20,
+    );
 
     // ── SSE scores (Topical Authority, Semantic Density, AI Crawlability, GEO, SNS) ──
     // These are computed from real crawl data — never saved by the full BullMQ pipeline
@@ -1137,20 +1183,12 @@ export async function runServerlessAudit(
         seoScore,
         aiScore: aiScores.aiScore,
         schemaScore,
-        linkGraphScore: 65,
-        performanceScore: 70,
+        linkGraphScore: linkGraphResult.score,
+        performanceScore: performanceResult?.score ?? 60,
         breakdown: {
           seo: { titleOptimisation: seoScore, metaOptimisation: seoScore, headingStructure: seoScore, canonicalisation: seoScore, crawlability: seoScore, imageOptimisation: 60 },
           ai: { entityClarity: aiScores.entityConfidenceScore, conversationalReadiness: aiScores.retrievalReadinessScore, aiExtractability: aiScores.machineReadabilityScore, knowledgeGraphStructure: aiScores.semanticTrustScore },
-          machineReadability: {
-            renderingFidelity: aiScores.machineReadabilityScore,
-            boilerplateRatio: aiScores.machineReadabilityScore,
-            chunkBoundaryQuality: aiScores.machineReadabilityScore,
-            signalToNoiseRatio: aiScores.machineReadabilityScore,
-            headingHierarchy: aiScores.machineReadabilityScore,
-            readingOrderConsistency: aiScores.machineReadabilityScore,
-            linkAnchorQuality: aiScores.machineReadabilityScore,
-          },
+          machineReadability: machineReadabilityResult.breakdown,
           entityIntelligence: { entityConfidenceScore: aiScores.entityConfidenceScore, entityConsistencyScore: aiScores.entityConfidenceScore, entityCoverageScore: aiScores.entityConfidenceScore, disambiguationScore: aiScores.entityConfidenceScore },
           citationAnalysis: { citationProbabilityScore: aiScores.citationProbabilityScore },
           semanticTrust: {
@@ -1163,14 +1201,38 @@ export async function runServerlessAudit(
             },
           },
           schema: { coverage: schemaScore / 100, schemaUrls },
-          linkGraph: { avgPageRank: 0.5 },
-          performance: { lcp: null, cls: null, ttfb: null },
+          linkGraph: linkGraphResult as unknown as Record<string, unknown>,
+          performance: performanceResult
+            ? { lcp: performanceResult.lcp, cls: performanceResult.cls, ttfb: performanceResult.ttfb }
+            : { lcp: null, cls: null, ttfb: null },
           security: securityReport,
           brandPresence: brandReport,
         },
       },
-      update: { overall, seoScore, aiScore: aiScores.aiScore, schemaScore },
+      update: {
+        overall, seoScore, aiScore: aiScores.aiScore, schemaScore,
+        linkGraphScore: linkGraphResult.score,
+        performanceScore: performanceResult?.score ?? 60,
+      },
     });
+
+    if (performanceResult && performanceResult.issues.length > 0) {
+      try {
+        const { saveIssues } = await import('@sitenexis/db');
+        await saveIssues(
+          auditId,
+          performanceResult.issues.map((i) => ({
+            module: 'performance',
+            type: 'performance_issue',
+            severity: i.severity,
+            message: i.message,
+            recommendation: i.recommendation,
+          })),
+        );
+      } catch (perfIssueErr) {
+        logger.warn({ auditId, err: perfIssueErr }, 'Failed to save performance issues (non-fatal)');
+      }
+    }
 
     // Save AI visibility scores
     await (db as unknown as {
@@ -1331,11 +1393,59 @@ export async function runServerlessAudit(
       await markAgent('synthetic-entity', 'completed', `Authenticity ${syntheticData.entityAuthenticityConfidence}`);
     }
 
+    // ── SiteNexis Intelligence Index — pure function, always safe to compute ──
+    try {
+      const { saveSIIScore } = await import('@sitenexis/db');
+      const siiResult = computeSIIScore({
+        url: `https://${domain}`,
+        seoScore,
+        machineReadabilityScore: machineReadabilityResult.score,
+        aiVisibilityScore: null,
+        semanticTrustScore: aiScores.semanticTrustScore,
+        entityConfidenceScore: aiScores.entityConfidenceScore,
+        retrievalReadinessScore: aiScores.retrievalReadinessScore,
+        citationProbabilityScore: aiScores.citationProbabilityScore,
+        schemaScore,
+        pagesCrawled: pages.length,
+      });
+      await saveSIIScore(auditId, { ...siiResult, url: `https://${domain}` });
+    } catch (siiErr) {
+      logger.warn({ auditId, err: siiErr }, 'SII score save failed (non-fatal)');
+    }
+
+    // ── AI Governance — probed above in parallel, save now (non-fatal) ────────
+    if (aiGovernanceProbe) {
+      try {
+        const { saveAiGovernanceReport } = await import('@sitenexis/db');
+        const aiGovernanceReport = buildAiGovernanceReport(aiGovernanceProbe);
+        await saveAiGovernanceReport(auditId, aiGovernanceReport);
+        await markAgent('ai-governance', 'completed', `Governance score ${aiGovernanceReport.overallScore}`);
+      } catch (aiGovErr) {
+        logger.warn({ auditId, err: aiGovErr }, 'AI Governance report save failed (non-fatal)');
+        await markAgent('ai-governance', 'partial', null, 'AI Governance save failed');
+      }
+    } else {
+      await markAgent('ai-governance', 'partial', null, 'AI Governance probe failed');
+    }
+
+    // ── Scout Analysis — computed above in parallel, save now (non-fatal) ────
+    if (scoutResult) {
+      try {
+        const { saveScoutAnalysis } = await import('@sitenexis/db');
+        await saveScoutAnalysis(auditId, domain, scoutResult);
+        await markAgent('scout', 'completed', `Intent coverage ${scoutResult.intentCoverageScore}`);
+      } catch (scoutErr) {
+        logger.warn({ auditId, err: scoutErr }, 'Scout analysis save failed (non-fatal)');
+        await markAgent('scout', 'partial', null, 'Scout save failed');
+      }
+    } else {
+      await markAgent('scout', 'no_data', 'Scout analysis engine failed');
+    }
+
     await markAgent('infrastructure', 'completed', 'Crawl and persistence completed');
     await markAgent('reporting', 'completed', 'Report context persisted');
     await markAgent('recommendation-mapping', 'completed', `${seoIssues.length} source recommendations`);
-    await markAgent('information-gain', 'no_data', 'Internal information-gain analysis is not part of the serverless runner yet');
-    await markAgent('scout', 'no_data', 'Scout analysis is not part of the serverless runner yet');
+    await markAgent('information-gain', 'no_data', 'Requires SERPER_API_KEY, which is not configured — not part of the serverless runner yet');
 
     // ── 6. Write back to selfAuditRun tables (health monitor) ────────────────
     if (selfAuditRunId) {
