@@ -1,7 +1,6 @@
 export const dynamic = 'force-dynamic';
 import { type NextRequest, NextResponse } from 'next/server';
 import { requireAuth, unauthorizedResponse } from '@/lib/auth';
-import { isFullyConfigured } from '@/lib/mode';
 
 interface Params {
   params: Promise<{ id: string }>;
@@ -28,10 +27,6 @@ export async function GET(req: NextRequest, { params }: Params): Promise<NextRes
   }
 
   const { id } = await params;
-
-  if (!isFullyConfigured()) {
-    return NextResponse.json({ error: 'No data available — run an audit to generate real analysis.' }, { status: 404 });
-  }
 
   let audit: Record<string, unknown>;
   try {

@@ -1949,6 +1949,7 @@ function AuditPageInner() {
   const auditId = searchParams.get('auditId');
   const isDemo = searchParams.get('demo') === 'true';
   const [activeTab, setActiveTab] = useState<TabId>('pages');
+  const [pdfState, setPdfState] = useState<'idle' | 'generating' | 'done' | 'error'>('idle');
 
   // ── Main audit query ───────────────────────────────────────────────────────
   const { data, isLoading, error } = useQuery<AuditData>({
@@ -2550,14 +2551,35 @@ function AuditPageInner() {
       <div className="fixed bottom-6 right-6 z-40">
         <button
           onClick={() => {
-            if (data?.id) {
-              void fetch(`/api/audit/${data.id}/report`, { method: 'POST' });
-            }
+            if (!data?.id) return;
+            const auditId = data.id;
+            void (async () => {
+              setPdfState('generating');
+              try {
+                const res = await fetch(`/api/audit/${auditId}/report`, { method: 'POST' });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                const disposition = res.headers.get('Content-Disposition') ?? '';
+                const match = disposition.match(/filename="(.+?)"/);
+                a.download = match?.[1] ?? `sitenexis-report-${auditId}.html`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                setPdfState('done');
+              } catch {
+                setPdfState('error');
+              }
+            })();
           }}
-          className="flex items-center gap-2 rounded-full bg-navy border border-white/20 px-5 py-3 text-sm font-semibold text-white shadow-xl hover:border-cyan/40 hover:bg-[#0A1F14] transition-all"
+          disabled={pdfState === 'generating'}
+          className="flex items-center gap-2 rounded-full bg-navy border border-white/20 px-5 py-3 text-sm font-semibold text-white shadow-xl hover:border-cyan/40 hover:bg-[#0A1F14] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <span>↓</span>
-          Download PDF Report
+          {pdfState === 'generating' ? 'Generating…' : pdfState === 'error' ? 'Retry PDF Report' : 'Download PDF Report'}
         </button>
       </div>
 

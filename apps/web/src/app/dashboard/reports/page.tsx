@@ -33,6 +33,7 @@ export default function ReportsPage() {
   const qc = useQueryClient();
   const { data, isLoading } = useAudits(50);
   const [reportState, setReportState] = useState<ReportGenState>({});
+  const [csvState, setCsvState] = useState<ReportGenState>({});
 
   // ── Scheduled reports state ──────────────────────────────────────────────────
   const [showScheduleForm, setShowScheduleForm] = useState(false);
@@ -95,8 +96,26 @@ export default function ReportsPage() {
     }
   };
 
-  const handleDownloadCSV = (auditId: string) => {
-    window.location.href = `/api/audit/${auditId}/export`;
+  const handleDownloadCSV = async (auditId: string) => {
+    setCsvState((prev) => ({ ...prev, [auditId]: 'generating' }));
+    try {
+      const res = await fetch(`/api/audit/${auditId}/export`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const disposition = res.headers.get('Content-Disposition') ?? '';
+      const match = disposition.match(/filename="(.+?)"/);
+      a.download = match?.[1] ?? `sitenexis-audit-${auditId}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setCsvState((prev) => ({ ...prev, [auditId]: 'done' }));
+    } catch {
+      setCsvState((prev) => ({ ...prev, [auditId]: 'error' }));
+    }
   };
 
   const handleSchedule = () => {
@@ -143,6 +162,7 @@ export default function ReportsPage() {
           <div className="space-y-3">
             {completedAudits.map((audit) => {
               const state = reportState[audit.id] ?? 'idle';
+              const csv = csvState[audit.id] ?? 'idle';
               const date = new Date(audit.completedAt ?? audit.createdAt).toLocaleDateString('en-GB', {
                 day: 'numeric', month: 'short', year: 'numeric',
               });
@@ -172,11 +192,18 @@ export default function ReportsPage() {
                     </a>
                     {/* CSV export */}
                     <button
-                      onClick={() => handleDownloadCSV(audit.id)}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-teal-500/20 bg-teal-500/10 px-3 py-1.5 text-xs font-semibold text-teal-400 hover:bg-teal-500/20 transition-colors"
+                      onClick={() => void handleDownloadCSV(audit.id)}
+                      disabled={csv === 'generating'}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-teal-500/20 bg-teal-500/10 px-3 py-1.5 text-xs font-semibold text-teal-400 hover:bg-teal-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                       title="Download CSV"
                     >
-                      <Download className="h-3 w-3" /> CSV
+                      {csv === 'generating' ? (
+                        <><Loader2 className="h-3 w-3 animate-spin" />CSV…</>
+                      ) : csv === 'error' ? (
+                        'Retry CSV'
+                      ) : (
+                        <><Download className="h-3 w-3" /> CSV</>
+                      )}
                     </button>
                     {/* PDF report */}
                     <button
