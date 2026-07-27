@@ -29,6 +29,8 @@ import { runSyntheticEntityAgent } from './synthetic-entity-agent';
 import { runBrowserAgentReadinessAgent } from './browser-agent-readiness-agent';
 import { runAiGovernanceAgent } from './ai-governance-agent';
 import { runRedLabAgent } from './redlab-agent';
+import { runScoutAgent } from './scout-agent';
+import { runInformationGainAgent } from './information-gain-agent';
 import { runVisualizationAgent } from './visualization-agent';
 import { runReportingAgent } from './reporting-agent';
 
@@ -54,11 +56,24 @@ export async function runInfrastructureAgent(input: AuditJobInput): Promise<void
       ...(maxPages !== undefined ? { maxPages } : {}),
     });
 
-    // Phase 2 — SEO + Schema + AI Governance (parallel; AI Governance is cheap, available to every plan)
+    // Phase 2 — SEO + Schema + AI Governance + Scout (parallel; all cheap, available to every plan)
     const [seo, schema] = await Promise.all([
       runSEOAgent(auditId, pages),
       runSchemaAgent(auditId, pages),
       runAiGovernanceAgent(auditId, domain),
+      runScoutAgent({
+        auditId,
+        domain,
+        pages: pages.map((p) => ({
+          url: p.url,
+          title: p.title ?? '',
+          headings: p.headings.map((h) => h.text),
+          bodyText: p.bodyText,
+          wordCount: p.wordCount,
+          hasSchema: p.hasStructuredData ?? p.schemaMarkup.length > 0,
+          schemaTypes: p.schemaTypes ?? [],
+        })),
+      }),
     ]);
 
     // Phase 3 — Retrieval + Entity + Performance (parallel)
@@ -68,10 +83,17 @@ export async function runInfrastructureAgent(input: AuditJobInput): Promise<void
       runPerformanceAgent(auditId, pages),
     ]);
 
-    // Phase 4 — Citation + Semantic Trust (parallel, receive entity + schema context)
+    // Phase 4 — Citation + Semantic Trust + Information Gain (parallel, receive entity + schema context)
+    const homepage = pages.find((p) => new URL(p.url).pathname === '/') ?? pages[0];
+    const igeKeyword = entityIntelligence.primaryEntity?.name ?? homepage?.title ?? domain;
     const [citationAnalysis, semanticTrust] = await Promise.all([
       runCitationAgent(auditId, pages, entityIntelligence),
       runSemanticTrustAgent(auditId, pages, entityIntelligence, schema),
+      runInformationGainAgent({
+        auditId,
+        keyword: igeKeyword,
+        targetUrl: homepage?.url ?? `https://${domain}`,
+      }),
     ]);
 
     const linkGraph = analyzeLinkGraph(pages);
