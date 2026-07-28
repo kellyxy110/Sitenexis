@@ -51,7 +51,11 @@ function toParsedPage(page: CrawledPage): ParsedPage {
 }
 
 const MAX_PAGES = 50;
-const LIVE_AUDIT_BUDGET_MS = 20_000;
+// The route this runs from (apps/web/src/app/api/audit/start/route.ts) has
+// maxDuration = 300s and executes this inside after(), so the budget must stay
+// under that ceiling — not under an arbitrary short window. 270s leaves a 30s
+// margin for the final DB writes after the last stopIfBudgetExpired() checkpoint.
+const LIVE_AUDIT_BUDGET_MS = 270_000;
 
 // ── SEO analysis ──────────────────────────────────────────────────────────────
 
@@ -986,7 +990,7 @@ export async function runServerlessAudit(
   const budgetTimer = setTimeout(() => {
     budgetExpired = true;
     logger.error({ auditId, domain, elapsedMs: Date.now() - startedAt }, 'Live audit budget reached; returning partial results');
-    void updateAuditStatus(auditId, 'partial', { errorMessage: 'Audit reached the 20 second live processing budget. Available results were saved.' }).catch(() => undefined);
+    void updateAuditStatus(auditId, 'partial', { errorMessage: `Audit reached the ${Math.round(LIVE_AUDIT_BUDGET_MS / 1000)} second live processing budget. Available results were saved.` }).catch(() => undefined);
   }, LIVE_AUDIT_BUDGET_MS);
   const stopIfBudgetExpired = (): void => {
     if (budgetExpired) throw new Error('LIVE_AUDIT_BUDGET_EXCEEDED');
