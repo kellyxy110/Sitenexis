@@ -72,6 +72,8 @@ function mapResult(r: Crawl4aiPageResult, crawledAt: Date): CrawledPage {
     responseTimeMs: r.response_time_ms ?? 0,
     contentType: 'text/html',
     crawledAt,
+    renderMethod: 'headless-rendered',
+    extractionIncomplete: false,
   };
 }
 

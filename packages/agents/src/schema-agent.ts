@@ -10,8 +10,8 @@ export async function runSchemaAgent(auditId: string, pages: CrawledPage[]): Pro
 
   await saveIssues(
     auditId,
-    score.issues.map(({ severity, message, recommendation }) => ({
-      severity, message, recommendation, module: 'schema', type: 'schema_issue',
+    score.issues.map(({ severity, message, recommendation, url }) => ({
+      severity, message, recommendation, module: 'schema', type: 'schema_issue', pageUrl: url,
     }))
   );
 

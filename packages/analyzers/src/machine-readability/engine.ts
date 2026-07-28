@@ -27,24 +27,34 @@ function scoreRenderingFidelity(page: CrawledPage): { score: number; issues: Mac
   const issues: MachineReadabilityIssue[] = [];
   let score = 100;
 
+  // A page flagged extractionIncomplete (see the fetch adapter's CSR-shell
+  // heuristic and its headless retry) may genuinely have content that only
+  // JavaScript renders — the static HTML we saw is not proof either way.
+  // Penalise less and say so, rather than asserting a confirmed failure.
+  const incomplete = page.extractionIncomplete === true;
+
   // If page returned a 2xx but body text is empty or very short, JS content may not have rendered
   if (page.statusCode >= 200 && page.statusCode < 300) {
     if (page.bodyText.length < 50) {
-      score -= 60;
+      score -= incomplete ? 25 : 60;
       issues.push({
         stage: 'rendering_fidelity',
-        severity: 'critical',
+        severity: incomplete ? 'warning' : 'critical',
         pageUrl: page.url,
-        description: 'Page body text is nearly empty — content may not have rendered.',
+        description: incomplete
+          ? 'Page body text is nearly empty in the static HTML response — this may be a JavaScript-rendered page whose content did not appear without executing JS.'
+          : 'Page body text is nearly empty — content may not have rendered.',
         recommendation: 'Ensure server-side rendering or pre-rendering is used for meaningful content. AI crawlers may not execute JavaScript.',
       });
     } else if (page.bodyText.length < 200) {
-      score -= 30;
+      score -= incomplete ? 12 : 30;
       issues.push({
         stage: 'rendering_fidelity',
         severity: 'warning',
         pageUrl: page.url,
-        description: 'Page body text is unusually short, suggesting incomplete rendering.',
+        description: incomplete
+          ? 'Page body text is unusually short in the static HTML response, and this page could not be confirmed with browser rendering.'
+          : 'Page body text is unusually short, suggesting incomplete rendering.',
         recommendation: 'Audit JavaScript rendering pipeline. Consider using SSR or static generation for key pages.',
       });
     }
@@ -229,14 +239,20 @@ function scoreHeadingHierarchy(page: CrawledPage): { score: number; issues: Mach
   let score = 100;
 
   const headings = page.headings;
+  // See scoreRenderingFidelity — a page flagged extractionIncomplete may render
+  // its heading structure with JavaScript we never executed. Reduced penalty,
+  // qualified wording, until browser rendering confirms it one way or the other.
+  const incomplete = page.extractionIncomplete === true;
 
   if (headings.length === 0) {
-    score -= 40;
+    score -= incomplete ? 15 : 40;
     issues.push({
       stage: 'heading_hierarchy',
-      severity: 'critical',
+      severity: incomplete ? 'warning' : 'critical',
       pageUrl: page.url,
-      description: 'No heading structure detected.',
+      description: incomplete
+        ? 'No heading structure was found in the static HTML response. The page may render headings with JavaScript that this pass did not execute.'
+        : 'No heading structure detected.',
       recommendation: 'Add H1–H3 headings to create a navigable semantic hierarchy. AI systems use heading structure to identify topic sections.',
     });
     return { score, issues };
@@ -244,12 +260,14 @@ function scoreHeadingHierarchy(page: CrawledPage): { score: number; issues: Mach
 
   const h1Count = headings.filter((h) => h.level === 1).length;
   if (h1Count === 0) {
-    score -= 25;
+    score -= incomplete ? 10 : 25;
     issues.push({
       stage: 'heading_hierarchy',
-      severity: 'critical',
+      severity: incomplete ? 'warning' : 'critical',
       pageUrl: page.url,
-      description: 'No H1 heading found.',
+      description: incomplete
+        ? 'No H1 was found in the static HTML response. The page may render its primary heading with JavaScript.'
+        : 'No H1 heading found.',
       recommendation: 'Add a single H1 that clearly states the primary topic of the page. This is the primary AI topic signal.',
     });
   } else if (h1Count > 1) {

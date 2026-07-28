@@ -197,6 +197,11 @@ export type { ScoutEngineInput } from './intent/engine';
 export { buildFixPlan } from './fix-plan/engine';
 export type { FixPlanInput, SubReportIssues, IssueRecord } from './fix-plan/engine';
 
+// ─── Issue deduplication (canonical — used by Action Plan, Fix Plan, PDF, ────
+// ─── Executive Summary, Narrative Report) ────────────────────────────────────
+export { dedupeFindings, dedupeExact, collapseCanonicalTopics, CANONICAL_TOPICS } from './issues/dedupe';
+export type { DedupeInput, DedupeGroup, DedupeSeverity } from './issues/dedupe';
+
 // ─── Enhanced Report (v2) ─────────────────────────────────────────────────────
 export { buildEnhancedReport } from './enhanced-report';
 export { enrichSEOIssues, detectSchemaGapIssues, detectContentGapIssues } from './enhanced-report';

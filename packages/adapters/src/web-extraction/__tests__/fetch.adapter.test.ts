@@ -225,4 +225,32 @@ describe('FetchExtractionAdapter', () => {
     expect(health.provider).toBe('fetch');
     expect(health.status).toBe('healthy');
   });
+
+  // ── CSR/JS-shell classification ─────────────────────────────────────────────
+
+  it('tags a normal server-rendered page as static-html with extractionIncomplete false', async () => {
+    mockFetch(FIXTURE('static.html'));
+    const { page } = await adapter.extractPage('https://acme.example.com/');
+
+    expect(page.renderMethod).toBe('static-html');
+    expect(page.extractionIncomplete).toBe(false);
+  });
+
+  it('flags a large, near-empty, headingless response as a likely CSR shell', async () => {
+    mockFetch(FIXTURE('csr-shell.html'));
+    const { page } = await adapter.extractPage('https://spa.example.com/');
+
+    expect(page.renderMethod).toBe('static-html');
+    expect(page.extractionIncomplete).toBe(true);
+    expect(page.extractionIncompleteReasons?.length).toBeGreaterThan(0);
+  });
+
+  it('does not classify a genuinely thin static page (small raw HTML) as a CSR shell', async () => {
+    mockFetch(FIXTURE('minimal.html'));
+    const { page } = await adapter.extractPage('https://tiny.example.com/');
+
+    // Small raw HTML AND small text — the "large raw HTML" gate excludes this from
+    // CSR-shell suspicion; it is just a real, thin page.
+    expect(page.extractionIncomplete).toBe(false);
+  });
 });

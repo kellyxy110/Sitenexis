@@ -155,7 +155,7 @@ export default function SIIPage() {
                 </div>
                 <p className="text-sm text-[#4A6280] max-w-md">
                   The SiteNexis Intelligence Index measures how understandable your website is across both
-                  search engines and AI systems — combining 6 orthogonal dimensions into a single composite score.
+                  search engines and AI systems — a hierarchical composite of 6 named dimensions into a single score.
                 </p>
                 <div className="mt-4 flex items-center gap-2 text-xs text-[#4A6280]">
                   <CheckCircle2 className="h-3.5 w-3.5 text-teal" />
@@ -258,7 +258,7 @@ export default function SIIPage() {
             {/* Weight table */}
             <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-6">
               <h2 className="mb-1 text-sm font-semibold text-[#C8DFE8]">Score Composition</h2>
-              <p className="mb-4 text-xs text-[#4A6280]">Default weight model — 6 orthogonal dimensions, no double-counting</p>
+              <p className="mb-4 text-xs text-[#4A6280]">Default weight model — 6 named top-level dimensions, applied hierarchically (Machine Readability feeds AI Visibility and Semantic Structure directly, so it carries no separate top-level weight)</p>
               <div className="grid gap-1.5 sm:grid-cols-2">
                 {(Object.keys(DIMENSION_META) as Array<keyof SIIBreakdown>).map((dim) => {
                   const { label, weight } = DIMENSION_META[dim];

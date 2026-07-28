@@ -8,6 +8,7 @@
 import { logger } from '@/lib/logger';
 import { getGroqAdapter, getFetchExtractionAdapter, getCrawl4aiExtractionAdapter, estimateCost } from '@sitenexis/adapters';
 import { recordAiCallMetric } from '@sitenexis/db';
+import type { Prisma } from '@sitenexis/db';
 import { probeAiGovernance } from '@sitenexis/crawler';
 import {
   buildAiGovernanceReport,
@@ -30,7 +31,7 @@ import type {
 // ParsedPage is now CrawledPage — use the canonical type throughout.
 // Convenience accessors map CrawledPage fields to the old ParsedPage names.
 
-type ParsedPage = CrawledPage & {
+export type ParsedPage = CrawledPage & {
   /** @deprecated use canonicalUrl */ canonical: string | null;
   /** @deprecated use robotsDirectives[0] */ robotsMeta: string | null;
   /** @deprecated use schemaMarkup */ schemas: unknown[];
@@ -53,7 +54,7 @@ const MAX_PAGES = 50;
 
 // ── SEO analysis ──────────────────────────────────────────────────────────────
 
-interface SEOIssueSimple {
+export interface SEOIssueSimple {
   type: string;
   severity: 'critical' | 'warning' | 'info';
   url: string;
@@ -62,9 +63,11 @@ interface SEOIssueSimple {
   problem: string;
   cause: string;
   solution: string;
+  /** 'low' when this finding was derived from a page flagged extractionIncomplete (possible JS-rendered shell) — never asserted with full confidence. Defaults to 'high' when unset. */
+  confidence?: 'high' | 'low';
 }
 
-function analyseSEO(pages: ParsedPage[]): { score: number; issues: SEOIssueSimple[] } {
+export function analyseSEO(pages: ParsedPage[]): { score: number; issues: SEOIssueSimple[] } {
   const issues: SEOIssueSimple[] = [];
   let deductions = 0;
 
@@ -126,15 +129,29 @@ function analyseSEO(pages: ParsedPage[]): { score: number; issues: SEOIssueSimpl
     }
 
     if (!page.h1) {
+      // A page flagged extractionIncomplete (see fetch adapter's classifyExtraction /
+      // headless retry above) may genuinely have an H1 that only JavaScript renders —
+      // the static HTML response we saw is not proof either way. Report it as
+      // uncertain evidence, not a confirmed structural failure, and penalise less.
+      const incomplete = page.extractionIncomplete === true;
       issues.push({
-        type: 'missing_h1', severity: 'critical', url: u,
-        message: 'No <h1> tag found',
-        problem: 'This page has no H1 heading — the primary structural content signal is missing.',
+        type: 'missing_h1', severity: incomplete ? 'warning' : 'critical', url: u,
+        message: incomplete
+          ? 'No H1 was detected in the static HTML response. The page may render its primary heading with JavaScript.'
+          : 'No <h1> tag found',
+        problem: incomplete
+          ? 'This page returned no H1 in its static HTML response. If the heading is injected client-side via JavaScript, this finding may not reflect what a browser or AI browsing agent actually sees on the rendered page.'
+          : 'This page has no H1 heading — the primary structural content signal is missing.',
         cause: 'The H1 is the single most important on-page content signal. Search engines and AI systems use it to confirm what a page is about and to form retrievable answers.',
-        solution: 'Add a single H1 tag that clearly states the main topic. It should align with the title tag and contain the primary keyword.',
-        recommendation: 'Add a single H1 that describes the page topic.',
+        solution: incomplete
+          ? 'Verify with a real browser whether this page has a visible H1. If it is injected via JavaScript, add server-side rendering or pre-rendering so it appears in the initial HTML response — most AI crawlers do not execute JavaScript. If the page genuinely has no H1, add one that states the page topic.'
+          : 'Add a single H1 tag that clearly states the main topic. It should align with the title tag and contain the primary keyword.',
+        recommendation: incomplete
+          ? 'Confirm with browser rendering whether an H1 is present; add server-rendered output if the site relies on client-side rendering.'
+          : 'Add a single H1 that describes the page topic.',
+        confidence: incomplete ? 'low' : 'high',
       });
-      deductions += 8;
+      deductions += incomplete ? 3 : 8;
     }
 
     if (!page.canonical) {
@@ -150,15 +167,25 @@ function analyseSEO(pages: ParsedPage[]): { score: number; issues: SEOIssueSimpl
     }
 
     if (page.wordCount < 300 && pages.indexOf(page) > 0) {
+      const incomplete = page.extractionIncomplete === true;
       issues.push({
         type: 'low_word_count', severity: 'info', url: u,
-        message: `Only ${page.wordCount} words`,
-        problem: 'This page has too little content to rank or be retrieved by AI systems.',
+        message: incomplete
+          ? `Only ${page.wordCount} words were found in the static HTML response — content may load via JavaScript`
+          : `Only ${page.wordCount} words`,
+        problem: incomplete
+          ? 'This page returned very little text in its static HTML response. If content is injected client-side via JavaScript, this may not reflect what a browser actually renders.'
+          : 'This page has too little content to rank or be retrieved by AI systems.',
         cause: 'AI retrieval systems split content into semantic chunks of 300–600 tokens. Pages below 300 words cannot form a stable chunk, making them unreliable sources for AI-generated answers.',
-        solution: 'Expand this page to at least 500 words with substantive, topic-specific content. Prioritise depth over volume.',
-        recommendation: 'Add more substantive content (aim for 500+ words on key pages).',
+        solution: incomplete
+          ? 'Verify with a real browser whether this page has substantive content. If content is genuinely client-rendered, add server-side rendering or pre-rendering — most AI crawlers do not execute JavaScript.'
+          : 'Expand this page to at least 500 words with substantive, topic-specific content. Prioritise depth over volume.',
+        recommendation: incomplete
+          ? 'Confirm with browser rendering; add SSR/pre-rendering if content is client-side only.'
+          : 'Add more substantive content (aim for 500+ words on key pages).',
+        confidence: incomplete ? 'low' : 'high',
       });
-      deductions += 2;
+      deductions += incomplete ? 1 : 2;
     }
 
     if (page.robotsMeta?.toLowerCase().includes('noindex')) {
@@ -1019,8 +1046,49 @@ export async function runServerlessAudit(
       return;
     }
 
+    // ── Per-page CSR/JS-shell retry ────────────────────────────────────────────
+    // The whole-domain headless fallback above only fires when the crawl fails
+    // outright. A page can return 200 with no JS having run at all — the fetch
+    // extractor already flags this per page (extractionIncomplete). Retry each
+    // flagged page exactly once via headless Crawl4AI, if configured. This is a
+    // per-page decision, never a whole-domain re-crawl, and each page is retried
+    // at most once — no loops.
+    const CSR_RETRY_LIMIT = 15;
+    const CSR_RETRY_MIN_TEXT_CHARS = 200;
+    const csrCandidates = crawledRaw.filter((p) => p.extractionIncomplete === true).slice(0, CSR_RETRY_LIMIT);
+    if (csrCandidates.length > 0) {
+      const headless = getCrawl4aiExtractionAdapter();
+      if (headless.isConfigured()) {
+        logger.info({ auditId, domain, count: csrCandidates.length }, 'Retrying CSR-shell candidate pages via headless Crawl4AI');
+        const retried = await Promise.all(
+          csrCandidates.map(async (candidate) => {
+            try {
+              const { page: rendered } = await headless.extractPage(candidate.url, { timeoutMs: 30_000, ctx: { auditId, domain } });
+              return { url: candidate.url, rendered };
+            } catch (err) {
+              logger.warn({ auditId, url: candidate.url, err }, 'Headless CSR retry failed for page');
+              return null;
+            }
+          }),
+        );
+        for (const result of retried) {
+          if (!result || result.rendered.statusCode >= 400) continue;
+          // Only replace the page if headless rendering actually surfaced more content —
+          // otherwise keep the static result (with extractionIncomplete still true) so the
+          // page is never silently upgraded to "confirmed" on evidence just as thin.
+          const foundRealContent = result.rendered.bodyText.trim().length >= CSR_RETRY_MIN_TEXT_CHARS
+            || result.rendered.headings.length > 0;
+          if (foundRealContent) {
+            const idx = crawledRaw.findIndex((p) => p.url === result.url);
+            if (idx !== -1) crawledRaw[idx] = result.rendered;
+          }
+        }
+      }
+    }
+
     const pages: ParsedPage[] = crawledRaw.map(toParsedPage);
     const urls = pages.map((p) => p.url);
+    const pageLookup = new Map(pages.map((p) => [p.url, p]));
     await updateAuditStatus(auditId, 'running', { pageCount: pages.length });
     await markAgent('crawl', 'completed', `${pages.length} pages crawled`);
 
@@ -1109,36 +1177,44 @@ export async function runServerlessAudit(
     // ── 4. Save to DB ─────────────────────────────────────────────────────────
 
     // Save pages
+    // NOTE: Page has no @@unique([auditId, url]) constraint, so this cannot use
+    // upsert() with a compound-key `where` — find-then-create/update instead.
+    // Captures url -> pageId so issues saved below can carry real page attribution.
+    const pageIdByUrl = new Map<string, string>();
     for (const page of pages.slice(0, 50)) {
       try {
-        await (db as unknown as {
-          page: {
-            upsert: (opts: unknown) => Promise<unknown>;
-          };
-        }).page.upsert({
-          where: { auditId_url: { auditId, url: page.url } },
-          create: {
-            auditId,
-            url: page.url,
-            statusCode: page.statusCode,
-            title: page.title,
-            metaDescription: page.metaDescription,
-            h1: page.h1,
-            canonicalUrl: page.canonical,
-            wordCount: page.wordCount,
-            bodyText: page.bodyText.slice(0, 5000),
-            robotsDirective: page.robotsMeta ?? null,
-            schemaData: page.schemas,
-            crawledAt: new Date(),
-          },
-          update: {
-            statusCode: page.statusCode,
-            title: page.title,
-            metaDescription: page.metaDescription,
-            h1: page.h1,
-            wordCount: page.wordCount,
-          },
-        });
+        const existing = await db.page.findFirst({ where: { auditId, url: page.url } });
+        if (existing) {
+          await db.page.update({
+            where: { id: existing.id },
+            data: {
+              statusCode: page.statusCode,
+              title: page.title,
+              metaDescription: page.metaDescription,
+              h1: page.h1,
+              wordCount: page.wordCount,
+            },
+          });
+          pageIdByUrl.set(page.url, existing.id);
+        } else {
+          const created = await db.page.create({
+            data: {
+              auditId,
+              url: page.url,
+              statusCode: page.statusCode,
+              title: page.title,
+              metaDescription: page.metaDescription,
+              h1: page.h1,
+              canonicalUrl: page.canonical,
+              wordCount: page.wordCount,
+              bodyText: page.bodyText.slice(0, 5000),
+              robotsDirective: page.robotsMeta ?? null,
+              schemaData: page.schemas as unknown as Prisma.InputJsonValue,
+              crawledAt: new Date(),
+            },
+          });
+          pageIdByUrl.set(page.url, created.id);
+        }
       } catch { /* individual page save failure is non-fatal */ }
     }
 
@@ -1221,13 +1297,20 @@ export async function runServerlessAudit(
         const { saveIssues } = await import('@sitenexis/db');
         await saveIssues(
           auditId,
-          performanceResult.issues.map((i) => ({
-            module: 'performance',
-            type: 'performance_issue',
-            severity: i.severity,
-            message: i.message,
-            recommendation: i.recommendation,
-          })),
+          performanceResult.issues.map((i) => {
+            const pid = pageIdByUrl.get(i.url);
+            const rm = pageLookup.get(i.url)?.renderMethod;
+            return {
+              module: 'performance',
+              type: 'performance_issue',
+              severity: i.severity,
+              message: i.message,
+              recommendation: i.recommendation,
+              pageUrl: i.url,
+              ...(pid ? { pageId: pid } : {}),
+              ...(rm ? { renderMethod: rm } : {}),
+            };
+          }),
         );
       } catch (perfIssueErr) {
         logger.warn({ auditId, err: perfIssueErr }, 'Failed to save performance issues (non-fatal)');
@@ -1315,15 +1398,23 @@ export async function runServerlessAudit(
       const { saveIssues } = await import('@sitenexis/db');
       await saveIssues(
         auditId,
-        seoIssues.slice(0, 100).map((i) => ({
-          module: 'seo',
-          type: i.type,
-          severity: i.severity as 'critical' | 'warning' | 'info',
-          message: i.message,
-          recommendation: i.recommendation,
-          problem: i.problem,
-          solution: i.solution,
-        })),
+        seoIssues.slice(0, 100).map((i) => {
+          const pid = pageIdByUrl.get(i.url);
+          const rm = pageLookup.get(i.url)?.renderMethod;
+          return {
+            module: 'seo',
+            type: i.type,
+            severity: i.severity as 'critical' | 'warning' | 'info',
+            message: i.message,
+            recommendation: i.recommendation,
+            problem: i.problem,
+            solution: i.solution,
+            pageUrl: i.url,
+            ...(pid ? { pageId: pid } : {}),
+            ...(rm ? { renderMethod: rm } : {}),
+            ...(i.confidence ? { confidence: i.confidence } : {}),
+          };
+        }),
       );
     }
 

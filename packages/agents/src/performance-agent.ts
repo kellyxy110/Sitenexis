@@ -13,8 +13,8 @@ export async function runPerformanceAgent(
 
   await saveIssues(
     auditId,
-    score.issues.map(({ severity, message, recommendation }) => ({
-      severity, message, recommendation, module: 'performance', type: 'performance_issue',
+    score.issues.map(({ severity, message, recommendation, url }) => ({
+      severity, message, recommendation, module: 'performance', type: 'performance_issue', pageUrl: url,
     }))
   );
 

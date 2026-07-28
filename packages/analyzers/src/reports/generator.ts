@@ -8,6 +8,7 @@ import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { db } from '@sitenexis/db';
 import { type AuditScores, type SEOIssueSeverity } from '@sitenexis/shared';
 import { signReport, attachOutputHash, type ReportIntegrity } from './integrity';
+import { dedupeExact, dedupeFindings, type DedupeSeverity } from '../issues/dedupe';
 
 // ─── Brand tokens ─────────────────────────────────────────────────────────────
 
@@ -326,6 +327,15 @@ interface NormalisedIssue {
   severity: string;
   recommendation: string;
   module: string;
+  type: string;
+}
+
+/** Collapse same (module, type, recommendation) rows raised across many pages — one row per real fix, page count noted in the URL column. Single-module input, so only the exact-match pass applies. */
+function dedupeForTable(issues: NormalisedIssue[]): NormalisedIssue[] {
+  const groups = dedupeExact(issues.map((i) => ({ ...i, severity: i.severity as DedupeSeverity, pageUrl: i.url })));
+  return groups.map((g) => (
+    g.affectedPageCount > 1 ? { ...g.representative, url: `${g.affectedPageCount} pages` } : g.representative
+  ));
 }
 
 function normaliseSeoIssues(scores: AuditScores): NormalisedIssue[] {
@@ -335,6 +345,7 @@ function normaliseSeoIssues(scores: AuditScores): NormalisedIssue[] {
     severity: i.severity,
     recommendation: i.recommendation,
     module: 'SEO',
+    type: i.type,
   }));
 }
 
@@ -348,6 +359,7 @@ function normaliseAiIssues(scores: AuditScores): NormalisedIssue[] {
       severity: (p.total ?? 0) < 30 ? 'critical' : 'warning',
       recommendation: scores.aiReadability.recommendations[0] ?? 'Improve entity clarity and conversational structure.',
       module: 'AI Readability',
+      type: 'ai_readability_low',
     }));
 }
 
@@ -358,6 +370,7 @@ function normaliseSchemaIssues(scores: AuditScores): NormalisedIssue[] {
     severity: i.severity,
     recommendation: i.recommendation,
     module: 'Schema',
+    type: `schema_${i.schemaType}`,
   }));
 }
 
@@ -370,6 +383,7 @@ function normaliseLinkIssues(scores: AuditScores): NormalisedIssue[] {
       severity: 'warning',
       recommendation: 'Add at least one internal link to this page from a related page.',
       module: 'Link Graph',
+      type: 'orphan_page',
     });
   }
   for (const suggestion of scores.linkGraph.linkSuggestions.slice(0, 5)) {
@@ -379,6 +393,7 @@ function normaliseLinkIssues(scores: AuditScores): NormalisedIssue[] {
       severity: 'info',
       recommendation: suggestion.reason,
       module: 'Link Graph',
+      type: 'link_suggestion',
     });
   }
   return issues;
@@ -391,6 +406,7 @@ function normalisePerformanceIssues(scores: AuditScores): NormalisedIssue[] {
     severity: i.severity,
     recommendation: i.recommendation,
     module: 'Performance',
+    type: 'performance_issue',
   }));
 }
 
@@ -428,7 +444,7 @@ function ScoreCircle({ score, label }: { score: number; label: string }) {
 }
 
 function IssueTable({ issues, showModule = false }: { issues: NormalisedIssue[]; showModule?: boolean }) {
-  const rows = issues.slice(0, 10);
+  const rows = dedupeForTable(issues).slice(0, 10);
   return createElement(View, { style: s.table }, [
     // Header
     createElement(View, { key: 'hdr', style: s.tableHeader }, [
@@ -502,13 +518,19 @@ function buildDocument(data: ReportData) {
     ? `${Math.round(crawlDurationMs / 1000)}s crawl duration`
     : 'Duration unavailable';
 
-  // Top 10 prioritised actions: critical first, then warning, then info
-  const actionPlan = [...all]
+  // Top 10 prioritised actions: one row per real fix (canonical dedup — merges
+  // the same fix across pages and across modules), critical first, then warning, then info.
+  const actionPlan = dedupeFindings(all.map((i) => ({ ...i, severity: i.severity as DedupeSeverity, pageUrl: i.url })))
+    .map((g) => {
+      const notes: string[] = [];
+      if (g.affectedPageCount > 1) notes.push(`${g.affectedPageCount} pages`);
+      if (g.mergedModules.length > 0) notes.push(`also: ${g.mergedModules.join(', ')}`);
+      return notes.length > 0 ? { ...g.representative, message: `${g.representative.message} (${notes.join('; ')})` } : g.representative;
+    })
     .sort((a, b) => {
       const order = { critical: 0, warning: 1, info: 2 };
       return (order[a.severity as keyof typeof order] ?? 3) - (order[b.severity as keyof typeof order] ?? 3);
     })
-    .filter((v, i, arr) => arr.findIndex((x) => x.message === v.message) === i)
     .slice(0, 10);
 
   const pages = [

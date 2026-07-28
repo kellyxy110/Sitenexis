@@ -1636,8 +1636,6 @@ function PerceptionGraphTab({ d }: { d: PerceptionGraphData | undefined; loading
 
 // ─── Action Plan Tab ──────────────────────────────────────────────────────────
 
-type AuditIssue = SEOIssue & { module?: string };
-
 const SEV_ORDER_MAP: Record<string, number> = { critical: 0, warning: 1, info: 2 };
 
 const SEV_STYLES_AP: Record<string, { ring: string; label: string; dot: string }> = {
@@ -1692,68 +1690,148 @@ interface FixState {
   effort?: string;
 }
 
-function ActionPlanIssueCard({ issue, auditId }: { issue: AuditIssue; auditId: string }) {
+interface ActionPlanPageEvidence {
+  issueId: string;
+  pageUrl: string | null;
+  message: string;
+  title: string | null;
+  h1: string | null;
+  wordCount: number | null;
+}
+
+interface ActionPlanCardData {
+  id: string;
+  module: string;
+  type: string;
+  severity: 'critical' | 'warning' | 'info';
+  message: string;
+  recommendation: string;
+  problem: string | null;
+  solution: string | null;
+  confidence: 'high' | 'low';
+  renderMethod: string | null;
+  affectedPageCount: number;
+  affectedUrls: string[];
+  mergedModules: string[];
+  pages: ActionPlanPageEvidence[];
+}
+
+interface ActionPlanData {
+  cards: ActionPlanCardData[];
+  totalRawIssues: number;
+}
+
+/** One expandable per-page evidence row inside a grouped Action Plan card. */
+function ActionPlanPageRow({ page, auditId }: { page: ActionPlanPageEvidence; auditId: string }) {
   const [open, setOpen] = useState(false);
   const [fix, setFix] = useState<FixState>({ status: 'idle' });
-  const [copied, setCopied] = useState(false);
-
-  const issueId: string | undefined = (issue as AuditIssue & { id?: string }).id;
-  const styles = SEV_STYLES_AP[issue.severity] ?? SEV_STYLES_AP.info!;
 
   async function loadFix() {
-    if (!issueId || fix.status === 'loading' || fix.status === 'done') return;
+    if (fix.status === 'loading' || fix.status === 'done') return;
     setFix({ status: 'loading' });
     try {
-      const res = await fetch(`/api/audit/${auditId}/fix/${issueId}`);
+      const res = await fetch(`/api/audit/${auditId}/fix/${page.issueId}`);
       if (!res.ok) throw new Error('Failed');
-      const data = await res.json() as Omit<FixState, 'status'> & { problem: string; solution: string; fixCode: string };
-      setFix({ status: 'done', ...data });
+      const json = await res.json() as Omit<FixState, 'status'>;
+      setFix({ status: 'done', ...json });
     } catch {
       setFix({ status: 'error' });
     }
   }
 
-  function toggleOpen() {
+  function toggle() {
     const next = !open;
     setOpen(next);
     if (next && fix.status === 'idle') void loadFix();
   }
 
-  function copyFix() {
-    if (!fix.fixCode) return;
-    void navigator.clipboard.writeText(fix.fixCode);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }
+  return (
+    <div className="rounded-lg border border-white/[0.06] bg-white/[0.02]">
+      <button className="w-full flex items-center justify-between gap-2 px-3 py-2 text-left" onClick={toggle}>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[11px] text-[#c8dfe8]">{(page.pageUrl ?? 'Unknown page').replace(/^https?:\/\//, '')}</p>
+          <p className="truncate text-[10px] text-[#4A6280]">{page.message}</p>
+        </div>
+        <span className="shrink-0 text-[10px] text-[#4A6280]">{open ? '▲' : '▼'}</span>
+      </button>
+      {open && (
+        <div className="border-t border-white/[0.06] px-3 py-2 space-y-2">
+          {(page.title || page.h1 || page.wordCount != null) && (
+            <div className="grid grid-cols-1 gap-1 text-[11px] text-slate-300 sm:grid-cols-3">
+              {page.title && <div><span className="text-[#4A6280]">Current title: </span>{page.title}</div>}
+              {page.h1 && <div><span className="text-[#4A6280]">Current H1: </span>{page.h1}</div>}
+              {page.wordCount != null && <div><span className="text-[#4A6280]">Word count: </span>{page.wordCount}</div>}
+            </div>
+          )}
+          {fix.status === 'loading' ? (
+            <div className="flex items-center gap-2 text-xs text-[#4A6280]">
+              <div className="h-3 w-3 animate-spin rounded-full border border-cyan border-t-transparent" />
+              Generating code fix…
+            </div>
+          ) : fix.status === 'error' ? (
+            <p className="text-xs text-red-400">Code fix generation failed.</p>
+          ) : fix.status === 'done' ? (
+            <div>
+              <div className="mb-1 flex items-center justify-between">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-cyan">
+                  Code Fix{fix.fixLanguage ? ` · ${fix.fixLanguage}` : ''}
+                </p>
+                <button
+                  onClick={() => fix.fixCode && void navigator.clipboard.writeText(fix.fixCode)}
+                  className="rounded px-2 py-0.5 text-[10px] font-medium bg-white/[0.06] text-[#4A6280] hover:text-white"
+                >
+                  Copy fix
+                </button>
+              </div>
+              <pre className="overflow-x-auto rounded-lg bg-[#020A16] p-2 text-[10px] leading-relaxed text-slate-300 font-mono whitespace-pre-wrap max-h-48">
+                {fix.fixCode}
+              </pre>
+            </div>
+          ) : null}
+        </div>
+      )}
+    </div>
+  );
+}
 
-  const langLabel: Record<string, string> = {
-    'json-ld': 'JSON-LD', html: 'HTML', typescript: 'TypeScript', text: 'Text',
-  };
+/** One grouped recommendation — one real-world fix, however many pages it affects. Evidence for every affected page stays visible on expand; grouping never hides it. */
+function ActionPlanGroupCard({ card, auditId }: { card: ActionPlanCardData; auditId: string }) {
+  const [open, setOpen] = useState(false);
+  const styles = SEV_STYLES_AP[card.severity] ?? SEV_STYLES_AP.info!;
+  const grouped = card.affectedPageCount > 1;
 
   return (
     <div className={`rounded-xl border overflow-hidden ${styles.ring}`}>
       <button
         className="w-full flex items-start gap-3 px-4 py-4 text-left hover:bg-white/[0.02] transition-colors"
-        onClick={toggleOpen}
+        onClick={() => setOpen(!open)}
       >
         <span className={`mt-0.5 h-2 w-2 shrink-0 rounded-full ${styles.dot}`} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-1">
-            <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${styles.label}`}>
-              {issue.severity}
-            </span>
-            {issue.module && (
-              <span className="rounded-full bg-white/[0.05] px-2 py-0.5 text-[10px] text-[#4A6280] border border-white/[0.06]">
-                {issue.module}
+            <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${styles.label}`}>{card.severity}</span>
+            <span className="rounded-full bg-white/[0.05] px-2 py-0.5 text-[10px] text-[#4A6280] border border-white/[0.06]">{card.module}</span>
+            <span className="font-mono text-[10px] text-[#4A6280]">{card.type.replace(/_/g, ' ')}</span>
+            {grouped && (
+              <span className="rounded-full bg-cyan/10 text-cyan px-2 py-0.5 text-[10px] font-medium border border-cyan/30">
+                Affects {card.affectedPageCount} pages
               </span>
             )}
-            <span className="font-mono text-[10px] text-[#4A6280]">
-              {(issue.type ?? '').replace(/_/g, ' ')}
-            </span>
+            {card.confidence === 'low' && (
+              <span
+                className="rounded-full bg-white/[0.05] text-[#8fa5b8] px-2 py-0.5 text-[10px] border border-white/[0.08]"
+                title="Detected from a static HTML response, without executing JavaScript — the page may render differently in a browser."
+              >
+                Low confidence — static HTML only
+              </span>
+            )}
           </div>
-          <p className="text-sm text-white leading-snug">{issue.message}</p>
-          {issue.url && (
-            <p className="mt-0.5 text-[11px] text-[#4A6280] truncate">{issue.url.replace(/^https?:\/\//, '')}</p>
+          <p className="text-sm text-white leading-snug">{card.message}</p>
+          {!grouped && card.affectedUrls[0] && (
+            <p className="mt-0.5 text-[11px] text-[#4A6280] truncate">{card.affectedUrls[0].replace(/^https?:\/\//, '')}</p>
+          )}
+          {card.mergedModules.length > 0 && (
+            <p className="mt-0.5 text-[11px] text-[#4A6280]">Also flagged by: {card.mergedModules.join(', ')}</p>
           )}
         </div>
         <span className="shrink-0 text-xs text-[#4A6280] mt-1">{open ? '▲' : '▼'}</span>
@@ -1761,94 +1839,69 @@ function ActionPlanIssueCard({ issue, auditId }: { issue: AuditIssue; auditId: s
 
       {open && (
         <div className="border-t border-white/[0.06] bg-[#050B16] px-4 pb-4 pt-3 space-y-3">
-          {/* Problem — shown immediately from DB data */}
           <div>
             <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-red-400">Problem</p>
-            <p className="text-xs text-slate-300 leading-relaxed">
-              {(issue as AuditIssue & { problem?: string }).problem ?? issue.message}
-            </p>
+            <p className="text-xs text-slate-300 leading-relaxed">{card.problem ?? card.message}</p>
           </div>
 
-          {/* Cause — derived from issue type */}
           <div>
             <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-amber-400">Cause</p>
             <p className="text-xs text-[#b0c4cc] leading-relaxed">
-              {SEO_CAUSE_MAP[issue.type ?? ''] ?? TRUST_CAUSE_MAP[issue.type ?? ''] ?? TEMPORAL_CAUSE_MAP[issue.type ?? ''] ?? 'This issue degrades crawlability, AI retrievability, or machine trust — each of which contributes to overall visibility.'}
+              {SEO_CAUSE_MAP[card.type] ?? TRUST_CAUSE_MAP[card.type] ?? TEMPORAL_CAUSE_MAP[card.type] ?? 'This issue degrades crawlability, AI retrievability, or machine trust — each of which contributes to overall visibility.'}
             </p>
           </div>
 
-          {/* Solution — shown immediately from DB data */}
           <div>
             <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-teal-400">Solution</p>
-            <p className="text-xs text-slate-300 leading-relaxed">
-              {(issue as AuditIssue & { solution?: string }).solution ?? issue.recommendation}
-            </p>
+            <p className="text-xs text-slate-300 leading-relaxed">{card.solution ?? card.recommendation}</p>
           </div>
 
-          {/* Fix code — loads async via AI API */}
-          {issueId && (
-            fix.status === 'idle' ? null : fix.status === 'loading' ? (
-              <div className="flex items-center gap-2 pt-1 text-xs text-[#4A6280]">
-                <div className="h-3 w-3 animate-spin rounded-full border border-cyan border-t-transparent" />
-                Generating code fix…
-              </div>
-            ) : fix.status === 'error' ? (
-              <p className="text-xs text-red-400 pt-1">Code fix generation failed.</p>
-            ) : (
-              <div className="pt-1">
-                <div className="mb-1.5 flex items-center justify-between">
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-cyan">
-                    Code Fix · {fix.fixLanguage ? (langLabel[fix.fixLanguage] ?? fix.fixLanguage) : ''}
-                  </p>
-                  <div className="flex items-center gap-2">
-                    {fix.expectedImpact && (
-                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium border ${
-                        fix.expectedImpact === 'high' ? 'border-red-500/30 bg-red-500/10 text-red-400' :
-                        fix.expectedImpact === 'medium' ? 'border-amber-500/30 bg-amber-500/10 text-amber-400' :
-                        'border-blue-500/30 bg-blue-500/10 text-blue-400'
-                      }`}>{fix.expectedImpact} impact</span>
-                    )}
-                    <button
-                      onClick={copyFix}
-                      className={`rounded px-2.5 py-1 text-[10px] font-medium transition-colors ${
-                        copied ? 'bg-green-500/20 text-green-400' : 'bg-white/[0.06] text-[#4A6280] hover:text-white'
-                      }`}
-                    >
-                      {copied ? 'Copied!' : 'Copy fix'}
-                    </button>
-                  </div>
-                </div>
-                <pre className="overflow-x-auto rounded-lg bg-[#020A16] p-3 text-[11px] leading-relaxed text-slate-300 font-mono whitespace-pre-wrap max-h-64">
-                  {fix.fixCode}
-                </pre>
-              </div>
-            )
-          )}
+          {/* Per-page evidence — every affected URL stays listed, grouping only changes presentation */}
+          <div>
+            <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-cyan">
+              Affected Page{card.pages.length === 1 ? '' : 's'} ({card.pages.length})
+            </p>
+            <div className="space-y-1.5">
+              {card.pages.map((page) => (
+                <ActionPlanPageRow key={page.issueId} page={page} auditId={auditId} />
+              ))}
+            </div>
+          </div>
         </div>
       )}
     </div>
   );
 }
 
-function ActionPlanTab({ data }: { data: AuditData }) {
+function ActionPlanTab({ auditId, actionPlan, loading }: { auditId: string; actionPlan: ActionPlanData | undefined; loading: boolean }) {
   const [filterSev, setFilterSev] = useState<string>('all');
   const [filterMod, setFilterMod] = useState<string>('all');
 
-  const issues = data.issues as AuditIssue[];
-  const modules = [...new Set(issues.map((i) => i.module).filter(Boolean))].sort();
+  const cards = actionPlan?.cards ?? [];
+  const totalRawIssues = actionPlan?.totalRawIssues ?? 0;
+  const modules = [...new Set(cards.map((c) => c.module).filter(Boolean))].sort();
 
   const filtered = useMemo(() => {
-    return issues
-      .filter((i) => filterSev === 'all' || i.severity === filterSev)
-      .filter((i) => filterMod === 'all' || i.module === filterMod)
+    return cards
+      .filter((c) => filterSev === 'all' || c.severity === filterSev)
+      .filter((c) => filterMod === 'all' || c.module === filterMod)
       .sort((a, b) => (SEV_ORDER_MAP[a.severity] ?? 2) - (SEV_ORDER_MAP[b.severity] ?? 2));
-  }, [issues, filterSev, filterMod]);
+  }, [cards, filterSev, filterMod]);
 
   const counts = useMemo(() => ({
-    critical: issues.filter((i) => i.severity === 'critical').length,
-    warning: issues.filter((i) => i.severity === 'warning').length,
-    info: issues.filter((i) => i.severity === 'info').length,
-  }), [issues]);
+    critical: cards.filter((c) => c.severity === 'critical').length,
+    warning: cards.filter((c) => c.severity === 'warning').length,
+    info: cards.filter((c) => c.severity === 'info').length,
+  }), [cards]);
+
+  if (loading) {
+    return (
+      <div className="card-glass rounded-xl p-10 text-center">
+        <div className="mb-4 h-6 w-6 animate-spin rounded-full border-2 border-cyan border-t-transparent mx-auto" />
+        <p className="text-[#4A6280]">Loading action plan…</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -1856,7 +1909,10 @@ function ActionPlanTab({ data }: { data: AuditData }) {
       <div className="card-glass rounded-xl p-5">
         <h2 className="text-lg font-bold text-white mb-1">Action Plan</h2>
         <p className="text-xs text-[#4A6280]">
-          Every detected issue with a ready-to-paste fix. Sorted by severity. Click any issue to expand the Problem → Solution → Fix.
+          One recommendation per real-world fix — the same finding across many pages is grouped into a single expandable card. Click any card to expand the Problem → Solution → Fix and see every affected page.
+          {totalRawIssues > cards.length && (
+            <> {totalRawIssues} individual findings condensed into {cards.length} action{cards.length === 1 ? '' : 's'}.</>
+          )}
         </p>
         <div className="mt-4 flex gap-4 text-sm">
           <span><span className="font-bold text-red-400">{counts.critical}</span> <span className="text-[#4A6280]">critical</span></span>
@@ -1880,7 +1936,7 @@ function ActionPlanTab({ data }: { data: AuditData }) {
                 : 'border-white/10 text-[#4A6280] hover:text-white'
             }`}
           >
-            {sev === 'all' ? `All (${issues.length})` : `${sev} (${counts[sev]})`}
+            {sev === 'all' ? `All (${cards.length})` : `${sev} (${counts[sev]})`}
           </button>
         ))}
         {modules.length > 1 && (
@@ -1895,7 +1951,7 @@ function ActionPlanTab({ data }: { data: AuditData }) {
         )}
       </div>
 
-      {/* Issue cards */}
+      {/* Cards */}
       {filtered.length === 0 ? (
         <div className="card-glass rounded-xl p-10 text-center">
           <p className="text-4xl mb-3">✅</p>
@@ -1903,12 +1959,8 @@ function ActionPlanTab({ data }: { data: AuditData }) {
         </div>
       ) : (
         <div className="space-y-3">
-          {filtered.map((issue, i) => (
-            <ActionPlanIssueCard
-              key={(issue as AuditIssue & { id?: string }).id ?? `${issue.type}-${i}`}
-              issue={issue}
-              auditId={data.id}
-            />
+          {filtered.map((card) => (
+            <ActionPlanGroupCard key={card.id} card={card} auditId={auditId} />
           ))}
         </div>
       )}
@@ -2021,6 +2073,12 @@ function AuditPageInner() {
     queryFn: () => fetch(`/api/audit/${auditId2}/retrieval`).then((r) => r.json()).then(unwrapGTL<RetrievalData>),
     enabled: activeTab === 'retrieval' && !!auditId2,
     staleTime: 120_000,
+  });
+  const { data: actionPlanData, isLoading: actionPlanLoading } = useQuery<ActionPlanData>({
+    queryKey: ['audit-action-plan', auditId2],
+    queryFn: () => fetch(`/api/audit/${auditId2}/action-plan`).then((r) => r.json()).then(unwrapGTL<ActionPlanData>),
+    enabled: activeTab === 'action-plan' && !!auditId2,
+    staleTime: 60_000,
   });
   const { data: machineTrustData, isLoading: machineTrustLoading } = useQuery<MachineTrustData>({
     queryKey: ['audit-machine-trust', auditId2],
@@ -2489,7 +2547,7 @@ function AuditPageInner() {
         {/* ── Tab content ──────────────────────────────────────────────────── */}
         <div>
           {activeTab === 'pages'              && <PagesTab data={data} />}
-          {activeTab === 'action-plan'        && <ActionPlanTab data={data} />}
+          {activeTab === 'action-plan'        && <ActionPlanTab auditId={data.id} actionPlan={actionPlanData} loading={actionPlanLoading} />}
           {activeTab === 'seo'                && <SeoTab data={data} />}
           {activeTab === 'ai'                 && <AiTab data={data} />}
           {activeTab === 'machine-readability' && <MachineReadabilityTab data={data} />}

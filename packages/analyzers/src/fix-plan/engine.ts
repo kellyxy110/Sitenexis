@@ -18,6 +18,7 @@ import {
   computeExpectedImpact,
 } from './priorities';
 import { applyDependencies, buildDependencyChains } from './dependencies';
+import { dedupeFindings } from '../issues/dedupe';
 
 export interface IssueRecord {
   id: string;
@@ -178,21 +179,24 @@ export function buildFixPlan(input: FixPlanInput): FixPlan {
     }
   }
 
-  // ── Step 1b: Collapse duplicate actions ───────────────────────────────────
+  // ── Step 1b/1c: Deduplicate via the shared, canonical issue-dedup module ──
   // The Issues table can carry the same fix across many pages (e.g. missing alt
-  // text on 40 URLs). Emitting one action per row produces a repetitive plan, so
-  // collapse by (module, type, recommendation), keep the most-severe representative,
-  // and record how many pages the fix spans.
-  const exactDeduped = dedupeItems(rawItems);
-
-  // ── Step 1c: Collapse the same real-world fix raised by different modules ──
-  // Entity Intelligence, Machine Trust, Synthetic Entity, and Citation each run
-  // their own analysis and independently detect gaps like "no sameAs links" or
-  // "no Organization schema" — each with its own module/type/wording. Step 1b's
-  // exact-match key can't catch these because the module and type genuinely
-  // differ. Without this pass the same audit surfaces 3-5 near-identical
-  // "add sameAs links" actions instead of one.
-  const items = collapseCanonicalTopics(exactDeduped);
+  // text on 40 URLs), and independent modules (Entity Intelligence, Machine
+  // Trust, Synthetic Entity, Citation) can each detect the same real-world gap
+  // ("no sameAs links") with their own module/type/wording. dedupeFindings runs
+  // both passes and returns one group per real fix, with every affected page and
+  // contributing module preserved on the group — this is the single canonical
+  // implementation, also used by the Action Plan, PDF, Executive Summary, and
+  // Narrative Report so every report surface agrees on what counts as "the same"
+  // finding.
+  const groups = dedupeFindings(rawItems);
+  const items = groups.map((group) => {
+    const rep = group.representative;
+    const notes: string[] = [];
+    if (group.affectedPageCount > 1) notes.push(`affects ${group.affectedPageCount} pages`);
+    if (group.mergedModules.length > 0) notes.push(`also flagged by ${group.mergedModules.join(', ')}`);
+    return notes.length > 0 ? { ...rep, message: `${rep.message} (${notes.join('; ')})` } : rep;
+  });
 
   // ── Step 2: Apply dependency mapping ──────────────────────────────────────
   applyDependencies(items);
@@ -272,118 +276,6 @@ function computeOverallFixScore(items: FixPlanItem[]): number {
   const impactRatio = totalImpact / maxPossibleImpact;
 
   return Math.max(0, Math.min(100, Math.round((1 - impactRatio) * 100)));
-}
-
-const SEVERITY_RANK: Record<string, number> = { critical: 0, warning: 1, info: 2 };
-
-/**
- * Collapse duplicate fix actions. Two items are "the same fix" when they share a
- * module, type, and (normalized) recommendation — regardless of which page raised
- * them. The representative kept is the most severe; on a tie, the one carrying a
- * code fix. When a fix spans multiple pages, its message notes the page count so
- * the coverage information is preserved rather than lost.
- */
-function dedupeItems(items: FixPlanItem[]): FixPlanItem[] {
-  const groups = new Map<string, FixPlanItem[]>();
-  for (const item of items) {
-    const actionText = (item.recommendation || item.message).trim().toLowerCase().replace(/\s+/g, ' ');
-    const sig = `${item.module}::${item.type}::${actionText}`;
-    const group = groups.get(sig);
-    if (group) group.push(item);
-    else groups.set(sig, [item]);
-  }
-
-  const result: FixPlanItem[] = [];
-  for (const group of groups.values()) {
-    if (group.length === 1) {
-      result.push(group[0]!);
-      continue;
-    }
-    const rep = [...group].sort((a, b) =>
-      ((SEVERITY_RANK[a.severity] ?? 2) - (SEVERITY_RANK[b.severity] ?? 2))
-      || ((a.fixCode ? 0 : 1) - (b.fixCode ? 0 : 1)),
-    )[0]!;
-    const affectedPages = new Set(group.map((i) => i.pageUrl).filter((u): u is string => !!u)).size;
-    result.push(
-      affectedPages > 1
-        ? { ...rep, message: `${rep.message} (affects ${affectedPages} pages)` }
-        : rep,
-    );
-  }
-  return result;
-}
-
-/**
- * Cross-module fix topics. Each entry recognises a real-world fix that multiple
- * independent analyzer modules detect on their own (different module, different
- * type, different wording) but which resolves to a single action for the site
- * owner. Matching is conservative and text-based, on the combination of module
- * signal + recommendation content — precise enough to avoid merging unrelated
- * issues that happen to mention a shared keyword (e.g. "schema" alone is never
- * sufficient; the test requires the specific fix content too).
- */
-const CANONICAL_TOPICS: { id: string; label: string; test: (item: FixPlanItem) => boolean }[] = [
-  {
-    id: 'external-validation-sameas',
-    label: 'Add sameAs links for external entity validation',
-    test: (item) => {
-      const text = `${item.recommendation} ${item.message}`.toLowerCase();
-      return /same\s*as/.test(text) && /(wikipedia|wikidata|linkedin|crunchbase)/.test(text);
-    },
-  },
-  {
-    id: 'missing-organization-schema',
-    label: 'Add Organization schema to the homepage',
-    test: (item) => {
-      const text = `${item.recommendation} ${item.message}`.toLowerCase();
-      return /organi[sz]ation schema/.test(text) && /(add|missing|no organi[sz]ation)/.test(text);
-    },
-  },
-  {
-    id: 'missing-faq-schema',
-    label: 'Add FAQPage schema',
-    test: (item) => {
-      const text = `${item.recommendation} ${item.message}`.toLowerCase();
-      return /faqpage schema/.test(text) && /(add|missing|no faqpage)/.test(text);
-    },
-  },
-];
-
-/**
- * Second dedup pass, run after the exact-match collapse in {@link dedupeItems}.
- * Groups items across module/type boundaries by canonical fix topic, keeping the
- * same most-severe/most-detailed representative selection rule, and folds the
- * discarded items' module names into the survivor's message so the coverage
- * information (which checks flagged this) is preserved rather than silently lost.
- */
-function collapseCanonicalTopics(items: FixPlanItem[]): FixPlanItem[] {
-  const claimed = new Set<string>();
-  const result: FixPlanItem[] = [];
-
-  for (const topic of CANONICAL_TOPICS) {
-    const matches = items.filter((item) => !claimed.has(item.id) && topic.test(item));
-    if (matches.length === 0) continue;
-    for (const m of matches) claimed.add(m.id);
-    if (matches.length === 1) { result.push(matches[0]!); continue; }
-
-    const rep = [...matches].sort((a, b) =>
-      ((SEVERITY_RANK[a.severity] ?? 2) - (SEVERITY_RANK[b.severity] ?? 2))
-      || ((a.fixCode ? 0 : 1) - (b.fixCode ? 0 : 1))
-      || (b.recommendation.length - a.recommendation.length),
-    )[0]!;
-    const otherModules = [...new Set(matches.map((m) => m.module).filter((mod) => mod !== rep.module))];
-    result.push(
-      otherModules.length > 0
-        ? { ...rep, message: `${rep.message} (also flagged by ${otherModules.join(', ')})` }
-        : rep,
-    );
-  }
-
-  for (const item of items) {
-    if (!claimed.has(item.id)) result.push(item);
-  }
-
-  return result;
 }
 
 function normalizeSeverity(severity: string): SEOIssueSeverity {

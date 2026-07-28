@@ -1,4 +1,5 @@
 export { db, prisma } from './client';
+export type { Prisma } from '../generated';
 export { orderEnginesForPlatform, pickEngineLibrary } from './engine-select';
 export * from './queries/audits';
 export * from './queries/credits';

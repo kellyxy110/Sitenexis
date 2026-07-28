@@ -25,12 +25,13 @@ export async function runSemanticTrustAgent(
       trustScore.issues
         .filter((issue) => issue.severity === 'critical' || issue.severity === 'warning')
         .slice(0, 20)
-        .map(({ severity, description, recommendation }) => ({
+        .map(({ severity, description, recommendation, pageUrl }) => ({
           module: 'semantic-trust',
           type: 'trust_issue',
           severity,
           message: description,
           recommendation,
+          ...(pageUrl ? { pageUrl } : {}),
         }))
     );
   }

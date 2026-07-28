@@ -60,6 +60,17 @@ export interface CrawledPage {
   responseHeaders?: Record<string, string>;
   /** `<script src="...">` URLs found before script tags are stripped. Powers outdated-library detection. */
   scriptSources?: string[];
+  /** How this page was obtained. 'static-html' = fetch()+regex, no JS execution. 'headless-rendered' = a real browser executed JS first. */
+  renderMethod?: 'static-html' | 'headless-rendered';
+  /**
+   * True when this page looks like a JavaScript-rendered shell that a non-JS fetch cannot see through
+   * (large raw HTML, near-empty visible text, no headings) — set only for renderMethod: 'static-html'.
+   * Structural findings (missing H1, thin content) derived from an incomplete page should be reported
+   * with reduced confidence/severity and qualified wording rather than asserted as confirmed failures.
+   */
+  extractionIncomplete?: boolean;
+  /** Human-readable reasons extractionIncomplete was set — used to build evidence-aware issue wording. */
+  extractionIncompleteReasons?: string[];
 }
 
 export interface CrawlResult {

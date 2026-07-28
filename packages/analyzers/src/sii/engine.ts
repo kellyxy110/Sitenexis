@@ -2,13 +2,25 @@
  * SiteNexis Intelligence Index (SII)
  *
  * A unified composite score measuring how "understandable" a website is
- * across both search engines and AI systems. Combines 6 orthogonal
+ * across both search engines and AI systems. Combines 6 named top-level
  * dimensions into a single 0–100 score with full explainability.
  *
- * Weights (default model):
+ * SII is a HIERARCHICAL composite, not a set of orthogonal dimensions.
+ * Two top-level dimensions — AI Visibility and Semantic Structure — are
+ * themselves derived from lower-level signals, and both intentionally
+ * incorporate Machine Readability as an input (see deriveAIVisibility and
+ * deriveSemanticStructure below). Machine Readability has no direct
+ * top-level weight of its own; it influences the score entirely through
+ * these two parent dimensions. This is deliberate: machine readability is
+ * a foundational signal that legitimately shapes both how AI systems
+ * access content (AI Visibility) and how that content is structurally
+ * organised (Semantic Structure) — it is not double-counted error, it is
+ * a shared upstream input feeding two distinct downstream concerns.
+ *
+ * Weights (default model, applied to the 6 top-level dimensions):
  *   SEO Readability       20%  — technical crawlability + SEO health
- *   AI Visibility         25%  — machine extraction + semantic trust
- *   Semantic Structure    20%  — schema completeness + machine readability
+ *   AI Visibility         25%  — derived from machine readability + semantic trust
+ *   Semantic Structure    20%  — derived from schema completeness + machine readability
  *   Entity Clarity        15%  — entity confidence, consistency, disambiguation
  *   Retrieval Friendliness 10% — chunk quality + query-answer alignment
  *   Citation Potential    10%  — factual density + authority signals
@@ -87,8 +99,9 @@ const WEIGHTS: Record<keyof SIIBreakdown, number> = {
 // ─── Dimension derivation ─────────────────────────────────────────────────────
 
 function deriveAIVisibility(input: SIIInput): number | null {
-  // Blends machine readability + semantic trust to represent pure AI access
-  // quality without double-counting entity or citation (separate dimensions).
+  // Hierarchical: blends machine readability + semantic trust to represent
+  // AI access quality. Entity and citation stay as separate top-level
+  // dimensions with their own weights, so this blend does not touch them.
   const mr   = input.machineReadabilityScore;
   const st   = input.semanticTrustScore;
   const full = input.aiVisibilityScore;
@@ -100,6 +113,10 @@ function deriveAIVisibility(input: SIIInput): number | null {
 }
 
 function deriveSemanticStructure(input: SIIInput): number | null {
+  // Hierarchical: blends schema completeness + machine readability. This is
+  // the second parent dimension that machine readability feeds into (see
+  // deriveAIVisibility above) — intentional shared upstream signal, not an
+  // orthogonality violation.
   const schema = input.schemaScore;
   const mr     = input.machineReadabilityScore;
   if (schema === null && mr === null) return null;

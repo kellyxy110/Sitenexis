@@ -87,16 +87,28 @@ export async function GET(req: NextRequest, { params }: Params): Promise<NextRes
       getRecommendationSurfaceMap(id).catch(() => null),
     ]);
 
+    // Canonical dedup before the AI sees the issue list — otherwise the narrative
+    // ends up restating the same per-page finding several times in different words.
+    const { dedupeFindings } = await import('@sitenexis/analyzers');
     const severityOrder: Record<string, number> = { critical: 0, warning: 1, info: 2 };
-    const topIssues = rawIssues
-      .sort((a, b) => (severityOrder[a.severity] ?? 2) - (severityOrder[b.severity] ?? 2))
-      .slice(0, 15)
-      .map((issue) => ({
+    const topIssues = dedupeFindings(
+      rawIssues.map((issue) => ({
         module: issue.module,
         type: issue.type,
         severity: issue.severity as 'critical' | 'warning' | 'info',
         message: issue.message,
         recommendation: issue.recommendation,
+        pageUrl: issue.pageUrl,
+      })),
+    )
+      .sort((a, b) => (severityOrder[a.representative.severity] ?? 2) - (severityOrder[b.representative.severity] ?? 2))
+      .slice(0, 15)
+      .map((group) => ({
+        module: group.representative.module,
+        type: group.representative.type,
+        severity: group.representative.severity,
+        message: group.affectedPageCount > 1 ? `${group.representative.message} (affects ${group.affectedPageCount} pages)` : group.representative.message,
+        recommendation: group.representative.recommendation,
       }));
 
     const simulated = (retrievalSims as Array<{

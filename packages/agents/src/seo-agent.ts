@@ -10,8 +10,10 @@ export async function runSEOAgent(auditId: string, pages: CrawledPage[]): Promis
 
   await saveIssues(
     auditId,
-    issues.map(({ type, severity, message, recommendation }) => ({
-      type, severity, message, recommendation, module: 'seo',
+    issues.map(({ type, severity, message, recommendation, url, problem, solution }) => ({
+      type, severity, message, recommendation, module: 'seo', pageUrl: url,
+      ...(problem ? { problem } : {}),
+      ...(solution ? { solution } : {}),
     }))
   );
 

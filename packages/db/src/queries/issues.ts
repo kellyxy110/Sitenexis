@@ -7,6 +7,7 @@ export async function saveIssues(
   auditId: string,
   issues: Array<{
     pageId?: string;
+    pageUrl?: string;
     module: string;
     type: string;
     severity: IssueSeverity;
@@ -16,6 +17,10 @@ export async function saveIssues(
     solution?: string;
     fixCode?: string;
     fixLanguage?: string;
+    /** How the page was crawled when this issue was detected: 'static-html' or 'headless-rendered'. */
+    renderMethod?: string;
+    /** 'high' (confirmed) or 'low' (extraction may be incomplete). Defaults to high when unset. */
+    confidence?: string;
   }>
 ): Promise<void> {
   await db.issue.createMany({

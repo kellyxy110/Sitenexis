@@ -161,6 +161,54 @@ function parseHtml(
   };
 }
 
+// ─── CSR/JS-shell detection ────────────────────────────────────────────────────
+// A non-JS fetch cannot see content that a framework injects client-side. A page
+// that returns 200 with almost no visible text, no headings, and a large raw HTML
+// payload (typically dominated by a JS bundle) is a strong sign of that — not a
+// genuinely thin static page, which is small on both axes. Requiring the "large
+// raw HTML" signal alongside the "no content" signal is what tells the two apart.
+const CSR_SHELL_RAW_HTML_BYTES = 50_000;
+const CSR_SHELL_MIN_TEXT_CHARS = 200;
+
+interface ExtractionClassification {
+  renderMethod: 'static-html';
+  extractionIncomplete: boolean;
+  extractionIncompleteReasons: string[];
+}
+
+function classifyExtraction(
+  rawHtml: string,
+  statusCode: number,
+  bodyText: string,
+  headings: { level: number; text: string }[],
+): ExtractionClassification {
+  const reasons: string[] = [];
+  const isSuccess = statusCode >= 200 && statusCode < 300;
+  const rawIsLarge = rawHtml.length > CSR_SHELL_RAW_HTML_BYTES;
+  const visibleTextLen = bodyText.trim().length;
+
+  if (isSuccess && rawIsLarge) {
+    if (visibleTextLen < CSR_SHELL_MIN_TEXT_CHARS) {
+      reasons.push(`Only ${visibleTextLen} characters of visible text were found in a ${Math.round(rawHtml.length / 1024)}KB HTML response`);
+    }
+    if (headings.length === 0) {
+      reasons.push('No heading elements (h1–h6) were found anywhere in the raw HTML response');
+    }
+    const textToHtmlRatio = visibleTextLen / rawHtml.length;
+    if (textToHtmlRatio < 0.01) {
+      reasons.push(`Visible text is ${(textToHtmlRatio * 100).toFixed(2)}% of the raw response size — the response is likely dominated by application code, not content`);
+    }
+  }
+
+  // Require at least two independent signals so a genuinely thin static page
+  // (small raw HTML AND small text — rawIsLarge is false) is never misclassified.
+  return {
+    renderMethod: 'static-html',
+    extractionIncomplete: reasons.length >= 2,
+    extractionIncompleteReasons: reasons,
+  };
+}
+
 function buildMetrics(
   url: string,
   page: CrawledPage,
@@ -319,6 +367,7 @@ export class FetchExtractionAdapter implements WebExtractionAdapter {
 
     const finalUrl = raw.finalUrl;
     const parsed = parseHtml(raw.html, finalUrl);
+    const classification = classifyExtraction(raw.html, raw.statusCode, parsed.bodyText, parsed.headings);
     const page: CrawledPage = {
       url: finalUrl,
       statusCode: raw.statusCode,
@@ -329,6 +378,7 @@ export class FetchExtractionAdapter implements WebExtractionAdapter {
       images: [],
       responseHeaders: raw.headers,
       ...parsed,
+      ...classification,
     };
 
     return {
@@ -360,12 +410,14 @@ export class FetchExtractionAdapter implements WebExtractionAdapter {
     // correctly (otherwise every link looks external and discovery finds nothing).
     const homeUrl = homeRaw.finalUrl;
     const homeParsed = parseHtml(homeRaw.html, homeUrl);
+    const homeClassification = classifyExtraction(homeRaw.html, homeRaw.statusCode, homeParsed.bodyText, homeParsed.headings);
     const homePage: CrawledPage = {
       url: homeUrl, statusCode: homeRaw.statusCode,
       redirectChain: homeUrl !== baseUrl ? [baseUrl, homeUrl] : [],
       responseTimeMs: homeRaw.ms, contentType: 'text/html', crawledAt: new Date(), images: [],
       responseHeaders: homeRaw.headers,
       ...homeParsed,
+      ...homeClassification,
     };
     pages.push(homePage);
     opts?.onPage?.(homePage);
@@ -394,10 +446,12 @@ export class FetchExtractionAdapter implements WebExtractionAdapter {
         const result = results[j];
         if (result && result.statusCode < 400) {
           const batchUrl = batch[j]!;
+          const batchParsed = parseHtml(result.html, batchUrl);
           const p: CrawledPage = {
             url: batchUrl, statusCode: result.statusCode, redirectChain: [],
             responseTimeMs: result.ms, contentType: 'text/html', crawledAt: new Date(), images: [],
-            ...parseHtml(result.html, batchUrl),
+            ...batchParsed,
+            ...classifyExtraction(result.html, result.statusCode, batchParsed.bodyText, batchParsed.headings),
           };
           pages.push(p);
           opts?.onPage?.(p);
