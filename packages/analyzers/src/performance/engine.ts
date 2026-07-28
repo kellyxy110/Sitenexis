@@ -16,8 +16,10 @@ const CLS_WARNING  = 0.10;
 const TBT_CRITICAL = 600;   // ms
 const TBT_WARNING  = 200;
 
-const MAX_PAGES    = 5;
-const TIMEOUT_MS   = 60_000;
+// Performance is a supporting signal in the live audit path. Keep it bounded
+// so a slow or hostile site cannot hold the complete audit open for minutes.
+const MAX_PAGES    = 1;
+const TIMEOUT_MS   = 3_500;
 
 // ─── Lighthouse type stubs (graceful when package absent) ────────────────────
 
