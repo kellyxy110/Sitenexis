@@ -38,8 +38,15 @@ const TASK_MODEL_MAP: Record<AITaskType, (typeof OR_MODELS)[keyof typeof OR_MODE
   multilingual_analysis:    OR_MODELS.LLAMA,
   ad_generation:            OR_MODELS.HERMES,
   performance_prediction:   OR_MODELS.DEEPSEEK,
-  scout_intent_classification: OR_MODELS.QWEN,
-  scout_reasoning:             OR_MODELS.QWEN,
+  // Qwen3-Next's :free slug was pulled from OpenRouter's free tier (404s on every
+  // call — see "paid version available" error). Scout classifies up to 50 pages
+  // per audit, and selectModel() only checks that a key is configured, not that
+  // the model is actually reachable — so a dead primary silently burns a rate-
+  // limited slot on every single page before falling back, adding minutes to the
+  // audit. Route straight to Hermes (proven reliable elsewhere) until Qwen's free
+  // tier is restored or a paid slug is configured.
+  scout_intent_classification: OR_MODELS.HERMES,
+  scout_reasoning:             OR_MODELS.HERMES,
 };
 
 /** Fallback chain when primary model key is not configured */
@@ -52,8 +59,9 @@ const FALLBACK_MAP: Partial<Record<AITaskType, (typeof OR_MODELS)[keyof typeof O
   schema_generation:       [OR_MODELS.HERMES],
   ad_generation:           [OR_MODELS.KIMI, OR_MODELS.QWEN],
   performance_prediction:  [OR_MODELS.HERMES],
-  scout_intent_classification: [OR_MODELS.HERMES, OR_MODELS.DEEPSEEK],
-  scout_reasoning:             [OR_MODELS.DEEPSEEK, OR_MODELS.HERMES],
+  // Qwen kept as last resort only — never the first attempt (see note above).
+  scout_intent_classification: [OR_MODELS.DEEPSEEK, OR_MODELS.QWEN],
+  scout_reasoning:             [OR_MODELS.DEEPSEEK, OR_MODELS.QWEN],
 };
 
 function selectModel(task: AITaskType): (typeof OR_MODELS)[keyof typeof OR_MODELS] | null {

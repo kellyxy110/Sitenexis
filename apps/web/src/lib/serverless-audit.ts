@@ -57,6 +57,19 @@ const MAX_PAGES = 50;
 // margin for the final DB writes after the last stopIfBudgetExpired() checkpoint.
 const LIVE_AUDIT_BUDGET_MS = 270_000;
 
+// Bounds a promise so a slow or broken external dependency (e.g. an AI provider
+// outage) can't stall Promise.all and eat the whole live-audit budget. Does not
+// cancel the underlying work — just stops the pipeline from waiting on it.
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`${label} timed out after ${timeoutMs}ms`)), timeoutMs);
+    promise.then(
+      (value) => { clearTimeout(timer); resolve(value); },
+      (err) => { clearTimeout(timer); reject(err); },
+    );
+  });
+}
+
 // ── SEO analysis ──────────────────────────────────────────────────────────────
 
 export interface SEOIssueSimple {
@@ -1140,18 +1153,22 @@ export async function runServerlessAudit(
       callGroqPerceptionGraph(pages, domain),
       analyzePerformance(pages).catch(() => null),
       probeAiGovernance(domain).catch(() => null),
-      runScoutAnalysis({
-        domain,
-        pages: pages.map((p) => ({
-          url: p.url,
-          title: p.title ?? '',
-          headings: p.headings.map((h) => h.text),
-          bodyText: p.bodyText,
-          wordCount: p.wordCount,
-          hasSchema: p.hasStructuredData,
-          schemaTypes: p.schemaTypes,
-        })),
-      }).catch(() => null),
+      withTimeout(
+        runScoutAnalysis({
+          domain,
+          pages: pages.map((p) => ({
+            url: p.url,
+            title: p.title ?? '',
+            headings: p.headings.map((h) => h.text),
+            bodyText: p.bodyText,
+            wordCount: p.wordCount,
+            hasSchema: p.hasStructuredData,
+            schemaTypes: p.schemaTypes,
+          })),
+        }),
+        60_000,
+        'Scout analysis',
+      ).catch(() => null),
     ]);
     stopIfBudgetExpired();
     const aiScores = {
