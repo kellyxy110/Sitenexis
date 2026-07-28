@@ -961,6 +961,18 @@ function extractEmails(pages: ParsedPage[]): string[] {
 
 // ── Main export ───────────────────────────────────────────────────────────────
 
+async function mapWithConcurrency<T>(items: T[], concurrency: number, worker: (item: T) => Promise<void>): Promise<void> {
+  let cursor = 0;
+  const runners = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
+    while (cursor < items.length) {
+      const item = items[cursor++];
+      if (item !== undefined) await worker(item);
+    }
+  });
+  await Promise.all(runners);
+}
+
+
 export async function runServerlessAudit(
   auditId: string,
   domain: string,
@@ -1181,7 +1193,7 @@ export async function runServerlessAudit(
     // upsert() with a compound-key `where` — find-then-create/update instead.
     // Captures url -> pageId so issues saved below can carry real page attribution.
     const pageIdByUrl = new Map<string, string>();
-    for (const page of pages.slice(0, 50)) {
+    await mapWithConcurrency(pages.slice(0, 50), 8, async (page) => {
       try {
         const existing = await db.page.findFirst({ where: { auditId, url: page.url } });
         if (existing) {
@@ -1216,7 +1228,7 @@ export async function runServerlessAudit(
           pageIdByUrl.set(page.url, created.id);
         }
       } catch { /* individual page save failure is non-fatal */ }
-    }
+    });
 
     // ── Security & Brand Presence scanners (Modules 12 & 13) ──────────────────
     // Persisted in the auditScore.breakdown JSON — no schema migration required.

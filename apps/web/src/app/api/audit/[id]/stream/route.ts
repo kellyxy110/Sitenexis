@@ -41,7 +41,7 @@ export async function GET(req: NextRequest, { params }: Params): Promise<Respons
       let consecutiveErrors = 0;
 
       try {
-        const { getAuditById } = await import('@sitenexis/db');
+        const { getAuditById, getAuditProgressSnapshot } = await import('@sitenexis/db');
 
         const initial = await getAuditById(id, userId);
         if (!initial) {
@@ -63,9 +63,9 @@ export async function GET(req: NextRequest, { params }: Params): Promise<Respons
             lastKeepalive = Date.now();
           }
 
-          let audit: Awaited<ReturnType<typeof getAuditById>> | null = null;
+          let audit: Awaited<ReturnType<typeof getAuditProgressSnapshot>> | null = null;
           try {
-            audit = await getAuditById(id, userId);
+            audit = await getAuditProgressSnapshot(id, userId);
             consecutiveErrors = 0;
           } catch {
             consecutiveErrors += 1;
@@ -82,14 +82,12 @@ export async function GET(req: NextRequest, { params }: Params): Promise<Respons
 
           if (!audit) break;
 
-          const manifest = await (async () => {
-            const { getAuditManifest } = await import('@sitenexis/db');
-            return getAuditManifest(id, userId);
-          })();
+          const manifest = audit.agentManifest;
           send(controller, {
             status: audit.status,
             agentManifest: manifest,
             pagesCount: audit.pageCount ?? 0,
+            issuesCount: audit._count.issues,
             timestamp: new Date().toISOString(),
           });
 

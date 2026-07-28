@@ -16,6 +16,13 @@ export async function getAuditById(id: string, userId?: string): Promise<Audit |
   });
 }
 
+export async function getAuditProgressSnapshot(id: string, userId?: string) {
+  return db.audit.findFirst({
+    where: { id, ...(userId ? { userId } : {}), archivedAt: null },
+    select: { id: true, status: true, pageCount: true, agentManifest: true, _count: { select: { issues: true } } },
+  });
+}
+
 export async function getAuditWithResults(id: string, userId?: string) {
   return db.audit.findFirst({
     where: { id, ...(userId ? { userId } : {}), archivedAt: null },

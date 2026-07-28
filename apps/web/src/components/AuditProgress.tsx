@@ -25,6 +25,7 @@ interface SSEPayload {
   message?: string;
   error?: string;
   timestamp?: string;
+  agentManifest?: { agents?: Record<string, { status?: string; keyOutput?: string | null }> };
 }
 
 interface StreamMetrics {
@@ -54,6 +55,25 @@ const STAGE_MAP: Record<string, string> = {
   links: 'links', link_graph: 'links',
   report: 'report', reporting: 'report',
 };
+
+const TERMINAL_AGENT_STATUSES = new Set(['completed', 'partial', 'failed', 'not_configured', 'not_applicable', 'no_data']);
+
+function stageFromManifest(manifest: SSEPayload['agentManifest']): { active: string | null; completed: string[]; messages: Record<string, string> } {
+  const agents = manifest?.agents ?? {};
+  const terminal = (agent: string) => TERMINAL_AGENT_STATUSES.has(agents[agent]?.status ?? 'pending');
+  const completed: string[] = [];
+  const messages: Record<string, string> = {};
+  if (terminal('crawl')) completed.push('crawl');
+  if (terminal('seo')) completed.push('seo');
+  if (terminal('schema')) completed.push('schema');
+  if (['retrieval', 'entity', 'citation', 'semantic-trust'].every(terminal)) completed.push('ai');
+  if (terminal('reporting')) completed.push('report');
+  const active = ['crawl', 'seo', 'schema', 'ai', 'report'].find((stage) => !completed.includes(stage)) ?? null;
+  for (const [agent, state] of Object.entries(agents)) {
+    if (state.keyOutput) messages[STAGE_MAP[agent] ?? agent] = state.keyOutput;
+  }
+  return { active, completed, messages };
+}
 
 const MODE_MAX_RECONNECTS: Record<StreamMode, number> = {
   stable: 5, healthy: 4, degraded: 3, fallback: 1,
@@ -342,6 +362,17 @@ export function AuditProgress({ domain, auditId }: AuditProgressProps) {
         if (payload.error) { setFailed(true); setFailReason(payload.error); es.close(); return; }
         if (payload.pagesCount != null) setPagesCount(payload.pagesCount);
         if (payload.issuesCount != null) setIssuesCount(payload.issuesCount);
+
+        if (payload.agentManifest) {
+          const manifestStages = stageFromManifest(payload.agentManifest);
+          setStageStatuses((previous) => {
+            const next = { ...previous };
+            for (const stage of manifestStages.completed) next[stage] = 'complete';
+            if (manifestStages.active && next[manifestStages.active] !== 'complete') next[manifestStages.active] = 'active';
+            return next;
+          });
+          setStageSubStatus((previous) => ({ ...previous, ...manifestStages.messages }));
+        }
 
         if (payload.stage) {
           const mapped = STAGE_MAP[payload.stage.toLowerCase()] ?? null;
