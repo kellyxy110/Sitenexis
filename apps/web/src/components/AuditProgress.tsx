@@ -350,7 +350,7 @@ export function AuditProgress({ domain, auditId }: AuditProgressProps) {
         try { payload = JSON.parse(event.data) as SSEPayload; }
         catch { metricsRef.current.parseErrors += 1; syncMetrics(); return; }
 
-        if (payload.type === 'ping' || payload.status === 'partial') return;
+        if (payload.type === 'ping' || (payload.status === 'partial' && payload.stage === 'connecting')) return;
 
         metricsRef.current.chunks += 1;
         syncMetrics();
@@ -380,6 +380,13 @@ export function AuditProgress({ domain, auditId }: AuditProgressProps) {
           if (payload.message) {
             setStageSubStatus((prev) => ({ ...prev, [mapped ?? payload.stage!]: payload.message! }));
           }
+        }
+
+        if (payload.status === 'partial') {
+          setStageSubStatus((prev) => ({ ...prev, report: 'Available results saved before the live audit time limit.' }));
+          setTimeout(() => router.push('/audit/' + encodeURIComponent(domain)), 800);
+          es.close();
+          return;
         }
 
         if (payload.status === 'complete') {

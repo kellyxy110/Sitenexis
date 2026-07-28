@@ -51,6 +51,7 @@ function toParsedPage(page: CrawledPage): ParsedPage {
 }
 
 const MAX_PAGES = 50;
+const LIVE_AUDIT_BUDGET_MS = 20_000;
 
 // ── SEO analysis ──────────────────────────────────────────────────────────────
 
@@ -981,6 +982,15 @@ export async function runServerlessAudit(
 ): Promise<void> {
   const { updateAuditStatus, updateAuditAgentState, db } = await import('@sitenexis/db');
   const startedAt = Date.now();
+  let budgetExpired = false;
+  const budgetTimer = setTimeout(() => {
+    budgetExpired = true;
+    logger.error({ auditId, domain, elapsedMs: Date.now() - startedAt }, 'Live audit budget reached; returning partial results');
+    void updateAuditStatus(auditId, 'partial', { errorMessage: 'Audit reached the 20 second live processing budget. Available results were saved.' }).catch(() => undefined);
+  }, LIVE_AUDIT_BUDGET_MS);
+  const stopIfBudgetExpired = (): void => {
+    if (budgetExpired) throw new Error('LIVE_AUDIT_BUDGET_EXCEEDED');
+  };
   const markAgent = async (agent: string, status: AgentResultStatus, keyOutput: string | null, failureReason?: string): Promise<void> => {
     const state: AuditAgentState = {
       agent, status, startedAt: new Date(startedAt).toISOString(), finishedAt: new Date().toISOString(),
@@ -999,6 +1009,7 @@ export async function runServerlessAudit(
 
     // ── 1 + 2. Crawl pages via FetchExtractionAdapter ─────────────────────────
     const onCrawlProgress = (): void => {
+      if (budgetExpired) return;
       // fire-and-forget progress update; ignore errors
       void updateAuditStatus(auditId, 'running', {}).catch(() => undefined);
     };
@@ -1098,6 +1109,7 @@ export async function runServerlessAudit(
       }
     }
 
+    stopIfBudgetExpired();
     const pages: ParsedPage[] = crawledRaw.map(toParsedPage);
     const urls = pages.map((p) => p.url);
     const pageLookup = new Map(pages.map((p) => [p.url, p]));
@@ -1137,6 +1149,7 @@ export async function runServerlessAudit(
         })),
       }).catch(() => null),
     ]);
+    stopIfBudgetExpired();
     const aiScores = {
       // Machine readability uses the real deterministic analyzer, not an LLM guess.
       machineReadabilityScore:  machineReadabilityResult.score,
@@ -1185,6 +1198,8 @@ export async function runServerlessAudit(
       aiScores.entityConfidenceScore * 0.10,
     );
     await markAgent('visualization', perceptionGraph ? 'completed' : 'no_data', perceptionGraph ? `${perceptionGraph.nodes.length} graph nodes` : 'No graph returned');
+
+    stopIfBudgetExpired();
 
     // ── 4. Save to DB ─────────────────────────────────────────────────────────
 
@@ -1739,11 +1754,18 @@ export async function runServerlessAudit(
       logger.warn({ auditId, domain, err: loopErr }, 'LoopOS StateEngine write failed (non-fatal)');
     }
 
+    stopIfBudgetExpired();
     const finalStatus = layer4Failed ? 'partial' : 'complete';
+    clearTimeout(budgetTimer);
     await updateAuditStatus(auditId, finalStatus, { pageCount: pages.length });
     logger.info({ auditId, domain, pages: pages.length, overall, finalStatus }, 'Serverless audit finished');
 
   } catch (err) {
+    clearTimeout(budgetTimer);
+    if (budgetExpired) {
+      logger.warn({ auditId, domain }, 'Live audit returned partial results at the processing budget');
+      return;
+    }
     const msg = err instanceof Error ? err.message : String(err);
     logger.error({ auditId, domain, err: msg }, 'Serverless audit failed');
     try {
