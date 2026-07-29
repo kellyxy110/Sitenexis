@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
 import { mockAuditAPIs, MOCK_AUDIT_DOMAIN } from './mocks/audit';
 
-async function mockDashboardAPIs(page: import('@playwright/test').Page) {
-  await mockAuditAPIs(page);
+async function mockDashboardAPIs(page: import('@playwright/test').Page, auditsList?: unknown) {
+  await mockAuditAPIs(page, auditsList);
   await page.route('**/api/usage**', async (route) => {
     await route.fulfill({
       status:      200,
@@ -83,4 +83,23 @@ test.describe('Dashboard', () => {
     // After deletion, invalidateQueries fires a refetch → gets empty list
     await expect(page.getByText(MOCK_AUDIT_DOMAIN)).not.toBeVisible({ timeout: 8_000 });
   });
+});
+
+
+test('dashboard contains partial and unknown audit statuses without a page error', async ({ page }) => {
+  const pageErrors: Error[] = [];
+  page.on('pageerror', (error) => pageErrors.push(error));
+  await mockDashboardAPIs(page, {
+    data: [
+      { id: 'partial-audit', domain: 'partial.example', status: 'partial', createdAt: new Date().toISOString(), completedAt: null, scores: null, _count: { issues: 0 } },
+      { id: 'legacy-audit', domain: 'legacy.example', status: 'legacy_status', createdAt: new Date().toISOString(), completedAt: null, scores: null, _count: { issues: 0 } },
+    ],
+    total: 2, page: 1, pageSize: 10, hasMore: false,
+  });
+  await page.goto('/dashboard');
+  await expect(page.getByText('partial.example')).toBeVisible({ timeout: 8_000 });
+  await expect(page.getByText('Partial')).toBeVisible({ timeout: 5_000 });
+  await expect(page.getByText('Unavailable')).toBeVisible({ timeout: 5_000 });
+  await expect(page.getByText('Application error')).not.toBeVisible();
+  expect(pageErrors).toEqual([]);
 });

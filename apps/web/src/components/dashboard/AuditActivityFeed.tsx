@@ -2,11 +2,12 @@
 
 import { useRouter } from 'next/navigation';
 import { ArrowUpRight, RotateCcw, Trash2, Clock } from 'lucide-react';
+import { getAuditStatusConfig } from './audit-status';
 
 export interface AuditFeedItem {
   id: string;
   domain: string;
-  status: 'queued' | 'running' | 'complete' | 'failed';
+  status: string;
   createdAt: string;
   scores?: {
     overall?: number | null;
@@ -21,13 +22,6 @@ interface AuditActivityFeedProps {
   onRerun?: (domain: string) => void;
   onDelete?: (id: string) => void;
 }
-
-const STATUS_CONFIG = {
-  queued:   { label: 'Queued',   dot: 'bg-[#3A5568]',       badge: 'text-[#4A6280] bg-white/5' },
-  running:  { label: 'Running',  dot: 'bg-blue-400 animate-pulse', badge: 'text-blue-400 bg-blue-500/10' },
-  complete: { label: 'Complete', dot: 'bg-teal-400',         badge: 'text-teal-400 bg-teal-500/10' },
-  failed:   { label: 'Failed',   dot: 'bg-red-400',          badge: 'text-red-400 bg-red-500/10' },
-} as const;
 
 function fmtRelative(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -91,7 +85,7 @@ export function AuditActivityFeed({ audits, loading, onRerun, onDelete }: AuditA
       ) : (
         <ul>
           {audits.map((audit) => {
-            const cfg = STATUS_CONFIG[audit.status];
+            const { config: cfg } = getAuditStatusConfig(audit.status);
             return (
               <li
                 key={audit.id}

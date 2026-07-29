@@ -10,6 +10,7 @@ import { IntelligenceHero, type IntelligenceScores } from '@/components/dashboar
 import { InsightGrid, type InsightGridData } from '@/components/dashboard/InsightGrid';
 import { AuditActivityFeed, type AuditFeedItem } from '@/components/dashboard/AuditActivityFeed';
 import { OnboardingHero } from '@/components/dashboard/OnboardingHero';
+import { DashboardErrorBoundary } from '@/components/dashboard/DashboardErrorBoundary';
 import { trackEvent } from '@/lib/analytics/events';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -17,7 +18,7 @@ import { trackEvent } from '@/lib/analytics/events';
 interface AuditRow {
   id: string;
   domain: string;
-  status: 'queued' | 'running' | 'complete' | 'failed';
+  status: string;
   createdAt: string;
   completedAt: string | null;
   scores?: {
@@ -265,21 +266,25 @@ export default function DashboardPage() {
             </div>
 
             <div className="mb-6 animate-fade-in">
-              <InsightGrid data={insightData} loading={isLoading} />
+              <DashboardErrorBoundary componentName="InsightGrid">
+                <InsightGrid data={insightData} loading={isLoading} />
+              </DashboardErrorBoundary>
             </div>
           </>
         )}
 
         {/* Audit Activity Feed */}
         <div className="animate-fade-in">
-          <AuditActivityFeed
-            audits={feedItems}
-            loading={isLoading}
-            onRerun={handleNewAudit}
-            onDelete={(id) => {
-              if (confirm('Delete this audit?')) deleteMutation.mutate(id);
-            }}
-          />
+          <DashboardErrorBoundary componentName="AuditActivityFeed">
+            <AuditActivityFeed
+              audits={feedItems}
+              loading={isLoading}
+              onRerun={handleNewAudit}
+              onDelete={(id) => {
+                if (confirm('Delete this audit?')) deleteMutation.mutate(id);
+              }}
+            />
+          </DashboardErrorBoundary>
         </div>
       </main>
     </DashboardLayout>

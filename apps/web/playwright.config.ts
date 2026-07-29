@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const testPort = Number(process.env.PLAYWRIGHT_PORT ?? 3010);
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
@@ -10,7 +12,7 @@ export default defineConfig({
   timeout: 60_000,
 
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: `http://localhost:${testPort}`,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
@@ -23,8 +25,8 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: 'cross-env PLAYWRIGHT_TEST=true pnpm --filter web dev',
-    url: 'http://localhost:3000',
+    command: `cross-env PLAYWRIGHT_TEST=true pnpm --filter web exec next dev --port ${testPort}`,
+    url: `http://localhost:${testPort}`,
     reuseExistingServer: true,
     timeout: 300_000,
     env: {

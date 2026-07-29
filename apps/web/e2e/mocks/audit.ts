@@ -134,7 +134,7 @@ const MOCK_AUDITS_LIST = {
   hasMore:  false,
 };
 
-export async function mockAuditAPIs(page: Page): Promise<void> {
+export async function mockAuditAPIs(page: Page, auditsList: unknown = MOCK_AUDITS_LIST): Promise<void> {
   // POST /api/audit/start
   await page.route('**/api/audit/start', async (route) => {
     await route.fulfill({
@@ -173,7 +173,7 @@ export async function mockAuditAPIs(page: Page): Promise<void> {
     await route.fulfill({
       status:      200,
       contentType: 'application/json',
-      body:        JSON.stringify(MOCK_AUDITS_LIST),
+      body:        JSON.stringify(auditsList),
     });
   });
 
