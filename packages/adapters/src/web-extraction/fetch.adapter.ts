@@ -2,6 +2,7 @@
 // Uses native fetch + regex parsing. No Puppeteer, no Redis, no worker process.
 // All logic extracted from apps/web/src/lib/serverless-audit.ts.
 
+import { createHash } from 'node:crypto';
 import type { CrawledPage } from '@sitenexis/shared';
 import type {
   WebExtractionAdapter,
@@ -28,6 +29,18 @@ const DEFAULT_USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
 
 /** Root-domain compare so www / non-www (and other subdomains) are treated as same-site. */
+function normalizePageUrl(rawUrl: string): string {
+  try {
+    const u = new URL(rawUrl);
+    u.hash = '';
+    u.hostname = u.hostname.toLowerCase();
+    if ((u.protocol === 'https:' && u.port === '443') || (u.protocol === 'http:' && u.port === '80')) u.port = '';
+    u.pathname = u.pathname.replace(/\/+/g, '/').replace(/\/$/, '') || '/';
+    return u.href;
+  } catch {
+    return rawUrl;
+  }
+}
 function sameSite(hostA: string, hostB: string): boolean {
   const root = (h: string): string => {
     const parts = h.toLowerCase().replace(/^www\./, '').split('.');
@@ -64,13 +77,44 @@ function parseHtml(
     html.match(/<meta[^>]+content=["']([^"']*)[^>]+name=["']description["']/i)?.[1] ??
     null;
 
-  const h1Raw = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i)?.[1] ?? null;
-  const h1 = h1Raw ? stripTags(h1Raw).slice(0, 200) : null;
+  const headingEvidence: { level: number; text: string; source?: string }[] = [];
+  for (const m of html.matchAll(/<h([12])\b[^>]*>([\s\S]*?)<\/h\1>/gi)) {
+    const text = stripTags(m[2]!).slice(0, 200);
+    if (text) headingEvidence.push({ level: Number(m[1]), text, source: 'raw-dom' });
+  }
+  const h1 = headingEvidence.find((heading) => heading.level === 1)?.text ?? null;
 
-  const canonicalUrl =
-    html.match(/<link[^>]+rel=["']canonical["'][^>]+href=["']([^"']+)/i)?.[1] ??
-    html.match(/<link[^>]+href=["']([^"']+)[^>]+rel=["']canonical["']/i)?.[1] ??
-    null;
+  const getAttribute = (tag: string, name: string): string | null => {
+    const match = tag.match(new RegExp(`(?:^|\\s)${name}\\s*=\\s*(["'])([\\s\\S]*?)\\1`, 'i'));
+    return match?.[2] ?? null;
+  };
+  const canonicalTags = [...html.matchAll(/<link\b[^>]*>/gi)]
+    .map((match) => match[0]!)
+    .filter((tag) => getAttribute(tag, 'rel')?.split(/\s+/).some((token) => token.toLowerCase() === 'canonical') === true);
+  const canonicalRawValues = canonicalTags.map((tag) => getAttribute(tag, 'href')?.trim() ?? '');
+  const resolvedCanonicalValues: string[] = [];
+  for (const rawValue of canonicalRawValues) {
+    if (!rawValue) continue;
+    try { resolvedCanonicalValues.push(new URL(rawValue, pageUrl).href); } catch { /* keep malformed evidence in rawCanonicalValues */ }
+  }
+  const distinctResolvedCanonicals = [...new Set(resolvedCanonicalValues)];
+  const canonicalCount = canonicalTags.length;
+  const canonicalSource = canonicalCount > 0 ? 'raw-dom' : 'none';
+  const canonicalValidity = canonicalCount === 0
+    ? 'missing'
+    : distinctResolvedCanonicals.length > 1
+      ? 'conflicting'
+      : resolvedCanonicalValues.length === 0
+        ? 'invalid'
+        : canonicalCount > 1
+          ? 'duplicate'
+          : 'valid';
+  const rawCanonical = canonicalRawValues[0] ?? null;
+  const resolvedCanonical = canonicalValidity === 'conflicting' ? null : distinctResolvedCanonicals[0] ?? null;
+  const canonicalUrl = resolvedCanonical;
+  const isSelfReferencing = resolvedCanonical !== null && (() => {
+    try { return new URL(resolvedCanonical).href === new URL(pageUrl).href; } catch { return false; }
+  })();
 
   const robotsMeta =
     html.match(/<meta[^>]+name=["']robots["'][^>]+content=["']([^"']+)/i)?.[1] ??
@@ -109,12 +153,8 @@ function parseHtml(
   if (ogImage) openGraph.image = ogImage;
   if (ogType) openGraph.type = ogType;
 
-  // Headings H1-H6
-  const headings: { level: number; text: string }[] = [];
-  if (h1) headings.push({ level: 1, text: h1 });
-  for (const m of html.matchAll(/<h([2-6])[^>]*>([\s\S]*?)<\/h\1>/gi)) {
-    headings.push({ level: parseInt(m[1]!), text: stripTags(m[2]!).slice(0, 150) });
-  }
+  // Headings H1-H6. H1/H2 evidence is kept per page. Shared template headings remain visible to the report.
+  const headings: { level: number; text: string }[] = headingEvidence.map(({ level, text }) => ({ level, text }));
 
   // Body text
   let bodyHtml = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i)?.[1] ?? html;
@@ -126,6 +166,7 @@ function parseHtml(
     .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, '');
   const bodyText = stripTags(bodyHtml).slice(0, 50_000);
   const wordCount = bodyText.split(/\s+/).filter(Boolean).length;
+  const contentHash = createHash('sha256').update(bodyText).digest('hex');
 
   // Links
   const origin = new URL(pageUrl).origin;
@@ -148,11 +189,21 @@ function parseHtml(
     metaDescription,
     h1,
     headings,
+    headingEvidence,
     bodyText,
+    contentHash,
     wordCount,
     internalLinks: internalLinks.slice(0, 200),
     externalLinks: externalLinks.slice(0, 50),
     canonicalUrl,
+    rawCanonical,
+    resolvedCanonical,
+    canonicalRawValues,
+    resolvedCanonicalValues,
+    canonicalCount,
+    canonicalSource,
+    canonicalValidity,
+    isSelfReferencing,
     robotsDirectives,
     schemaMarkup,
     schemaTypes,
@@ -369,7 +420,9 @@ export class FetchExtractionAdapter implements WebExtractionAdapter {
     const parsed = parseHtml(raw.html, finalUrl);
     const classification = classifyExtraction(raw.html, raw.statusCode, parsed.bodyText, parsed.headings);
     const page: CrawledPage = {
-      url: finalUrl,
+      url: normalizePageUrl(finalUrl),
+      requestedUrl: normalizePageUrl(validUrl.href),
+      finalUrl: normalizePageUrl(finalUrl),
       statusCode: raw.statusCode,
       redirectChain: finalUrl !== validUrl.href ? [validUrl.href, finalUrl] : [],
       responseTimeMs: raw.ms,
@@ -378,6 +431,8 @@ export class FetchExtractionAdapter implements WebExtractionAdapter {
       images: [],
       responseHeaders: raw.headers,
       ...parsed,
+      extractionMode: 'static-html',
+      extractionConfidence: parsed.h1 || parsed.title || parsed.bodyText ? 1 : 0.25,
       ...classification,
     };
 
@@ -396,8 +451,9 @@ export class FetchExtractionAdapter implements WebExtractionAdapter {
 
     // Discover URLs from sitemap
     const sitemapUrls = await fetchSitemapUrls(domain, timeoutMs, userAgent, maxPages);
-    let urls: string[] = sitemapUrls.length > 0
-      ? [baseUrl, ...sitemapUrls.filter((u) => u !== baseUrl)].slice(0, maxPages)
+    const discoveredUrls = [...new Set(sitemapUrls.map(normalizePageUrl))];
+    let urls: string[] = discoveredUrls.length > 0
+      ? [baseUrl, ...discoveredUrls.filter((u) => u !== baseUrl)].slice(0, maxPages)
       : [baseUrl];
 
     const pages: CrawledPage[] = [];
@@ -412,11 +468,13 @@ export class FetchExtractionAdapter implements WebExtractionAdapter {
     const homeParsed = parseHtml(homeRaw.html, homeUrl);
     const homeClassification = classifyExtraction(homeRaw.html, homeRaw.statusCode, homeParsed.bodyText, homeParsed.headings);
     const homePage: CrawledPage = {
-      url: homeUrl, statusCode: homeRaw.statusCode,
+      url: normalizePageUrl(baseUrl), requestedUrl: normalizePageUrl(baseUrl), finalUrl: normalizePageUrl(homeUrl), statusCode: homeRaw.statusCode,
       redirectChain: homeUrl !== baseUrl ? [baseUrl, homeUrl] : [],
       responseTimeMs: homeRaw.ms, contentType: 'text/html', crawledAt: new Date(), images: [],
       responseHeaders: homeRaw.headers,
       ...homeParsed,
+      extractionMode: 'static-html',
+      extractionConfidence: homeParsed.h1 || homeParsed.title || homeParsed.bodyText ? 1 : 0.25,
       ...homeClassification,
     };
     pages.push(homePage);
@@ -445,12 +503,14 @@ export class FetchExtractionAdapter implements WebExtractionAdapter {
       for (let j = 0; j < batch.length; j++) {
         const result = results[j];
         if (result && result.statusCode < 400) {
-          const batchUrl = batch[j]!;
-          const batchParsed = parseHtml(result.html, batchUrl);
+          const batchUrl = normalizePageUrl(batch[j]!);
+          const batchParsed = parseHtml(result.html, result.finalUrl);
           const p: CrawledPage = {
-            url: batchUrl, statusCode: result.statusCode, redirectChain: [],
+            url: batchUrl, requestedUrl: batchUrl, finalUrl: normalizePageUrl(result.finalUrl), statusCode: result.statusCode, redirectChain: result.finalUrl !== batchUrl ? [batchUrl, normalizePageUrl(result.finalUrl)] : [],
             responseTimeMs: result.ms, contentType: 'text/html', crawledAt: new Date(), images: [],
             ...batchParsed,
+            extractionMode: 'static-html',
+            extractionConfidence: batchParsed.h1 || batchParsed.title || batchParsed.bodyText ? 1 : 0.25,
             ...classifyExtraction(result.html, result.statusCode, batchParsed.bodyText, batchParsed.headings),
           };
           pages.push(p);

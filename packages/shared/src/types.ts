@@ -28,19 +28,39 @@ export interface Audit {
 // ─── Crawler ─────────────────────────────────────────────────────────────────
 
 export interface CrawledPage {
+  /** Primary page URL. requestedUrl and finalUrl preserve redirect identity. */
   url: string;
+  /** URL supplied to the fetcher before redirects. */
+  requestedUrl?: string;
+  /** Final URL after redirects. Never replaces the declared canonical. */
+  finalUrl?: string;
   statusCode: number;
   redirectChain: string[];
   title: string | null;
   metaDescription: string | null;
   h1: string | null;
   headings: { level: number; text: string }[];
+  /** All H1 and H2 values in DOM order. */
+  headingEvidence?: { level: number; text: string; source?: string }[];
+  /** SHA-256-like stable content fingerprint supplied by the extraction layer. */
+  contentHash?: string;
+  /** Extraction provenance. */
+  extractionMode?: 'static-html' | 'headless-rendered';
+  extractionConfidence?: number;
   bodyText: string;
   wordCount: number;
   internalLinks: string[];
   externalLinks: string[];
   images: { src: string; alt: string | null }[];
   canonicalUrl: string | null;
+  rawCanonical?: string | null;
+  resolvedCanonical?: string | null;
+  canonicalRawValues?: string[];
+  resolvedCanonicalValues?: string[];
+  canonicalCount?: number;
+  canonicalSource?: 'raw-dom' | 'none';
+  canonicalValidity?: 'valid' | 'missing' | 'invalid' | 'duplicate' | 'conflicting';
+  isSelfReferencing?: boolean;
   robotsDirectives: string[];
   schemaMarkup: unknown[];
   responseTimeMs: number;

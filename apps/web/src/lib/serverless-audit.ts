@@ -50,6 +50,16 @@ function toParsedPage(page: CrawledPage): ParsedPage {
   };
 }
 
+function normalizeAuditPageUrl(rawUrl: string): string {
+  try {
+    const u = new URL(rawUrl);
+    u.hash = '';
+    u.hostname = u.hostname.toLowerCase();
+    if ((u.protocol === 'https:' && u.port === '443') || (u.protocol === 'http:' && u.port === '80')) u.port = '';
+    u.pathname = u.pathname.replace(/\/+/g, '/').replace(/\/$/, '') || '/';
+    return u.href;
+  } catch { return rawUrl; }
+}
 const MAX_PAGES = 50;
 // The route this runs from (apps/web/src/app/api/audit/start/route.ts) has
 // maxDuration = 300s and executes this inside after(), so the budget must stay
@@ -1229,18 +1239,44 @@ export async function runServerlessAudit(
     // upsert() with a compound-key `where` — find-then-create/update instead.
     // Captures url -> pageId so issues saved below can carry real page attribution.
     const pageIdByUrl = new Map<string, string>();
-    await mapWithConcurrency(pages.slice(0, 50), 8, async (page) => {
+    const pagesToPersist = [...new Map(pages.slice(0, 50).map((page) => [normalizeAuditPageUrl(page.requestedUrl ?? page.url), page])).values()];
+    await mapWithConcurrency(pagesToPersist, 8, async (page) => {
       try {
-        const existing = await db.page.findFirst({ where: { auditId, url: page.url } });
+        const normalizedUrl = normalizeAuditPageUrl(page.requestedUrl ?? page.url);
+        const existing = await db.page.findFirst({ where: { auditId, normalizedUrl } });
         if (existing) {
           await db.page.update({
             where: { id: existing.id },
             data: {
+              normalizedUrl,
+              requestedUrl: page.requestedUrl ?? page.url,
+              finalUrl: page.finalUrl ?? page.url,
+              url: page.url,
               statusCode: page.statusCode,
               title: page.title,
               metaDescription: page.metaDescription,
               h1: page.h1,
+              h2: (page.headings ?? []).filter((heading) => heading.level === 2).map((heading) => heading.text) as unknown as Prisma.InputJsonValue,
+              headingEvidence: (page.headingEvidence ?? page.headings) as unknown as Prisma.InputJsonValue,
+              canonicalUrl: page.canonicalUrl,
+              rawCanonical: page.rawCanonical ?? null,
+              resolvedCanonical: page.resolvedCanonical ?? null,
+              canonicalRawValues: (page.canonicalRawValues ?? []) as unknown as Prisma.InputJsonValue,
+              resolvedCanonicalValues: (page.resolvedCanonicalValues ?? []) as unknown as Prisma.InputJsonValue,
+              canonicalCount: page.canonicalCount ?? 0,
+              canonicalSource: page.canonicalSource ?? 'none',
+              canonicalValidity: page.canonicalValidity ?? 'missing',
+              isSelfReferencing: page.isSelfReferencing ?? null,
               wordCount: page.wordCount,
+              bodyText: page.bodyText.slice(0, 5000),
+              robotsDirective: page.robotsDirectives[0] ?? null,
+              internalLinks: page.internalLinks.length,
+              externalLinks: page.externalLinks.length,
+              schemaData: page.schemaMarkup as unknown as Prisma.InputJsonValue,
+              contentHash: page.contentHash ?? null,
+              extractionMode: page.extractionMode ?? 'static-html',
+              extractionConfidence: page.extractionConfidence ?? (page.extractionIncomplete ? 0.5 : 1),
+              crawledAt: page.crawledAt,
             },
           });
           pageIdByUrl.set(page.url, existing.id);
@@ -1248,17 +1284,35 @@ export async function runServerlessAudit(
           const created = await db.page.create({
             data: {
               auditId,
+              normalizedUrl,
+              requestedUrl: page.requestedUrl ?? page.url,
+              finalUrl: page.finalUrl ?? page.url,
               url: page.url,
               statusCode: page.statusCode,
               title: page.title,
               metaDescription: page.metaDescription,
               h1: page.h1,
-              canonicalUrl: page.canonical,
+              h2: (page.headings ?? []).filter((heading) => heading.level === 2).map((heading) => heading.text) as unknown as Prisma.InputJsonValue,
+              headingEvidence: (page.headingEvidence ?? page.headings) as unknown as Prisma.InputJsonValue,
+              canonicalUrl: page.canonicalUrl,
+              rawCanonical: page.rawCanonical ?? null,
+              resolvedCanonical: page.resolvedCanonical ?? null,
+              canonicalRawValues: (page.canonicalRawValues ?? []) as unknown as Prisma.InputJsonValue,
+              resolvedCanonicalValues: (page.resolvedCanonicalValues ?? []) as unknown as Prisma.InputJsonValue,
+              canonicalCount: page.canonicalCount ?? 0,
+              canonicalSource: page.canonicalSource ?? 'none',
+              canonicalValidity: page.canonicalValidity ?? 'missing',
+              isSelfReferencing: page.isSelfReferencing ?? null,
               wordCount: page.wordCount,
               bodyText: page.bodyText.slice(0, 5000),
-              robotsDirective: page.robotsMeta ?? null,
-              schemaData: page.schemas as unknown as Prisma.InputJsonValue,
-              crawledAt: new Date(),
+              robotsDirective: page.robotsDirectives[0] ?? null,
+              internalLinks: page.internalLinks.length,
+              externalLinks: page.externalLinks.length,
+              schemaData: page.schemaMarkup as unknown as Prisma.InputJsonValue,
+              contentHash: page.contentHash ?? null,
+              extractionMode: page.extractionMode ?? 'static-html',
+              extractionConfidence: page.extractionConfidence ?? (page.extractionIncomplete ? 0.5 : 1),
+              crawledAt: page.crawledAt,
             },
           });
           pageIdByUrl.set(page.url, created.id);

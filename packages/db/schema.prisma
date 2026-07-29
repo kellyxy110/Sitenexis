@@ -167,12 +167,26 @@ model Audit {
 model Page {
   id               String    @id @default(cuid())
   auditId          String    @map("audit_id")
+  // Normalized requested URL. This is the page identity within one audit.
+  normalizedUrl    String?   @map("normalized_url")
+  requestedUrl     String?   @map("requested_url")
+  finalUrl         String?   @map("final_url")
   url              String
   statusCode       Int       @map("status_code")
   title            String?
   metaDescription  String?   @map("meta_description")
   h1               String?
+  h2               Json      @default("[]")
+  headingEvidence  Json      @default("[]") @map("heading_evidence")
   canonicalUrl     String?   @map("canonical_url")
+  rawCanonical     String?   @map("raw_canonical")
+  resolvedCanonical String?  @map("resolved_canonical")
+  canonicalRawValues Json     @default("[]") @map("canonical_raw_values")
+  resolvedCanonicalValues Json @default("[]") @map("resolved_canonical_values")
+  canonicalCount   Int       @default(0) @map("canonical_count")
+  canonicalSource  String?   @map("canonical_source")
+  canonicalValidity String?  @map("canonical_validity")
+  isSelfReferencing Boolean? @map("is_self_referencing")
   wordCount        Int       @default(0) @map("word_count")
   isIndexable      Boolean   @default(true) @map("is_indexable")
   robotsDirective  String?   @map("robots_directive")
@@ -186,6 +200,9 @@ model Page {
   aiStatus         String    @default("pending") @map("ai_status")
   schemaData       Json      @default("[]") @map("schema_data")
   bodyText         String?   @map("body_text")
+  contentHash      String?   @map("content_hash")
+  extractionMode   String?   @map("extraction_mode")
+  extractionConfidence Float? @map("extraction_confidence")
   crawledAt        DateTime  @map("crawled_at")
   archivedAt       DateTime? @map("archived_at")
 

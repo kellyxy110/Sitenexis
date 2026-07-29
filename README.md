@@ -391,3 +391,37 @@ The repository does not currently declare a public open-source license. Ask the 
 - SiteNexis: <https://sitenexis.vercel.app>
 - AdNexis: <https://adnexis-ai.vercel.app>
 - Email: [sitenexisintel@gmail.com](mailto:sitenexisintel@gmail.com)
+
+## Page accuracy
+
+SiteNexis stores evidence for each crawled URL.
+
+For each page, the audit keeps:
+
+- the requested URL
+- the normalized page identity
+- the final URL after redirects
+- the declared canonical URL
+- the title and description
+- all H1 and H2 values in document order
+- the visible content hash
+- the extraction mode and confidence
+
+A canonical URL is evidence. It is not the database identity of the page. A missing canonical remains missing. A retry replaces old page values instead of keeping stale values.
+
+Run the page accuracy tests:
+
+```bash
+pnpm --filter @sitenexis/adapters typecheck
+pnpm --filter @sitenexis/db typecheck
+pnpm --filter @sitenexis/db db:generate
+pnpm --filter @sitenexis/adapters test
+```
+
+Apply the additive database fields before production use:
+
+```bash
+pnpm --filter @sitenexis/db db:push
+```
+
+See [the page accuracy audit](docs/audits/HEADING-CANONICAL-ACCURACY-AUDIT.md) and [the decision log](docs/DECISION_LOG.md).

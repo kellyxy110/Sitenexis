@@ -41,6 +41,7 @@ export async function GET(req: NextRequest, { params }: Params): Promise<NextRes
 
   const scores = (audit.scores ?? {}) as Record<string, unknown>;
   const issues = (audit.issues ?? []) as Array<Record<string, unknown>>;
+  const pages = (audit.pages ?? []) as Array<Record<string, unknown>>;
 
   const criticalCount = issues.filter((i) => i['severity'] === 'critical').length;
   const warningCount  = issues.filter((i) => i['severity'] === 'warning').length;
@@ -89,6 +90,10 @@ export async function GET(req: NextRequest, { params }: Params): Promise<NextRes
     '## Summary',
     row(...headers),
     row(...dataRow),
+    '',
+    '## Pages',
+    row('URL', 'Requested URL', 'Final URL', 'Title', 'H1', 'H2', 'Canonical', 'Word Count', 'Content Hash'),
+    ...pages.map((page) => row(page['url'] ?? '', page['requestedUrl'] ?? '', page['finalUrl'] ?? '', page['title'] ?? '', page['h1'] ?? '', Array.isArray(page['h2']) ? page['h2'].join(' | ') : '', page['canonicalUrl'] ?? '', page['wordCount'] ?? '', page['contentHash'] ?? '')),
     '',
     '## Issues',
     row(...issueHeaders),
