@@ -64,6 +64,14 @@ export type {
   InsightType, InsightCandidate, PageImpressionsDelta, PageIssueInfo, SearchPageStat,
   LandingPageStat, AiReferralStat, TopLandingPage, RecommendationImpactInput,
 } from './ai-visibility-insights/detectors';
+export { bucketKeyForDate, bucketTrafficSeries, bucketSearchSeries } from './ai-visibility-insights/trend-bucketing';
+export type {
+  Granularity, TrafficDailyRow, TrafficBucketPoint, SearchDailyRow, SearchBucketPoint,
+} from './ai-visibility-insights/trend-bucketing';
+export { correlateScoresWithTraffic } from './ai-visibility-insights/score-traffic-correlation';
+export type {
+  ScoredAudit, TrafficDailyPoint, SearchDailyPoint, ScoreTrafficCorrelationPoint,
+} from './ai-visibility-insights/score-traffic-correlation';
 export type {
   SecurityTrustReport,
   SecurityFinding,

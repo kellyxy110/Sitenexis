@@ -422,3 +422,47 @@ export async function replaceAiVisibilityInsights(userId: string, insights: AiVi
       : []),
   ]);
 }
+
+// ─── Aggregated device/country breakdowns ───────────────────────────────────
+
+export interface AggregatedBreakdowns {
+  traffic: { device: Record<string, number>; country: Record<string, number> };
+  search: { device: Record<string, number>; country: Record<string, number> };
+}
+
+function sumBreakdown(target: Record<string, number>, source: unknown): void {
+  if (source == null || typeof source !== 'object') return;
+  for (const [key, value] of Object.entries(source as Record<string, unknown>)) {
+    if (typeof value !== 'number') continue;
+    target[key] = (target[key] ?? 0) + value;
+  }
+}
+
+export async function getAggregatedBreakdowns(userId: string, from: Date, to: Date): Promise<AggregatedBreakdowns> {
+  const [trafficRows, searchRows] = await Promise.all([
+    db.dailyTrafficMetric.findMany({
+      where: { userId, date: { gte: from, lte: to } },
+      select: { deviceBreakdown: true, countryBreakdown: true },
+    }),
+    db.searchVisibilityMetric.findMany({
+      where: { userId, date: { gte: from, lte: to } },
+      select: { deviceBreakdown: true, countryBreakdown: true },
+    }),
+  ]);
+
+  const result: AggregatedBreakdowns = {
+    traffic: { device: {}, country: {} },
+    search: { device: {}, country: {} },
+  };
+
+  for (const row of trafficRows) {
+    sumBreakdown(result.traffic.device, row.deviceBreakdown);
+    sumBreakdown(result.traffic.country, row.countryBreakdown);
+  }
+  for (const row of searchRows) {
+    sumBreakdown(result.search.device, row.deviceBreakdown);
+    sumBreakdown(result.search.country, row.countryBreakdown);
+  }
+
+  return result;
+}

@@ -15,6 +15,8 @@ interface TrendChartProps {
   series: Array<{ key: string; label: string; color: string }>;
   height?: number;
   loading?: boolean;
+  /** Overrides the default 0-100 score axis for non-score series (sessions, clicks, etc.). */
+  yDomain?: [number | 'auto', number | 'auto'];
 }
 
 function formatDate(iso: string): string {
@@ -51,7 +53,7 @@ function CustomTooltip({ active, payload, label }: {
   );
 }
 
-export function TrendChart({ data, series, height = 200, loading }: TrendChartProps) {
+export function TrendChart({ data, series, height = 200, loading, yDomain }: TrendChartProps) {
   if (loading) {
     return <div className="animate-pulse rounded-lg bg-white/[0.03]" style={{ height }} />;
   }
@@ -77,12 +79,12 @@ export function TrendChart({ data, series, height = 200, loading }: TrendChartPr
           axisLine={false}
         />
         <YAxis
-          domain={[0, 100]}
+          domain={yDomain ?? [0, 100]}
           tick={{ fill: '#4A6280', fontSize: 10 }}
           tickLine={false}
           axisLine={false}
         />
-        <ReferenceLine y={70} stroke="rgba(255,255,255,0.06)" strokeDasharray="4 4" />
+        {!yDomain && <ReferenceLine y={70} stroke="rgba(255,255,255,0.06)" strokeDasharray="4 4" />}
         <Tooltip content={<CustomTooltip />} />
         {series.map((s) => (
           <Line

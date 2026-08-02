@@ -36,6 +36,7 @@ import {
   TrendingUp,
   Database,
   Crosshair,
+  LineChart,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -102,6 +103,12 @@ export const NAV_GROUPS: NavGroup[] = [
         label: 'Score Monitoring',
         href: '/dashboard/monitoring',
         icon: TrendingUp,
+      },
+      {
+        id: 'ga4-gsc',
+        label: 'Traffic & Search',
+        href: '/dashboard/intelligence-center',
+        icon: LineChart,
       },
     ],
   },

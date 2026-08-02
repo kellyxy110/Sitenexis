@@ -11,6 +11,7 @@ import { InsightGrid, type InsightGridData } from '@/components/dashboard/Insigh
 import { AuditActivityFeed, type AuditFeedItem } from '@/components/dashboard/AuditActivityFeed';
 import { OnboardingHero } from '@/components/dashboard/OnboardingHero';
 import { DashboardErrorBoundary } from '@/components/dashboard/DashboardErrorBoundary';
+import { GA4GSCSummaryCard } from '@/components/intelligence-center/GA4GSCSummaryCard';
 import { trackEvent } from '@/lib/analytics/events';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -238,6 +239,8 @@ export default function DashboardPage() {
             </Link>
           </div>
         )}
+
+        {!isDemo && <GA4GSCSummaryCard />}
 
         {startError && (data?.data.length ?? 0) > 0 && (
           <div className="mb-6 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
