@@ -1,0 +1,6 @@
+export const dynamic='force-dynamic';
+import { type NextRequest, NextResponse } from 'next/server';
+import { requireAuth, unauthorizedResponse } from '@/lib/auth';
+import { logger } from '@/lib/logger';
+import { projectStoredAuditToIntelligenceReportV2 } from '@/lib/intelligence-report-v2';
+export async function GET(request:NextRequest,{params}:{params:Promise<{auditId:string}>}){let user;try{user=await requireAuth(request)}catch{return unauthorizedResponse()}const {auditId}=await params;const {getAuditWithResults,getScoutAnalysis}=await import('@sitenexis/db');const audit=await getAuditWithResults(auditId,user.id) as Record<string,unknown>|null;if(!audit)return NextResponse.json({error:'Not found'},{status:404});const scoutAnalysis=await getScoutAnalysis(auditId).catch((err)=>{logger.warn({err,auditId},'V2 report: optional Scout analysis fetch failed, continuing without it');return null});try{return NextResponse.json(projectStoredAuditToIntelligenceReportV2(audit,{scoutAnalysis}))}catch(err){logger.error({err,auditId},'V2 report composition failed');return NextResponse.json({error:'V2 report composition failed'},{status:422})}}

@@ -1,0 +1,22 @@
+import { createConfidenceSummary, type EvidenceProjection } from './intelligence-report-v2';
+import type { LegacyIssueEvidenceRecord } from './legacy-evidence-projection';
+import type { FindingEligibilityResult } from './finding-integrity';
+import type { EvidenceContradiction } from './evidence-contradictions';
+import type { RootCauseGroup } from './root-cause-grouping';
+import type { IntelligenceModuleExecutionSummary } from './intelligence-module-state';
+import type { CanonicalReportFinding } from './canonical-intelligence-report-v2';
+
+export interface CanonicalFindingProjectionDiagnostics { code: 'CAPPED_VERIFICATION_STATE' | 'MISSING_ELIGIBILITY' | 'HISTORICAL_ISSUE_EXCLUDED'; sourceIssueId: string; message: string; }
+export interface CanonicalFindingProjectionInput { auditId: string; legacyIssues?: readonly LegacyIssueEvidenceRecord[]; evidence?: readonly EvidenceProjection[]; eligibilityByIssueId?: Readonly<Record<string, FindingEligibilityResult | undefined>>; contradictions?: readonly EvidenceContradiction[]; rootCauses?: readonly RootCauseGroup[]; modules?: readonly IntelligenceModuleExecutionSummary[]; historical?: boolean; }
+export interface CanonicalFindingProjectionResult { findings: CanonicalReportFinding[]; diagnostics: CanonicalFindingProjectionDiagnostics[]; }
+
+/** Pure adapter from legacy issues to report-only canonical findings. */
+export function projectCanonicalReportFindings(input: CanonicalFindingProjectionInput): CanonicalFindingProjectionResult {
+ const diagnostics: CanonicalFindingProjectionDiagnostics[]=[]; const findings=new Map<string,CanonicalReportFinding>();
+ for(const issue of input.legacyIssues??[]){ if(issue.auditId!==input.auditId){diagnostics.push({code:'HISTORICAL_ISSUE_EXCLUDED',sourceIssueId:issue.id,message:'Issue belongs to a different audit and remains outside current findings.'});continue;} const eligibility=input.eligibilityByIssueId?.[issue.id]; const state=eligibility?.maximumVerificationState??'UNVERIFIED'; if(!eligibility)diagnostics.push({code:'MISSING_ELIGIBILITY',sourceIssueId:issue.id,message:'Legacy issue has no eligibility result and is projected as unverified.'}); else if(state!=='CONFIRMED')diagnostics.push({code:'CAPPED_VERIFICATION_STATE',sourceIssueId:issue.id,message:`Eligibility caps this legacy issue at ${state}.`}); const evidenceIds=eligibility?.evidenceIds??evidenceForIssue(issue,input.evidence??[]); const affectedUrls=eligibility?.affectedUrls??urlsForIssue(issue,input.evidence??[]); const contradictionIds=(input.contradictions??[]).filter(item=>overlaps(item.evidenceIds,evidenceIds)).map(item=>item.id); const rootCauseIds=(input.rootCauses??[]).filter(item=>overlaps(item.evidenceIds,evidenceIds)||overlaps(item.contradictionIds,contradictionIds)).map(item=>item.id); const id=`canonical-finding:${input.auditId}:${issue.id}`; if(findings.has(id))continue; findings.set(id,{id,auditId:input.auditId,sourceIssueId:issue.id,sourcePageId:issue.pageId??undefined,sourceIssueType:issue.type,moduleId:issue.module,title:issue.message,description:issue.problem??undefined,scope:affectedUrls.length?'PAGE':'DOMAIN',verificationState:state,severity:severity(issue.severity),confidence:createConfidenceSummary({reasons:eligibility?.diagnostics.map(item=>item.message)??['Translated from legacy issue without direct eligibility evidence.']}),affectedUrls,evidenceIds,contradictionIds,rootCauseIds,unresolved:state!=='CONFIRMED',metadata:{legacyIssue:true,legacyRecommendation:issue.recommendation}}); }
+ return {findings:[...findings.values()],diagnostics};
+}
+function evidenceForIssue(issue:LegacyIssueEvidenceRecord,evidence:readonly EvidenceProjection[]):string[]{return evidence.filter(item=>item.issueId===issue.id).map(item=>item.id)}
+function urlsForIssue(issue:LegacyIssueEvidenceRecord,evidence:readonly EvidenceProjection[]):string[]{return unique([...(issue.pageUrl?[issue.pageUrl]:[]),...evidence.filter(item=>item.issueId===issue.id).flatMap(item=>item.url?[item.url]:[])])}
+function severity(value:string):CanonicalReportFinding['severity']{return ['critical','high','medium','low','warning','info'].includes(value.toLowerCase())?value.toLowerCase() as CanonicalReportFinding['severity']:'info'}
+function overlaps(left:readonly string[],right:readonly string[]):boolean{const values=new Set(left);return right.some(value=>values.has(value))} function unique(values:readonly string[]):string[]{return [...new Set(values.filter(Boolean))]}
