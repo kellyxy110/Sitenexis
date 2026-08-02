@@ -6,6 +6,7 @@
  */
 
 import { logger } from '@/lib/logger';
+import { createAuditPerformanceRecorder } from '@/lib/audit-performance';
 import { getGroqAdapter, getFetchExtractionAdapter, getCrawl4aiExtractionAdapter, estimateCost } from '@sitenexis/adapters';
 import { recordAiCallMetric } from '@sitenexis/db';
 import type { Prisma } from '@sitenexis/db';
@@ -1009,6 +1010,7 @@ export async function runServerlessAudit(
 ): Promise<void> {
   const { updateAuditStatus, updateAuditAgentState, db } = await import('@sitenexis/db');
   const startedAt = Date.now();
+  const perf = createAuditPerformanceRecorder();
   let budgetExpired = false;
   const budgetTimer = setTimeout(() => {
     budgetExpired = true;
@@ -1024,7 +1026,13 @@ export async function runServerlessAudit(
       durationMs: Date.now() - startedAt, retryCount: 0, keyOutput, resultPersisted: status !== 'failed',
       ...(failureReason ? { failureReason } : {}),
     };
-    try { await updateAuditAgentState(auditId, state); } catch (err) {
+    perf.incrementCounter('markAgentCalls');
+    const endMarkAgentTiming = perf.startStage('markAgent');
+    try {
+      await updateAuditAgentState(auditId, state);
+      endMarkAgentTiming('ok');
+    } catch (err) {
+      endMarkAgentTiming('error', err instanceof Error ? err.message : String(err));
       logger.warn({ auditId, agent, err }, 'Could not persist agent state');
     }
   };
@@ -1047,13 +1055,17 @@ export async function runServerlessAudit(
       void updateAuditStatus(auditId, 'running', { pageCount: liveCrawledPageCount }).catch(() => undefined);
     };
     const extractor = getFetchExtractionAdapter();
-    let crawledRaw = await extractor.crawlDomain(domain, {
-      maxPages: MAX_PAGES,
-      concurrency: 4,
-      timeoutMs: 12_000,
-      ctx: { auditId, domain },
-      onPage: onCrawlProgress,
-    });
+    let crawledRaw = await perf.measureStage('crawl.fetch', () =>
+      extractor.crawlDomain(domain, {
+        maxPages: MAX_PAGES,
+        concurrency: 4,
+        timeoutMs: 12_000,
+        ctx: { auditId, domain },
+        onPage: onCrawlProgress,
+      }),
+    );
+    perf.setCounter('urlsFetched', crawledRaw.length);
+    perf.setCounter('fetchFailures', crawledRaw.filter((p) => p.statusCode >= 400).length);
 
     // Headless fallback: if the fetch crawler was blocked/failed on the homepage and a
     // Crawl4AI service is configured (CRAWL4AI_URL), retry with the headless browser —
@@ -1064,6 +1076,7 @@ export async function runServerlessAudit(
       if (headless.isConfigured()) {
         headlessAttempted = true;
         logger.warn({ auditId, domain }, 'Fetch crawl failed — falling back to headless Crawl4AI');
+        const endHeadlessTiming = perf.startStage('crawl.headless-fallback');
         try {
           const headlessPages = await headless.crawlDomain(domain, {
             maxPages: MAX_PAGES,
@@ -1072,15 +1085,18 @@ export async function runServerlessAudit(
             ctx: { auditId, domain },
             onPage: onCrawlProgress,
           });
+          endHeadlessTiming('ok');
           if (headlessPages.length > 0 && headlessPages[0]!.statusCode < 400) {
             crawledRaw = headlessPages;
             logger.info({ auditId, domain, pages: headlessPages.length }, 'Headless Crawl4AI fallback succeeded');
           }
         } catch (headlessErr) {
+          endHeadlessTiming('error', headlessErr instanceof Error ? headlessErr.message : String(headlessErr));
           logger.warn({ auditId, err: headlessErr }, 'Headless Crawl4AI fallback failed');
         }
       }
     }
+    perf.setCounter('headlessFallbackUsed', headlessAttempted ? 1 : 0);
 
     const first = crawledRaw[0] as CrawledPage | undefined;
     if (!first || first.statusCode >= 400) {
@@ -1099,6 +1115,7 @@ export async function runServerlessAudit(
         errorMessage: `Homepage returned ${code} for ${domain}${hint}`.slice(0, 500),
       });
       await markAgent('crawl', 'failed', null, `Homepage returned ${code}`);
+      perf.emitSummary(auditId, domain, Date.now() - startedAt);
       return;
     }
 
@@ -1116,16 +1133,19 @@ export async function runServerlessAudit(
       const headless = getCrawl4aiExtractionAdapter();
       if (headless.isConfigured()) {
         logger.info({ auditId, domain, count: csrCandidates.length }, 'Retrying CSR-shell candidate pages via headless Crawl4AI');
-        const retried = await Promise.all(
-          csrCandidates.map(async (candidate) => {
-            try {
-              const { page: rendered } = await headless.extractPage(candidate.url, { timeoutMs: 30_000, ctx: { auditId, domain } });
-              return { url: candidate.url, rendered };
-            } catch (err) {
-              logger.warn({ auditId, url: candidate.url, err }, 'Headless CSR retry failed for page');
-              return null;
-            }
-          }),
+        perf.setCounter('csrRetryCandidates', csrCandidates.length);
+        const retried = await perf.measureStage('crawl.csr-retry', () =>
+          Promise.all(
+            csrCandidates.map(async (candidate) => {
+              try {
+                const { page: rendered } = await headless.extractPage(candidate.url, { timeoutMs: 30_000, ctx: { auditId, domain } });
+                return { url: candidate.url, rendered };
+              } catch (err) {
+                logger.warn({ auditId, url: candidate.url, err }, 'Headless CSR retry failed for page');
+                return null;
+              }
+            }),
+          ),
         );
         for (const result of retried) {
           if (!result || result.rendered.statusCode >= 400) continue;
@@ -1146,47 +1166,74 @@ export async function runServerlessAudit(
     const pages: ParsedPage[] = crawledRaw.map(toParsedPage);
     const urls = pages.map((p) => p.url);
     const pageLookup = new Map(pages.map((p) => [p.url, p]));
+    perf.setCounter('urlsDiscovered', urls.length);
+    perf.setCounter('pagesFetched', pages.length);
     await updateAuditStatus(auditId, 'running', { pageCount: pages.length });
     await markAgent('crawl', 'completed', `${pages.length} pages crawled`);
 
     // ── 3. Analyse ────────────────────────────────────────────────────────────
-    const { score: seoScore, issues: seoIssues } = analyseSEO(pages);
-    const { score: schemaScore, schemaUrls } = analyseSchema(pages);
+    const { seoScore, seoIssues, schemaScore, schemaUrls } = await perf.measureStage('extraction.seo-schema', async () => {
+      const { score: seoScore, issues: seoIssues } = analyseSEO(pages);
+      const { score: schemaScore, schemaUrls } = analyseSchema(pages);
+      return { seoScore, seoIssues, schemaScore, schemaUrls };
+    });
     await markAgent('seo', 'completed', `${seoIssues.length} findings`);
     await markAgent('schema', 'completed', `${schemaUrls.length} pages with schema`);
 
     // Real (not hardcoded) link graph + machine readability — same deterministic
     // analyzers the Railway pipeline uses, pure functions over crawled pages.
-    const linkGraphResult = analyzeLinkGraph(pages);
-    const machineReadabilityResult = analyzeMachineReadability(pages);
+    const { linkGraphResult, machineReadabilityResult } = await perf.measureStage('extraction.link-graph-readability', async () => {
+      const linkGraphResult = analyzeLinkGraph(pages);
+      const machineReadabilityResult = analyzeMachineReadability(pages);
+      return { linkGraphResult, machineReadabilityResult };
+    });
 
     // Run Groq calls, Lighthouse/performance, AI Governance probe, and Scout
     // analysis in parallel with the heuristic fallback. Each is independently
     // wrapped so one failing never blocks the others or the audit as a whole.
     const heuristicScores = scoreAIVisibility(pages);
-    const [groqScores, perceptionGraph, performanceResult, aiGovernanceProbe, scoutResult] = await Promise.all([
-      callGroqAnalysis(pages, domain),
-      callGroqPerceptionGraph(pages, domain),
-      analyzePerformance(pages).catch(() => null),
-      probeAiGovernance(domain).catch(() => null),
-      withTimeout(
-        runScoutAnalysis({
-          domain,
-          pages: pages.map((p) => ({
-            url: p.url,
-            title: p.title ?? '',
-            headings: p.headings.map((h) => h.text),
-            bodyText: p.bodyText,
-            wordCount: p.wordCount,
-            hasSchema: p.hasStructuredData,
-            schemaTypes: p.schemaTypes,
-          })),
-        }),
-        60_000,
-        'Scout analysis',
-      ).catch(() => null),
-    ]);
+    const [groqScores, perceptionGraph, performanceResult, aiGovernanceProbe, scoutResult] = await perf.measureStage('ai-visibility-parallel', () =>
+      Promise.all([
+        perf.measureStage('ai-visibility.groq-scores', () => callGroqAnalysis(pages, domain)),
+        perf.measureStage('ai-visibility.perception-graph', () => callGroqPerceptionGraph(pages, domain)),
+        perf.measureStage('ai-visibility.performance', () => analyzePerformance(pages).catch(() => null)),
+        perf.measureStage('ai-visibility.governance-probe', () => probeAiGovernance(domain).catch(() => null)),
+        perf.measureStage('ai-visibility.scout', () =>
+          withTimeout(
+            runScoutAnalysis({
+              domain,
+              pages: pages.map((p) => ({
+                url: p.url,
+                title: p.title ?? '',
+                headings: p.headings.map((h) => h.text),
+                bodyText: p.bodyText,
+                wordCount: p.wordCount,
+                hasSchema: p.hasStructuredData,
+                schemaTypes: p.schemaTypes,
+              })),
+            }),
+            60_000,
+            'Scout analysis',
+          ).catch(() => null),
+        ),
+      ]),
+    );
     stopIfBudgetExpired();
+    perf.setCounter('groqScoresFallback', groqScores ? 0 : 1);
+    perf.setCounter('perceptionGraphFallback', perceptionGraph ? 0 : 1);
+    perf.setCounter('performanceProbeFailed', performanceResult ? 0 : 1);
+    perf.setCounter('aiGovernanceProbeFailed', aiGovernanceProbe ? 0 : 1);
+    perf.setCounter('scoutAnalysisFailed', scoutResult ? 0 : 1);
+    if (scoutResult) {
+      const scoutMatch = /(\d+) via Groq .*?(\d+) via deterministic keyword fallback(?: \((\d+) timed out\))?/.exec(
+        scoutResult.pipeline.reasoning.detail,
+      );
+      if (scoutMatch) {
+        perf.setCounter('scoutPagesViaGroq', Number(scoutMatch[1]));
+        perf.setCounter('scoutPagesViaFallback', Number(scoutMatch[2]));
+        perf.setCounter('scoutPagesTimedOut', Number(scoutMatch[3] ?? 0));
+      }
+    }
     const aiScores = {
       // Machine readability uses the real deterministic analyzer, not an LLM guess.
       machineReadabilityScore:  machineReadabilityResult.score,
@@ -1246,6 +1293,8 @@ export async function runServerlessAudit(
     // Captures url -> pageId so issues saved below can carry real page attribution.
     const pageIdByUrl = new Map<string, string>();
     const pagesToPersist = [...new Map(pages.slice(0, 50).map((page) => [normalizeAuditPageUrl(page.requestedUrl ?? page.url), page])).values()];
+    perf.setCounter('pagesToPersist', pagesToPersist.length);
+    const endPersistenceTiming = perf.startStage('persistence.pages');
     await mapWithConcurrency(pagesToPersist, 8, async (page) => {
       try {
         const normalizedUrl = normalizeAuditPageUrl(page.requestedUrl ?? page.url);
@@ -1286,6 +1335,7 @@ export async function runServerlessAudit(
             },
           });
           pageIdByUrl.set(page.url, existing.id);
+          perf.incrementCounter('pagesPersisted');
         } else {
           const created = await db.page.create({
             data: {
@@ -1322,15 +1372,18 @@ export async function runServerlessAudit(
             },
           });
           pageIdByUrl.set(page.url, created.id);
+          perf.incrementCounter('pagesPersisted');
         }
-      } catch { /* individual page save failure is non-fatal */ }
+      } catch { perf.incrementCounter('pagesPersistFailed'); /* individual page save failure is non-fatal */ }
     });
+    endPersistenceTiming('ok');
 
     // ── Security & Brand Presence scanners (Modules 12 & 13) ──────────────────
     // Persisted in the auditScore.breakdown JSON — no schema migration required.
     let securityReport: unknown = null;
     let brandReport: unknown = null;
     let layer4Failed = false;
+    const endSecurityBrandTiming = perf.startStage('security-brand-scan');
     try {
       const { buildSecurityTrustReport, buildBrandPresenceReport } = await import('@sitenexis/analyzers');
       securityReport = buildSecurityTrustReport({
@@ -1350,11 +1403,14 @@ export async function runServerlessAudit(
         sameAsUrls: extractSameAs(pages),
         emails: extractEmails(pages),
       });
+      endSecurityBrandTiming('ok');
     } catch (scanErr) {
+      endSecurityBrandTiming('error', scanErr instanceof Error ? scanErr.message : String(scanErr));
       logger.warn({ auditId, err: scanErr }, 'Security/brand scan failed (non-fatal)');
     }
 
     // Save audit scores
+    const endAggregationTiming = perf.startStage('aggregation.score-writes');
     await (db as unknown as {
       auditScore: {
         upsert: (opts: unknown) => Promise<unknown>;
@@ -1525,9 +1581,11 @@ export async function runServerlessAudit(
         }),
       );
     }
+    endAggregationTiming('ok');
 
     // ── 5. Layer 4 — Machine Trust Intelligence ──────────────────────────────
     // Hoist these so self-audit write-back (step 6) can access them even if Layer 4 partially fails
+    const endLayer4ComputeTiming = perf.startStage('layer4.compute');
     const retrievalSims = computeRetrievalSimulations(pages, aiScores.citationProbabilityScore);
     const machineTrustData = computeMachineTrustScore(pages, schemaScore);
     const temporalAuthorityData = computeTemporalAuthority(pages);
@@ -1536,7 +1594,9 @@ export async function runServerlessAudit(
       aiScores.citationProbabilityScore, aiScores.semanticTrustScore, schemaScore,
     );
     const syntheticData = computeSyntheticEntityAnalysis(pages);
+    endLayer4ComputeTiming('ok');
 
+    const endLayer4PersistTiming = perf.startStage('layer4.persist');
     try {
       const {
         saveRetrievalSimulations,
@@ -1578,7 +1638,9 @@ export async function runServerlessAudit(
       if (failedWrites.length > 0) {
         throw new Error(`${failedWrites.length} layer-4 result writes failed`);
       }
+      endLayer4PersistTiming('ok');
     } catch (layer4Err) {
+      endLayer4PersistTiming('error', layer4Err instanceof Error ? layer4Err.message : String(layer4Err));
       layer4Failed = true;
       logger.warn({ auditId, err: layer4Err }, 'Layer 4 analysis failed (non-fatal)');
       await markAgent('retrieval-simulation', 'partial', null, 'Layer 4 retrieval simulation failed');
@@ -1593,6 +1655,7 @@ export async function runServerlessAudit(
     }
 
     // ── SiteNexis Intelligence Index — pure function, always safe to compute ──
+    const endSiiTiming = perf.startStage('sii.save');
     try {
       const { saveSIIScore } = await import('@sitenexis/db');
       const siiResult = computeSIIScore({
@@ -1608,18 +1671,23 @@ export async function runServerlessAudit(
         pagesCrawled: pages.length,
       });
       await saveSIIScore(auditId, { ...siiResult, url: `https://${domain}` });
+      endSiiTiming('ok');
     } catch (siiErr) {
+      endSiiTiming('error', siiErr instanceof Error ? siiErr.message : String(siiErr));
       logger.warn({ auditId, err: siiErr }, 'SII score save failed (non-fatal)');
     }
 
     // ── AI Governance — probed above in parallel, save now (non-fatal) ────────
     if (aiGovernanceProbe) {
+      const endAiGovSaveTiming = perf.startStage('ai-governance.save');
       try {
         const { saveAiGovernanceReport } = await import('@sitenexis/db');
         const aiGovernanceReport = buildAiGovernanceReport(aiGovernanceProbe);
         await saveAiGovernanceReport(auditId, aiGovernanceReport);
+        endAiGovSaveTiming('ok');
         await markAgent('ai-governance', 'completed', `Governance score ${aiGovernanceReport.overallScore}`);
       } catch (aiGovErr) {
+        endAiGovSaveTiming('error', aiGovErr instanceof Error ? aiGovErr.message : String(aiGovErr));
         logger.warn({ auditId, err: aiGovErr }, 'AI Governance report save failed (non-fatal)');
         await markAgent('ai-governance', 'partial', null, 'AI Governance save failed');
       }
@@ -1629,11 +1697,14 @@ export async function runServerlessAudit(
 
     // ── Scout Analysis — computed above in parallel, save now (non-fatal) ────
     if (scoutResult) {
+      const endScoutSaveTiming = perf.startStage('scout.save');
       try {
         const { saveScoutAnalysis } = await import('@sitenexis/db');
         await saveScoutAnalysis(auditId, domain, scoutResult);
+        endScoutSaveTiming('ok');
         await markAgent('scout', 'completed', `Intent coverage ${scoutResult.intentCoverageScore}`);
       } catch (scoutErr) {
+        endScoutSaveTiming('error', scoutErr instanceof Error ? scoutErr.message : String(scoutErr));
         logger.warn({ auditId, err: scoutErr }, 'Scout analysis save failed (non-fatal)');
         await markAgent('scout', 'partial', null, 'Scout save failed');
       }
@@ -1648,6 +1719,7 @@ export async function runServerlessAudit(
 
     // ── 6. Write back to selfAuditRun tables (health monitor) ────────────────
     if (selfAuditRunId) {
+      const endSelfAuditTiming = perf.startStage('self-audit.writeback');
       try {
         const {
           linkSelfAuditToAudit,
@@ -1789,9 +1861,11 @@ export async function runServerlessAudit(
             recommendations,
           }),
         ]);
+        endSelfAuditTiming('ok');
 
         logger.info({ selfAuditRunId, auditId, healthScore }, 'Self-audit run completed and written to health monitor');
       } catch (selfAuditErr) {
+        endSelfAuditTiming('error', selfAuditErr instanceof Error ? selfAuditErr.message : String(selfAuditErr));
         logger.warn({ selfAuditRunId, auditId, err: selfAuditErr }, 'Self-audit write-back failed (non-fatal)');
       }
     }
@@ -1799,6 +1873,7 @@ export async function runServerlessAudit(
     // ── 7. StateEngine write-back (LoopOS V4.5) ──────────────────────────────
     // Append a score snapshot to SiteState and record the open issue set.
     // Non-fatal — never blocks audit completion.
+    const endStateEngineTiming = perf.startStage('state-engine.writeback');
     try {
       const { appendScoreSnapshot, recordIssueSet } = await import('@sitenexis/loop-os');
       const snapshot = {
@@ -1830,8 +1905,10 @@ export async function runServerlessAudit(
         appendScoreSnapshot(domain, snapshot),
         recordIssueSet(domain, auditId, openIssueIds, openIssueTypes),
       ]);
+      endStateEngineTiming('ok');
       logger.info({ auditId, domain }, 'LoopOS StateEngine updated');
     } catch (loopErr) {
+      endStateEngineTiming('error', loopErr instanceof Error ? loopErr.message : String(loopErr));
       logger.warn({ auditId, domain, err: loopErr }, 'LoopOS StateEngine write failed (non-fatal)');
     }
 
@@ -1839,16 +1916,19 @@ export async function runServerlessAudit(
     const finalStatus = layer4Failed ? 'partial' : 'complete';
     clearTimeout(budgetTimer);
     await updateAuditStatus(auditId, finalStatus, { pageCount: pages.length });
+    perf.emitSummary(auditId, domain, Date.now() - startedAt);
     logger.info({ auditId, domain, pages: pages.length, overall, finalStatus }, 'Serverless audit finished');
 
   } catch (err) {
     clearTimeout(budgetTimer);
     if (budgetExpired) {
       logger.warn({ auditId, domain }, 'Live audit returned partial results at the processing budget');
+      perf.emitSummary(auditId, domain, Date.now() - startedAt);
       return;
     }
     const msg = err instanceof Error ? err.message : String(err);
     logger.error({ auditId, domain, err: msg }, 'Serverless audit failed');
+    perf.emitSummary(auditId, domain, Date.now() - startedAt);
     try {
       const { updateAuditStatus } = await import('@sitenexis/db');
       await updateAuditStatus(auditId, 'failed', { errorMessage: msg.slice(0, 500) });
