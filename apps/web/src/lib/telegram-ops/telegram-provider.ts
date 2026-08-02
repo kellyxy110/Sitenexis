@@ -20,9 +20,15 @@ export function isValidWebhookSecret(headerValue: string | null): boolean {
  * The admin allowlist IS the access control for commands — not a bypass of one.
  * Only the configured TELEGRAM_ADMIN_CHAT_ID may issue commands; every other
  * chat ID (including the bot's own creator, if different) is rejected.
+ *
+ * Both sides are trimmed before comparison — Telegram's own chat.id is always
+ * clean digits, but the configured value is whatever was pasted into the
+ * Vercel dashboard, where a trailing space or newline is an easy, invisible
+ * mistake that would otherwise make an exact-match comparison silently fail.
  */
 export function isAdminChat(chatId: string | number): boolean {
-  return env.TELEGRAM_ADMIN_CHAT_ID.length > 0 && String(chatId) === env.TELEGRAM_ADMIN_CHAT_ID;
+  const configured = env.TELEGRAM_ADMIN_CHAT_ID.trim();
+  return configured.length > 0 && String(chatId).trim() === configured;
 }
 
 /**

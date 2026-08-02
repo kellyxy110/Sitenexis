@@ -72,6 +72,28 @@ describe('isAdminChat', () => {
   it('rejects any other chat id', () => {
     expect(isAdminChat(999)).toBe(false);
   });
+
+  it('accepts a real 10-digit admin chat id exactly', () => {
+    h.env.TELEGRAM_ADMIN_CHAT_ID = '8619262047';
+    expect(isAdminChat(8619262047)).toBe(true);
+    expect(isAdminChat('8619262047')).toBe(true);
+  });
+
+  it('still matches when the configured env value has leading/trailing whitespace — the exact failure mode a Vercel-dashboard paste can introduce', () => {
+    h.env.TELEGRAM_ADMIN_CHAT_ID = '  8619262047\n';
+    expect(isAdminChat(8619262047)).toBe(true);
+  });
+
+  it('rejects a numerically-close but different chat id even with whitespace present', () => {
+    h.env.TELEGRAM_ADMIN_CHAT_ID = ' 8619262047 ';
+    expect(isAdminChat(861926204)).toBe(false);
+    expect(isAdminChat(86192620470)).toBe(false);
+  });
+
+  it('rejects every chat id when the configured value is empty or only whitespace', () => {
+    h.env.TELEGRAM_ADMIN_CHAT_ID = '   ';
+    expect(isAdminChat(8619262047)).toBe(false);
+  });
 });
 
 describe('sendTelegramMessage', () => {

@@ -6,9 +6,10 @@ const h = vi.hoisted(() => ({
   isAdminChat: vi.fn(),
   sendTelegramMessage: vi.fn(),
   statusHandler: vi.fn(),
+  logger: { warn: vi.fn(), error: vi.fn(), info: vi.fn() },
 }));
 
-vi.mock('@/lib/logger', () => ({ logger: { warn: vi.fn(), error: vi.fn(), info: vi.fn() } }));
+vi.mock('@/lib/logger', () => ({ logger: h.logger }));
 vi.mock('@/lib/telegram-ops/telegram-provider', () => ({
   isValidWebhookSecret: h.isValidWebhookSecret,
   isAdminChat: h.isAdminChat,
@@ -68,6 +69,21 @@ describe('POST /api/telegram/webhook', () => {
     expect(h.statusHandler).toHaveBeenCalledTimes(1);
   });
 
+  it('strips an @BotName suffix that itself contains underscores', async () => {
+    await POST(req({ message: { chat: { id: 123456789 }, text: '/status@SiteNexisOps_Bot' } }, 'secret'));
+
+    expect(h.statusHandler).toHaveBeenCalledTimes(1);
+    expect(h.sendTelegramMessage).toHaveBeenCalledWith('123456789', 'status ok');
+  });
+
+  it('dispatches /status for the real admin chat id', async () => {
+    const res = await POST(req({ message: { chat: { id: 8619262047 }, text: '/status' } }, 'secret'));
+
+    expect(res.status).toBe(200);
+    expect(h.statusHandler).toHaveBeenCalledTimes(1);
+    expect(h.sendTelegramMessage).toHaveBeenCalledWith('8619262047', 'status ok');
+  });
+
   it('replies with help text for an unrecognized command instead of erroring', async () => {
     await POST(req({ message: { chat: { id: 123456789 }, text: '/nonexistent' } }, 'secret'));
 
@@ -99,5 +115,41 @@ describe('POST /api/telegram/webhook', () => {
     const res = await POST(badReq);
 
     expect(res.status).toBe(200);
+  });
+
+  it('logs nothing extra when sendTelegramMessage succeeds', async () => {
+    h.sendTelegramMessage.mockResolvedValue(true);
+
+    await POST(req({ message: { chat: { id: 123456789 }, text: '/status' } }, 'secret'));
+
+    expect(h.logger.error).not.toHaveBeenCalled();
+  });
+
+  it('logs a sanitized structured error, and still returns 200, when sendTelegramMessage fails after successful authorization and dispatch — the exact gap that let a real failure look identical to success', async () => {
+    h.sendTelegramMessage.mockResolvedValue(false);
+
+    const res = await POST(req({ message: { chat: { id: 123456789 }, text: '/status' } }, 'secret'));
+
+    expect(res.status).toBe(200);
+    expect(h.logger.error).toHaveBeenCalledWith(
+      expect.objectContaining({ commandKey: '/status' }),
+      expect.stringContaining('sendMessage failed'),
+    );
+    // The log call must never include the bot token or chat id in a way that could leak a credential.
+    const [fields] = h.logger.error.mock.calls[0] as [Record<string, unknown>, string];
+    expect(JSON.stringify(fields)).not.toMatch(/bot\d+:/);
+  });
+
+  it('logs a second error when even the failure-notice sendMessage call fails', async () => {
+    h.statusHandler.mockRejectedValue(new Error('db down'));
+    h.sendTelegramMessage.mockResolvedValue(false);
+
+    const res = await POST(req({ message: { chat: { id: 123456789 }, text: '/status' } }, 'secret'));
+
+    expect(res.status).toBe(200);
+    expect(h.logger.error).toHaveBeenCalledWith(
+      expect.objectContaining({ commandKey: '/status' }),
+      expect.stringContaining('failure-notice sendMessage also failed'),
+    );
   });
 });

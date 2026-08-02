@@ -59,10 +59,19 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   try {
     const reply = handler ? await handler() : HELP_TEXT;
-    await sendTelegramMessage(String(chatId), reply);
+    const sent = await sendTelegramMessage(String(chatId), reply);
+    if (!sent) {
+      // Authorization and dispatch both succeeded, but delivery back to Telegram
+      // failed — this is the one failure mode the webhook route previously
+      // swallowed entirely, producing a "no reply, no error anywhere" symptom.
+      logger.error({ commandKey }, 'Telegram webhook: sendMessage failed after successful authorization and dispatch');
+    }
   } catch (err) {
     logger.error({ err: err instanceof Error ? err.message : String(err), commandKey }, 'Telegram command handler failed');
-    await sendTelegramMessage(String(chatId), '⚠️ Command failed — check server logs.');
+    const sent = await sendTelegramMessage(String(chatId), '⚠️ Command failed — check server logs.');
+    if (!sent) {
+      logger.error({ commandKey }, 'Telegram webhook: failure-notice sendMessage also failed');
+    }
   }
 
   return NextResponse.json({ ok: true });
