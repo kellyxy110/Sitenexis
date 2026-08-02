@@ -22,6 +22,128 @@ export async function withTiming<T>(
   return { result, ms: Date.now() - t };
 }
 
+/** Database connectivity (SELECT 1) */
+export async function checkDatabase(): Promise<DiagnosticStage> {
+  const { result, ms } = await withTiming(async () => {
+    const { prisma } = await import('@sitenexis/db');
+    await prisma.$queryRaw`SELECT 1`;
+    return { ok: true };
+  }).catch((err) => ({
+    result: { ok: false, error: err instanceof Error ? err.message : String(err) },
+    ms: 0,
+  }));
+
+  if (!result.ok) {
+    const msg = (result as { ok: false; error: string }).error;
+    return {
+      stage: 'db_connectivity',
+      status: 'error',
+      latency_ms: ms,
+      error: msg.slice(0, 400),
+      recommended_fix:
+        'Check DATABASE_URL on Vercel. Use the pooler URL at port 6543 with ?pgbouncer=true. Ensure the Supabase project is not paused.',
+    };
+  }
+
+  return { stage: 'db_connectivity', status: 'ok', latency_ms: ms };
+}
+
+/** Database schema (query the users table) */
+export async function checkDatabaseSchema(): Promise<DiagnosticStage> {
+  const { result, ms } = await withTiming(async () => {
+    const { prisma } = await import('@sitenexis/db');
+    await prisma.$queryRaw`SELECT COUNT(*) FROM users LIMIT 1`;
+    return { ok: true };
+  }).catch((err) => ({
+    result: { ok: false, error: err instanceof Error ? err.message : String(err) },
+    ms: 0,
+  }));
+
+  if (!result.ok) {
+    const msg = (result as { ok: false; error: string }).error;
+    return {
+      stage: 'db_schema',
+      status: 'error',
+      latency_ms: ms,
+      error: msg.slice(0, 400),
+      recommended_fix:
+        'Run pnpm db:push to push the Prisma schema to Supabase. Tables do not exist yet.',
+    };
+  }
+
+  return { stage: 'db_schema', status: 'ok', latency_ms: ms };
+}
+
+/** Redis ping — uses crawler's createRedisClient with hard 5s timeout */
+export async function checkRedis(): Promise<DiagnosticStage> {
+  const rawUrl = process.env['REDIS_URL'] ?? 'redis://localhost:6379';
+  const safeUrl = rawUrl.replace(/:[^@]+@/, ':***@');
+
+  const { result, ms } = await withTiming(async () => {
+    const { createRedisClient } = await import('@sitenexis/crawler');
+    const client = createRedisClient();
+    try {
+      const pong = await Promise.race([
+        client.ping(),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Redis ping timed out after 5s')), 5_000),
+        ),
+      ]);
+      return { ok: pong === 'PONG', pong };
+    } finally {
+      client.disconnect();
+    }
+  }).catch((err) => ({
+    result: { ok: false, error: err instanceof Error ? err.message : String(err) },
+    ms: 0,
+  }));
+
+  if (!result.ok) {
+    const msg = (result as { ok: false; error: string }).error;
+    return {
+      stage: 'redis_ping',
+      status: 'error',
+      latency_ms: ms,
+      error: msg.slice(0, 400),
+      detail: { redisUrl: safeUrl },
+      recommended_fix:
+        'REDIS_URL is unreachable. On Vercel, set REDIS_URL to an Upstash Redis URL (rediss://...). Get one free at upstash.com. The audit pipeline cannot enqueue jobs without Redis.',
+    };
+  }
+
+  return { stage: 'redis_ping', status: 'ok', latency_ms: ms, detail: { redisUrl: safeUrl } };
+}
+
+/** BullMQ queue creation */
+export async function checkBullMQQueue(): Promise<DiagnosticStage> {
+  const { result, ms } = await withTiming(async () => {
+    const { getCrawlQueueStats } = await import('@sitenexis/crawler');
+    const stats = await getCrawlQueueStats();
+    return { ok: true, stats };
+  }).catch((err) => ({
+    result: { ok: false, error: err instanceof Error ? err.message : String(err) },
+    ms: 0,
+  }));
+
+  if (!result.ok) {
+    const msg = (result as { ok: false; error: string }).error;
+    return {
+      stage: 'bullmq_queue',
+      status: 'error',
+      latency_ms: ms,
+      error: msg.slice(0, 400),
+      recommended_fix: 'BullMQ queue creation failed. Redis must be reachable first.',
+    };
+  }
+
+  return {
+    stage: 'bullmq_queue',
+    status: 'ok',
+    latency_ms: ms,
+    detail: (result as { ok: true; stats: unknown }).stats,
+  };
+}
+
 /**
  * Stage 7: Worker heartbeat (is a BullMQ worker process running?)
  *

@@ -11,6 +11,8 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { timingSafeEqual, createHash } from 'crypto';
 import { env } from '@/lib/env';
 import { logger } from '@/lib/logger';
+import { notifyOps } from '@/lib/telegram-ops/orchestrator';
+import { recordDeploymentEvent } from '@/lib/telegram-ops/deployment-log';
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   // Signature verification is always required — reject if secret is unconfigured.
@@ -36,6 +38,16 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const deploymentUrl = body['url'] as string | undefined;
 
   logger.info({ deploymentType, deploymentUrl }, 'Vercel deploy webhook received — triggering self-audit');
+
+  const isError = deploymentType?.includes('ERROR') ?? false;
+  const logState = isError ? 'ERROR' : 'READY';
+  void recordDeploymentEvent({ state: logState, url: deploymentUrl ?? null, recordedAt: new Date().toISOString() });
+  void notifyOps({
+    type: isError ? 'DEPLOYMENT_ERROR' : 'DEPLOYMENT_READY',
+    summary: isError ? `Deployment failed${deploymentUrl ? `: ${deploymentUrl}` : ''}` : `Deployment ready${deploymentUrl ? `: ${deploymentUrl}` : ''}`,
+    dedupeKey: `deployment:${deploymentUrl ?? deploymentType ?? 'unknown'}:${logState}`,
+    occurredAt: new Date().toISOString(),
+  });
 
   // Only trigger on production deployments
   if (deploymentType && deploymentType !== 'DEPLOYMENT_READY' && !deploymentType.includes('production')) {

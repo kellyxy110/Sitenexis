@@ -7,6 +7,7 @@
 
 import { logger } from '@/lib/logger';
 import { createAuditPerformanceRecorder } from '@/lib/audit-performance';
+import { notifyOps } from '@/lib/telegram-ops/orchestrator';
 import { getGroqAdapter, getFetchExtractionAdapter, getCrawl4aiExtractionAdapter, estimateCost } from '@sitenexis/adapters';
 import { recordAiCallMetric } from '@sitenexis/db';
 import type { Prisma } from '@sitenexis/db';
@@ -1016,6 +1017,13 @@ export async function runServerlessAudit(
     budgetExpired = true;
     logger.error({ auditId, domain, elapsedMs: Date.now() - startedAt }, 'Live audit budget reached; returning partial results');
     void updateAuditStatus(auditId, 'partial', { errorMessage: `Audit reached the ${Math.round(LIVE_AUDIT_BUDGET_MS / 1000)} second live processing budget. Available results were saved.` }).catch(() => undefined);
+    void notifyOps({
+      type: 'AUDIT_PARTIAL',
+      summary: `Audit for ${domain} hit the ${Math.round(LIVE_AUDIT_BUDGET_MS / 1000)}s processing budget.`,
+      dedupeKey: `audit-partial:${auditId}`,
+      occurredAt: new Date().toISOString(),
+      metadata: { auditId, domain },
+    });
   }, LIVE_AUDIT_BUDGET_MS);
   const stopIfBudgetExpired = (): void => {
     if (budgetExpired) throw new Error('LIVE_AUDIT_BUDGET_EXCEEDED');
@@ -1113,6 +1121,14 @@ export async function runServerlessAudit(
         : '';
       await updateAuditStatus(auditId, 'failed', {
         errorMessage: `Homepage returned ${code} for ${domain}${hint}`.slice(0, 500),
+      });
+      void notifyOps({
+        type: 'AUDIT_FAILED',
+        summary: `Audit for ${domain} failed: homepage returned ${code}.`,
+        ...(hint ? { detail: hint.replace(/^ — /, '') } : {}),
+        dedupeKey: `audit-failed:${auditId}`,
+        occurredAt: new Date().toISOString(),
+        metadata: { auditId, domain },
       });
       await markAgent('crawl', 'failed', null, `Homepage returned ${code}`);
       perf.emitSummary(auditId, domain, Date.now() - startedAt);
@@ -1916,6 +1932,15 @@ export async function runServerlessAudit(
     const finalStatus = layer4Failed ? 'partial' : 'complete';
     clearTimeout(budgetTimer);
     await updateAuditStatus(auditId, finalStatus, { pageCount: pages.length });
+    if (finalStatus === 'partial') {
+      void notifyOps({
+        type: 'AUDIT_PARTIAL',
+        summary: `Audit for ${domain} completed with partial results (Layer 4 analysis incomplete).`,
+        dedupeKey: `audit-partial:${auditId}`,
+        occurredAt: new Date().toISOString(),
+        metadata: { auditId, domain },
+      });
+    }
     perf.emitSummary(auditId, domain, Date.now() - startedAt);
     logger.info({ auditId, domain, pages: pages.length, overall, finalStatus }, 'Serverless audit finished');
 
@@ -1933,5 +1958,13 @@ export async function runServerlessAudit(
       const { updateAuditStatus } = await import('@sitenexis/db');
       await updateAuditStatus(auditId, 'failed', { errorMessage: msg.slice(0, 500) });
     } catch { /* best effort */ }
+    void notifyOps({
+      type: 'AUDIT_FAILED',
+      summary: `Audit for ${domain} failed.`,
+      detail: msg.slice(0, 300),
+      dedupeKey: `audit-failed:${auditId}`,
+      occurredAt: new Date().toISOString(),
+      metadata: { auditId, domain },
+    });
   }
 }

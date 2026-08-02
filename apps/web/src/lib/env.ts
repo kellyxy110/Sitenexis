@@ -123,6 +123,14 @@ const envSchema = z.object({
   // Defaults to 20; raise on staging so the launch validation suite can sweep the
   // full diversity benchmark without self-limiting.
   QUICK_AUDIT_RATE_LIMIT: z.coerce.number().int().positive().default(20),
+
+  // Telegram Ops — operational alerting + read-only status commands.
+  // TELEGRAM_BOT_TOKEN is never logged, echoed, or included in any response body;
+  // read exclusively from env at the point of use (telegram-provider.ts).
+  TELEGRAM_BOT_TOKEN: z.string().default(''),
+  TELEGRAM_ADMIN_CHAT_ID: z.string().default(''),
+  TELEGRAM_WEBHOOK_SECRET: secret(16),
+  TELEGRAM_ALERTS_ENABLED: z.coerce.boolean().default(false),
 });
 
 export const env = envSchema.parse(process.env);

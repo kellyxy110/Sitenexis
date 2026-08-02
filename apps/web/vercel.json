@@ -4,6 +4,8 @@
   "installCommand": "cd ../.. && pnpm install --no-frozen-lockfile",
   "outputDirectory": ".next",
   "crons": [
-    { "path": "/api/cron/google-sync", "schedule": "0 6 * * *" }
+    { "path": "/api/cron/google-sync", "schedule": "0 6 * * *" },
+    { "path": "/api/cron/ops-digest", "schedule": "0 7 * * *" },
+    { "path": "/api/cron/ops-monitor", "schedule": "*/10 * * * *" }
   ]
 }

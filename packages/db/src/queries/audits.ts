@@ -66,6 +66,92 @@ export async function getAuditsByUser(userId: string, limit?: number): Promise<A
   });
 }
 
+export interface OpsAuditSummary {
+  id: string;
+  domain: string;
+  status: AuditStatus;
+  errorMessage: string | null;
+  createdAt: Date;
+  startedAt: Date | null;
+  completedAt: Date | null;
+  updatedAt: Date;
+  failedAgentCount: number;
+  partialAgentCount: number;
+  requiredAgentCount: number;
+  isDemo: boolean;
+}
+
+const OPS_AUDIT_SELECT = {
+  id: true,
+  domain: true,
+  status: true,
+  errorMessage: true,
+  createdAt: true,
+  startedAt: true,
+  completedAt: true,
+  updatedAt: true,
+  failedAgentCount: true,
+  partialAgentCount: true,
+  requiredAgentCount: true,
+  isDemo: true,
+} as const;
+
+/**
+ * Cross-user audit visibility for operational tooling (Telegram ops commands,
+ * ops-monitor cron). Deliberately not scoped to a single userId — unlike
+ * listAuditsByUser, which is the user-facing dashboard query. Excludes demo
+ * audits by default since they're synthetic fixtures, not real traffic.
+ */
+export async function listRecentAuditsForOps(limit = 10): Promise<OpsAuditSummary[]> {
+  return db.audit.findMany({
+    where: { archivedAt: null, isDemo: false },
+    orderBy: { createdAt: 'desc' },
+    take: limit,
+    select: OPS_AUDIT_SELECT,
+  });
+}
+
+export async function listAuditsByStatusForOps(
+  statuses: AuditStatus[],
+  since: Date,
+  limit = 20
+): Promise<OpsAuditSummary[]> {
+  return db.audit.findMany({
+    where: { archivedAt: null, isDemo: false, status: { in: statuses }, createdAt: { gte: since } },
+    orderBy: { createdAt: 'desc' },
+    take: limit,
+    select: OPS_AUDIT_SELECT,
+  });
+}
+
+/**
+ * Audits stuck in 'running' with no update for longer than staleMinutes —
+ * the operational definition of "stalled" (as distinct from 'failed', which
+ * already terminated with an error).
+ */
+export async function listStalledAuditsForOps(staleMinutes = 20): Promise<OpsAuditSummary[]> {
+  const staleBefore = new Date(Date.now() - staleMinutes * 60 * 1000);
+  return db.audit.findMany({
+    where: { archivedAt: null, isDemo: false, status: 'running', updatedAt: { lt: staleBefore } },
+    orderBy: { updatedAt: 'asc' },
+    take: 20,
+    select: OPS_AUDIT_SELECT,
+  });
+}
+
+export async function countAuditsByStatusSince(since: Date): Promise<Record<AuditStatus, number>> {
+  const rows = await db.audit.groupBy({
+    by: ['status'],
+    where: { archivedAt: null, isDemo: false, createdAt: { gte: since } },
+    _count: { _all: true },
+  });
+  const base: Record<AuditStatus, number> = { queued: 0, running: 0, partial: 0, complete: 0, failed: 0 };
+  for (const row of rows) {
+    base[row.status] = row._count._all;
+  }
+  return base;
+}
+
 export async function updateAuditStatus(
   id: string,
   status: AuditStatus,
