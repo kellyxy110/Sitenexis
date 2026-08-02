@@ -2020,30 +2020,23 @@ function AuditPageInner() {
         const envelope = await detail.json() as { state?: string; data?: AuditData } | AuditData;
         return ('data' in envelope && envelope.data) ? envelope.data : envelope as AuditData;
       }
-      // Domain-only navigation: find the latest completed audit for this domain
-      const listRes = await fetch(`/api/audits?pageSize=50`);
-      if (!listRes.ok) throw new Error(`Failed to load audits (${listRes.status})`);
-      const list = await listRes.json() as { data: AuditData[] };
-      const match = list.data.find((a) => a.domain === domain && a.status === 'complete');
-      if (!match) {
-        const anyMatch = list.data.find((a) => a.domain === domain);
-        if (!anyMatch) throw new Error('Audit not found');
-        if (anyMatch.status === 'failed') {
+      // Domain-only navigation: find the latest completed audit for this domain.
+      // Lightweight lookup — id/status/errorMessage only, not the full audit list.
+      const lookupRes = await fetch(`/api/audits/by-domain?domain=${encodeURIComponent(domain)}`);
+      if (!lookupRes.ok) throw new Error(`Failed to load audits (${lookupRes.status})`);
+      const lookup = await lookupRes.json() as {
+        match: { id: string; status: string } | null;
+        latest: { id: string; status: string; errorMessage: string | null } | null;
+      };
+      if (!lookup.match) {
+        if (!lookup.latest) throw new Error('Audit not found');
+        if (lookup.latest.status === 'failed') {
           // Surface the real reason (e.g. "Homepage returned 403 …") instead of a generic message.
-          let reason = '';
-          try {
-            const d = await fetch(`/api/audit/${anyMatch.id}`);
-            if (d.ok) {
-              const env = await d.json() as { data?: { errorMessage?: string | null } } | { errorMessage?: string | null };
-              const data = ('data' in env && env.data) ? env.data : env as { errorMessage?: string | null };
-              reason = data?.errorMessage ?? '';
-            }
-          } catch { /* fall back to generic message */ }
-          throw new Error(reason ? `Audit failed: ${reason}` : 'Audit failed — please try again.');
+          throw new Error(lookup.latest.errorMessage ? `Audit failed: ${lookup.latest.errorMessage}` : 'Audit failed — please try again.');
         }
         throw Object.assign(new Error('Audit completing…'), { retriable: true });
       }
-      const detail = await fetch(`/api/audit/${match.id}`);
+      const detail = await fetch(`/api/audit/${lookup.match.id}`);
       if (!detail.ok) throw new Error(`Failed to load audit results (${detail.status})`);
       const envelope = await detail.json() as { state?: string; data?: AuditData } | AuditData;
       return ('data' in envelope && envelope.data) ? envelope.data : envelope as AuditData;

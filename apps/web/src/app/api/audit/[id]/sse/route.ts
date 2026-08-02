@@ -16,8 +16,8 @@ export async function GET(req: NextRequest, { params }: Params): Promise<NextRes
   // env var must not blank out real, persisted SSE scores for an authenticated owner
   // (same failure class fixed for the executive-summary route in b70b926a).
   try {
-    const { getAuditWithResults, getSseScore } = await import('@sitenexis/db');
-    const audit = await getAuditWithResults(id) as { userId: string; status: AuditStatus } | null;
+    const { getAuditById, getSseScore } = await import('@sitenexis/db');
+    const audit = await getAuditById(id) as { userId: string; status: AuditStatus } | null;
     if (!audit) return gtlEmpty();
     if (audit.userId !== user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 

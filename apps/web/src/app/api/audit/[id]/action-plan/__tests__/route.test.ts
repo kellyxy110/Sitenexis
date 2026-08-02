@@ -8,7 +8,7 @@ vi.setConfig({ testTimeout: 20_000 });
 
 const h = vi.hoisted(() => ({
   requireAuth: vi.fn(),
-  getAuditWithResults: vi.fn(),
+  getAuditById: vi.fn(),
   getIssuesByAudit: vi.fn(),
   getPagesByAudit: vi.fn(),
 }));
@@ -19,7 +19,7 @@ vi.mock('@/lib/auth', () => ({
 }));
 vi.mock('@/lib/logger', () => ({ logger: { warn: vi.fn(), error: vi.fn(), info: vi.fn() } }));
 vi.mock('@sitenexis/db', () => ({
-  getAuditWithResults: h.getAuditWithResults,
+  getAuditById: h.getAuditById,
   getIssuesByAudit: h.getIssuesByAudit,
   getPagesByAudit: h.getPagesByAudit,
 }));
@@ -45,7 +45,7 @@ function issue(overrides: Record<string, unknown>): Record<string, unknown> {
 beforeEach(() => {
   vi.clearAllMocks();
   h.requireAuth.mockResolvedValue({ id: 'user-1', email: 'a@b.com' });
-  h.getAuditWithResults.mockResolvedValue({ id: 'audit-1', userId: 'user-1', domain: 'example.com', status: 'complete' });
+  h.getAuditById.mockResolvedValue({ id: 'audit-1', userId: 'user-1', domain: 'example.com', status: 'complete' });
   h.getPagesByAudit.mockResolvedValue([]);
 });
 
@@ -57,13 +57,13 @@ describe('GET /api/audit/[id]/action-plan', () => {
   });
 
   it('403 when the audit belongs to another user', async () => {
-    h.getAuditWithResults.mockResolvedValueOnce({ id: 'audit-1', userId: 'someone-else', domain: 'example.com', status: 'complete' });
+    h.getAuditById.mockResolvedValueOnce({ id: 'audit-1', userId: 'someone-else', domain: 'example.com', status: 'complete' });
     const res = await GET(req(), params);
     expect(res.status).toBe(403);
   });
 
   it('empty state when the audit does not exist', async () => {
-    h.getAuditWithResults.mockResolvedValueOnce(null);
+    h.getAuditById.mockResolvedValueOnce(null);
     const res = await GET(req(), params);
     const json = await res.json();
     expect(json.state).toBe('empty');

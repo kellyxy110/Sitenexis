@@ -140,6 +140,34 @@ export async function softDeleteAudit(id: string): Promise<void> {
   });
 }
 
+export interface LatestAuditByDomainRecord {
+  id: string;
+  domain: string;
+  status: AuditStatus;
+  errorMessage: string | null;
+  createdAt: Date;
+  completedAt: Date | null;
+}
+
+/**
+ * Lightweight, ownership-scoped lookup for the `/audit/[domain]` page's
+ * domain-only navigation path. Returns only the fields needed to resolve
+ * which audit to load (or which status/error message to show) — never the
+ * full audit with pages/issues/scores/report. Reuses the existing
+ * `@@index([domain])` index; no schema change.
+ */
+export async function getLatestAuditByDomain(
+  domain: string,
+  userId: string,
+  status?: AuditStatus,
+): Promise<LatestAuditByDomainRecord | null> {
+  return db.audit.findFirst({
+    where: { domain, userId, archivedAt: null, ...(status ? { status } : {}) },
+    orderBy: { createdAt: 'desc' },
+    select: { id: true, domain: true, status: true, errorMessage: true, createdAt: true, completedAt: true },
+  });
+}
+
 export async function getPreviousCompletedAuditIdForDomain(
   domain: string,
   excludeAuditId: string,

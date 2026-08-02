@@ -13,8 +13,8 @@ export async function GET(req: NextRequest, { params }: Params): Promise<NextRes
   const { id } = await params;
 
   try {
-    const { getAuditWithResults, getMachineTrustScore } = await import('@sitenexis/db');
-    const audit = await getAuditWithResults(id) as { userId: string; status: AuditStatus } | null;
+    const { getAuditById, getMachineTrustScore } = await import('@sitenexis/db');
+    const audit = await getAuditById(id) as { userId: string; status: AuditStatus } | null;
     if (!audit) return gtlEmpty();
     if (audit.userId !== user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
