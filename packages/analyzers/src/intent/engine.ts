@@ -6,7 +6,7 @@ import type {
   ScoutPipelineStage,
   GTLState,
 } from '@sitenexis/shared';
-import { routeTask } from '../ai/model-router';
+import { callGroq, isGroqConfigured, GROQ_MODEL } from '../ai/groq-client';
 import { INTENT_CLASSIFICATION_SYSTEM, buildIntentUserPrompt } from './prompts';
 import { computeIntentAlignment } from './alignment';
 
@@ -14,6 +14,14 @@ const ALL_INTENTS: ScoutIntentType[] = [
   'informational', 'commercial', 'navigational', 'research',
   'creation', 'learn_and_solve', 'local',
 ];
+
+/**
+ * Bounded per-page classification deadline. Scout classifies up to 50 pages
+ * per audit in batches of 3; a slow/unavailable Groq call must fail fast into
+ * the deterministic keyword fallback below, never stall the batch. Well under
+ * the adapter's own 30s default and the live-audit time budget.
+ */
+const SCOUT_CLASSIFICATION_TIMEOUT_MS = 8_000;
 
 export interface ScoutEngineInput {
   domain: string;
@@ -59,7 +67,10 @@ export async function runScoutAnalysis(input: ScoutEngineInput): Promise<ScoutAn
   const sample = pages.slice(0, 50);
   const pageIntents: ScoutPageIntent[] = [];
   let classifiedCount = 0;
-  let modelUsed = 'qwen/qwen3-next-80b-a3b-instruct:free';
+  let groqSucceeded = 0;
+  let fallbackUsed = 0;
+  let timedOut = 0;
+  const classificationStart = Date.now();
 
   const concurrency = 3;
   for (let i = 0; i < sample.length; i += concurrency) {
@@ -71,20 +82,26 @@ export async function runScoutAnalysis(input: ScoutEngineInput): Promise<ScoutAn
     for (let j = 0; j < results.length; j++) {
       const page = batch[j]!;
       const result = results[j]!;
+      const outcome = result.status === 'fulfilled' ? result.value : { intent: null, timedOut: false };
 
-      if (result.status === 'fulfilled' && result.value) {
-        pageIntents.push(result.value);
-        classifiedCount++;
+      if (outcome.intent) {
+        pageIntents.push(outcome.intent);
+        groqSucceeded++;
       } else {
         pageIntents.push(fallbackClassification(page.url, page.title, page.bodyText));
-        classifiedCount++;
+        fallbackUsed++;
+        if (outcome.timedOut) timedOut++;
       }
+      classifiedCount++;
     }
   }
 
+  const classificationDurationMs = Date.now() - classificationStart;
   const reasoning: ScoutPipelineStage = {
     status: classifiedCount === sample.length ? 'complete' : 'partial',
-    detail: `${classifiedCount}/${sample.length} pages classified via ${modelUsed}`,
+    detail: `${classifiedCount}/${sample.length} pages classified in ${classificationDurationMs}ms — `
+      + `${groqSucceeded} via Groq (${GROQ_MODEL}), ${fallbackUsed} via deterministic keyword fallback`
+      + (timedOut > 0 ? ` (${timedOut} timed out)` : ''),
   };
 
   // ── Aggregation ──────────────────────────────────────────────────────────
@@ -126,26 +143,48 @@ export async function runScoutAnalysis(input: ScoutEngineInput): Promise<ScoutAn
   };
 }
 
+interface ClassificationOutcome {
+  intent: ScoutPageIntent | null;
+  timedOut: boolean;
+}
+
+/**
+ * Single configured Groq attempt, bounded by SCOUT_CLASSIFICATION_TIMEOUT_MS.
+ * No multi-model fallback chain — on any failure (unconfigured, timeout,
+ * 4xx/5xx, malformed response) this returns a null intent and the caller
+ * falls through to the deterministic keyword-based fallbackClassification().
+ */
 async function classifyPageIntent(page: {
   url: string;
   title: string;
   headings: string[];
   bodyText: string;
-}): Promise<ScoutPageIntent | null> {
+}): Promise<ClassificationOutcome> {
+  if (!isGroqConfigured()) return { intent: null, timedOut: false };
+
   const contentExcerpt = page.bodyText.slice(0, 1500);
   const userPrompt = buildIntentUserPrompt(
     page.url, page.title, page.headings.slice(0, 10), contentExcerpt
   );
 
-  const response = await routeTask<IntentClassificationResponse>(
-    'scout_intent_classification',
-    INTENT_CLASSIFICATION_SYSTEM,
-    userPrompt,
-    { jsonMode: true, maxTokens: 512, temperature: 0.1 },
-  );
+  try {
+    const response = await callGroq<IntentClassificationResponse>(userPrompt, {
+      systemPrompt: INTENT_CLASSIFICATION_SYSTEM,
+      maxTokens: 512,
+      temperature: 0.1,
+      timeoutMs: SCOUT_CLASSIFICATION_TIMEOUT_MS,
+    });
+    return { intent: mapClassificationResponse(page.url, page.title, response), timedOut: false };
+  } catch (err) {
+    return { intent: null, timedOut: isTimeoutError(err) };
+  }
+}
 
-  if (!response) return null;
-
+function mapClassificationResponse(
+  url: string,
+  title: string,
+  response: IntentClassificationResponse,
+): ScoutPageIntent {
   const primaryIntent = validateIntent(response.primaryIntent);
   const primaryConfidence = clamp(response.primaryConfidence ?? 0.5, 0, 1);
   const secondaryIntents = (response.secondaryIntents ?? [])
@@ -154,14 +193,12 @@ async function classifyPageIntent(page: {
     .slice(0, 3);
   const intentSignals = (response.intentSignals ?? []).slice(0, 5);
 
-  return {
-    url: page.url,
-    title: page.title,
-    primaryIntent,
-    primaryConfidence,
-    secondaryIntents,
-    intentSignals,
-  };
+  return { url, title, primaryIntent, primaryConfidence, secondaryIntents, intentSignals };
+}
+
+function isTimeoutError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  return err.name === 'AbortError' || /aborted|timeout/i.test(err.message);
 }
 
 function fallbackClassification(url: string, title: string, bodyText: string): ScoutPageIntent {
