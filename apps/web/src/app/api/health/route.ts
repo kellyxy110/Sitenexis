@@ -2,17 +2,8 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { readdirSync } from 'fs';
 import { join } from 'path';
-
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-interface DiagnosticStage {
-  stage: string;
-  status: 'ok' | 'error' | 'skipped';
-  latency_ms?: number;
-  error?: string;
-  detail?: unknown;
-  recommended_fix?: string;
-}
+import { getConfigurationStatus } from '@/lib/mode';
+import { type DiagnosticStage, withTiming, checkWorkerHeartbeat } from '@/lib/health-checks';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -31,19 +22,10 @@ function scanForEngines(dirs: string[]): Record<string, string[]> {
   return result;
 }
 
-async function withTiming<T>(
-  fn: () => Promise<T>,
-): Promise<{ result: T; ms: number }> {
-  const t = Date.now();
-  const result = await fn();
-  return { result, ms: Date.now() - t };
-}
-
 // ── Stage checks ──────────────────────────────────────────────────────────────
 
 /** Stage 1: Environment variable presence — uses getConfigurationStatus for consistency */
 function checkEnvVars(): DiagnosticStage {
-  const { getConfigurationStatus } = require('@/lib/mode') as typeof import('@/lib/mode');
   const { fullyConfigured, services } = getConfigurationStatus();
 
   const gaps = Object.entries(services)
@@ -229,38 +211,6 @@ async function checkBullMQQueue(): Promise<DiagnosticStage> {
   };
 }
 
-/** Stage 7: Worker heartbeat (is a worker process running?) */
-async function checkWorkerHeartbeat(): Promise<DiagnosticStage> {
-  const { result, ms } = await withTiming(async () => {
-    const { getRedisConnection, HEARTBEAT_KEY, HEARTBEAT_STALE_MS } =
-      await import('@sitenexis/crawler');
-    const raw = await getRedisConnection().get(HEARTBEAT_KEY);
-    if (!raw) return { ok: false, reason: 'No heartbeat key in Redis — worker never started or not running' };
-    const age = Date.now() - parseInt(raw, 10);
-    const alive = age < HEARTBEAT_STALE_MS;
-    return { ok: alive, ageMs: age, staleThresholdMs: HEARTBEAT_STALE_MS };
-  }).catch((err) => ({
-    result: { ok: false, reason: err instanceof Error ? err.message : String(err) },
-    ms: 0,
-  }));
-
-  const r = result as { ok: boolean; reason?: string; ageMs?: number; staleThresholdMs?: number };
-
-  return {
-    stage: 'worker_heartbeat',
-    status: r.ok ? 'ok' : 'error',
-    latency_ms: ms,
-    detail: r,
-    ...(r.ok
-      ? {}
-      : {
-          error: r.reason ?? 'Worker heartbeat stale or missing',
-          recommended_fix:
-            'The BullMQ worker process is not running. Jobs are being queued but never processed. Start the worker: pnpm --filter @sitenexis/crawler dev:worker. On Vercel production, the worker must run as a separate long-lived process (Railway, Fly.io, or a VPS).',
-        }),
-  };
-}
-
 // ── Route ─────────────────────────────────────────────────────────────────────
 
 export async function GET(): Promise<NextResponse> {
@@ -288,13 +238,16 @@ export async function GET(): Promise<NextResponse> {
   ];
 
   const errors = stages.filter((s) => s.status === 'error');
+  const notConfigured = stages.filter((s) => s.status === 'not_configured');
   const allOk = errors.length === 0;
 
   return NextResponse.json(
     {
       status: allOk ? 'ok' : 'degraded',
       summary: allOk
-        ? 'All systems operational'
+        ? notConfigured.length > 0
+          ? `All systems operational (${notConfigured.map((s) => s.stage).join(', ')} not configured — expected on this deployment)`
+          : 'All systems operational'
         : `${errors.length} check(s) failed: ${errors.map((e) => e.stage).join(', ')}`,
       stages,
     },
