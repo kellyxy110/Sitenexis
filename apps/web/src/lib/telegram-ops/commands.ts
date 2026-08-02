@@ -198,7 +198,22 @@ function escapeHtml(value: string): string {
   return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+const COMMAND_NAMES = ['/status', '/audits', '/failures', '/providers', '/incidents', '/deployments'] as const;
+
+/** /start — an explicit welcome/help response, distinct from the generic unknown-command fallback in the webhook route. */
+export async function commandStart(): Promise<string> {
+  return [
+    '<b>SiteNexis Ops</b>',
+    'Internal operational alerting for the SiteNexis audit pipeline. All commands below are read-only.',
+    '',
+    'Available commands:',
+    '/start',
+    ...COMMAND_NAMES,
+  ].join('\n');
+}
+
 export const COMMANDS: Record<string, () => Promise<string>> = {
+  '/start': commandStart,
   '/status': commandStatus,
   '/audits': commandAudits,
   '/failures': commandFailures,
