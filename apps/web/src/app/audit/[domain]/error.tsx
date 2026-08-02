@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { recoverFromChunkLoadError } from '@/lib/chunk-load-recovery';
 
 export default function AuditError({
   error,
@@ -10,9 +11,23 @@ export default function AuditError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const [recovering, setRecovering] = useState(false);
+
   useEffect(() => {
+    if (recoverFromChunkLoadError(error)) {
+      setRecovering(true);
+      return;
+    }
     console.error('[audit error]', error);
   }, [error]);
+
+  if (recovering) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#050B09] px-6">
+        <p className="text-sm text-[#4A6280]">Updating to the latest version…</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-[#050B09] px-6">

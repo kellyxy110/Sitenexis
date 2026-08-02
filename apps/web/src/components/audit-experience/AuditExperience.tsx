@@ -82,31 +82,38 @@ export function AuditExperience({
       )}
 
       {running && (
-        <>
-          <div className="relative z-10">
+        <div className="relative z-10 w-full max-w-6xl xl:grid xl:grid-cols-[minmax(280px,420px)_1fr] xl:items-start xl:gap-10">
+          {/* Glanceable focal point — progress ring, current stage, live counts. */}
+          <div className="flex flex-col items-center">
             <AuditProgressRing progress={progressState.progress} stageLabel={progressState.currentActivity} reducedMotion={reducedMotion} />
+
+            <CurrentActivity
+              stage={progressState.stage}
+              currentActivity={progressState.currentActivity}
+              currentUrl={progressState.currentUrl}
+              reducedMotion={reducedMotion}
+            />
+
+            <AuditMetrics
+              pagesDiscovered={progressState.pagesDiscovered}
+              pagesAnalysed={progressState.pagesAnalysed}
+              elapsedLabel={formatElapsed(elapsedMs)}
+              estimatedRemainingLabel={progressState.estimatedRemainingLabel}
+            />
           </div>
 
-          <CurrentActivity
-            stage={progressState.stage}
-            currentActivity={progressState.currentActivity}
-            currentUrl={progressState.currentUrl}
-            reducedMotion={reducedMotion}
-          />
+          {/* Secondary detail — stage timeline, live feed, education carousel. On
+              laptop-and-wider screens this sits beside the focal column instead of
+              below it, and scrolls internally if it's taller than the viewport, so
+              the whole experience is visible without scrolling the page. */}
+          <div className="flex flex-col items-center xl:items-start xl:max-h-[calc(100vh-220px)] xl:overflow-y-auto xl:pr-1">
+            {phases && <AuditStageTimeline phases={phases} />}
 
-          <AuditMetrics
-            pagesDiscovered={progressState.pagesDiscovered}
-            pagesAnalysed={progressState.pagesAnalysed}
-            elapsedLabel={formatElapsed(elapsedMs)}
-            estimatedRemainingLabel={progressState.estimatedRemainingLabel}
-          />
+            {feedEvents && <LiveAuditFeed events={feedEvents} lastAnnouncement={lastAnnouncement ?? null} />}
 
-          {phases && <AuditStageTimeline phases={phases} />}
-
-          {feedEvents && <LiveAuditFeed events={feedEvents} lastAnnouncement={lastAnnouncement ?? null} />}
-
-          <AuditEducationCarousel reducedMotion={reducedMotion} />
-        </>
+            <AuditEducationCarousel reducedMotion={reducedMotion} />
+          </div>
+        </div>
       )}
 
       {!failed && isFinished && phases && (
