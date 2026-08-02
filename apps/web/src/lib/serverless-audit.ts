@@ -1035,10 +1035,16 @@ export async function runServerlessAudit(
     const crawlStartTime = Date.now();
 
     // ── 1 + 2. Crawl pages via FetchExtractionAdapter ─────────────────────────
+    // Tracks a real, live page count during the crawl so the progress engine
+    // (apps/web/src/lib/audit-progress) has an honest signal instead of a null
+    // that only resolves once the whole crawl finishes. Piggybacks on the
+    // existing per-page fire-and-forget write — no additional DB round trips.
+    let liveCrawledPageCount = 0;
     const onCrawlProgress = (): void => {
       if (budgetExpired) return;
+      liveCrawledPageCount += 1;
       // fire-and-forget progress update; ignore errors
-      void updateAuditStatus(auditId, 'running', {}).catch(() => undefined);
+      void updateAuditStatus(auditId, 'running', { pageCount: liveCrawledPageCount }).catch(() => undefined);
     };
     const extractor = getFetchExtractionAdapter();
     let crawledRaw = await extractor.crawlDomain(domain, {

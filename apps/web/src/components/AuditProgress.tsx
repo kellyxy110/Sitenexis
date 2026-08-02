@@ -2,6 +2,13 @@
 
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import {
+  computeAuditProgress, buildProgressInput, derivePhaseTimeline,
+  deriveLifecycleEvents, appendLifecycleEvents,
+  type AuditProgressState, type RawProgressSignal, type LifecycleEvent,
+} from '@/lib/audit-progress';
+import { AuditExperience } from './audit-experience/AuditExperience';
+import type { AuditAgentManifest } from '@sitenexis/shared';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -25,7 +32,7 @@ interface SSEPayload {
   message?: string;
   error?: string;
   timestamp?: string;
-  agentManifest?: { agents?: Record<string, { status?: string; keyOutput?: string | null }> };
+  agentManifest?: AuditAgentManifest;
 }
 
 interface StreamMetrics {
@@ -117,24 +124,6 @@ function srsColor(srs: number): string {
   return '#EF4444';
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function useElapsed(running: boolean): string {
-  const [elapsed, setElapsed] = useState(0);
-  const startRef = useRef<number>(Date.now());
-  useEffect(() => {
-    if (!running) return;
-    startRef.current = Date.now();
-    const id = setInterval(() => {
-      setElapsed(Math.floor((Date.now() - startRef.current) / 1000));
-    }, 1000);
-    return () => clearInterval(id);
-  }, [running]);
-  const m = Math.floor(elapsed / 60);
-  const s = elapsed % 60;
-  return `${m}:${String(s).padStart(2, '0')}`;
-}
-
 // ─── Visual sub-components ────────────────────────────────────────────────────
 
 function SrsBar({ label, value }: { label: string; value: number }) {
@@ -198,90 +187,10 @@ function SrsWidget({ srs, mode, C, I, D, E, R }: SrsWidgetProps) {
   );
 }
 
-// ─── Hex ring position calculator ─────────────────────────────────────────────
-
-function getNodePositions(count: number, radius: number, centerX: number, centerY: number) {
-  return Array.from({ length: count }, (_, i) => {
-    const angle = (Math.PI * 2 * i) / count - Math.PI / 2;
-    return { x: centerX + radius * Math.cos(angle), y: centerY + radius * Math.sin(angle) };
-  });
-}
-
-// ─── Circular progress ring ───────────────────────────────────────────────────
-
-function ProgressRing({ progress, size = 180 }: { progress: number; size?: number }) {
-  const strokeWidth = 4;
-  const r = (size - strokeWidth * 2) / 2;
-  const circumference = 2 * Math.PI * r;
-  const offset = circumference - (progress / 100) * circumference;
-
-  return (
-    <svg width={size} height={size} className="drop-shadow-[0_0_30px_rgba(0,200,255,0.15)]">
-      {/* Track */}
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth={strokeWidth} />
-      {/* Progress arc */}
-      <circle
-        cx={size / 2} cy={size / 2} r={r} fill="none"
-        stroke="url(#progressGrad)" strokeWidth={strokeWidth}
-        strokeLinecap="round"
-        strokeDasharray={circumference} strokeDashoffset={offset}
-        className="transition-all duration-700 ease-out"
-        style={{ transform: 'rotate(-90deg)', transformOrigin: '50% 50%' }}
-      />
-      {/* Glow pulse on the leading edge */}
-      {progress > 0 && progress < 100 && (
-        <circle
-          cx={size / 2} cy={size / 2} r={r} fill="none"
-          stroke="url(#progressGrad)" strokeWidth={8}
-          strokeLinecap="round" opacity={0.15}
-          strokeDasharray={circumference} strokeDashoffset={offset}
-          className="transition-all duration-700 ease-out animate-pulse"
-          style={{ transform: 'rotate(-90deg)', transformOrigin: '50% 50%', filter: 'blur(6px)' }}
-        />
-      )}
-      <defs>
-        <linearGradient id="progressGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#00C8FF" />
-          <stop offset="100%" stopColor="#0BCEBC" />
-        </linearGradient>
-      </defs>
-    </svg>
-  );
-}
-
-// ─── Animated background particles ────────────────────────────────────────────
-
-function ParticleField() {
-  return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden">
-      {Array.from({ length: 30 }, (_, i) => (
-        <div
-          key={i}
-          className="absolute rounded-full bg-cyan/20"
-          style={{
-            width: `${1 + Math.random() * 2}px`,
-            height: `${1 + Math.random() * 2}px`,
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
-            animation: `particleFloat ${8 + Math.random() * 12}s ease-in-out infinite`,
-            animationDelay: `${Math.random() * 8}s`,
-            opacity: 0.3 + Math.random() * 0.4,
-          }}
-        />
-      ))}
-      <style>{`
-        @keyframes particleFloat {
-          0%, 100% { transform: translateY(0) translateX(0); opacity: 0.3; }
-          25%      { transform: translateY(-20px) translateX(10px); opacity: 0.6; }
-          50%      { transform: translateY(-10px) translateX(-5px); opacity: 0.4; }
-          75%      { transform: translateY(-30px) translateX(8px); opacity: 0.5; }
-        }
-      `}</style>
-    </div>
-  );
-}
-
 // ─── Main component ───────────────────────────────────────────────────────────
+// Note: the ring/particle-field visuals now live in ./audit-experience — this
+// component's job is SSE handling, stream-reliability scoring, and computing
+// the canonical progress contract; AuditExperience owns rendering it.
 
 export interface AuditProgressProps {
   domain: string;
@@ -292,29 +201,49 @@ export function AuditProgress({ domain, auditId }: AuditProgressProps) {
   const router = useRouter();
   const esRef = useRef<EventSource | null>(null);
 
+  // Retained only to feed the Stream Reliability Score (D component) below —
+  // superseded for actual progress display by the canonical engine.
   const [stageStatuses, setStageStatuses] = useState<Record<string, StageStatus>>(() =>
     Object.fromEntries(STAGE_DEFS.map((s, i) => [s.id, i === 0 ? 'active' : 'pending']))
   );
-  const [stageSubStatus, setStageSubStatus] = useState<Record<string, string>>({});
-  const [pagesCount, setPagesCount]   = useState(0);
-  const [issuesCount, setIssuesCount] = useState(0);
   const [failed, setFailed]           = useState(false);
-  const [failReason, setFailReason]   = useState<string | null>(null);
   const [showSrs, setShowSrs]         = useState(false);
 
   const metricsRef = useRef<StreamMetrics>({ chunks: 0, parseErrors: 0, connErrors: 0, failures: 0, recoveries: 0 });
   const [metrics, setMetrics] = useState<StreamMetrics>(metricsRef.current);
 
-  const elapsed = useElapsed(!failed);
+  // ─── Canonical progress engine state (see @/lib/audit-progress) ─────────
+  const startedAtMsRef = useRef<number>(Date.now());
+  const lastManifestRef = useRef<SSEPayload['agentManifest'] | null>(null);
+  const lastPagesCountRef = useRef<number | null>(null);
+  const prevProgressStateRef = useRef<AuditProgressState | null>(null);
+  const [progressState, setProgressState] = useState<AuditProgressState>(() =>
+    computeAuditProgress(buildProgressInput({
+      auditId, domain, executionMode: 'unknown',
+      signal: {}, startedAtMs: startedAtMsRef.current, nowMs: startedAtMsRef.current,
+    })),
+  );
+  const [liveFeed, setLiveFeed] = useState<LifecycleEvent[]>([]);
+  const [lastAnnouncement, setLastAnnouncement] = useState<string | null>(null);
+
+  const pushProgress = useCallback((signal: RawProgressSignal) => {
+    const next = computeAuditProgress(buildProgressInput({
+      auditId, domain, executionMode: 'unknown',
+      signal, startedAtMs: startedAtMsRef.current, nowMs: Date.now(),
+    }));
+    const newEvents = deriveLifecycleEvents(prevProgressStateRef.current, next, Date.now());
+    prevProgressStateRef.current = next;
+    setProgressState(next);
+    if (newEvents.length > 0) {
+      setLiveFeed((feed) => appendLifecycleEvents(feed, newEvents));
+      const stageEvent = newEvents.find((e) => e.id.startsWith('stage:') || e.id.startsWith('terminal:'));
+      if (stageEvent) setLastAnnouncement(stageEvent.message);
+    }
+  }, [auditId, domain]);
 
   const { srs, C, I, D, E, R } = useMemo(() => computeSRS(metrics, stageStatuses), [metrics, stageStatuses]);
   const mode = useMemo(() => streamMode(srs), [srs]);
-
-  const completedCount = useMemo(
-    () => Object.values(stageStatuses).filter((s) => s === 'complete').length,
-    [stageStatuses],
-  );
-  const progressPct = Math.round((completedCount / STAGE_DEFS.length) * 100);
+  const phases = useMemo(() => derivePhaseTimeline(progressState), [progressState]);
 
   const syncMetrics = useCallback(() => { setMetrics({ ...metricsRef.current }); }, []);
 
@@ -355,13 +284,21 @@ export function AuditProgress({ domain, auditId }: AuditProgressProps) {
         metricsRef.current.chunks += 1;
         syncMetrics();
 
+        // ─── Canonical progress engine — updates on every real tick ─────────
+        if (payload.agentManifest) lastManifestRef.current = payload.agentManifest;
+        if (payload.pagesCount != null) lastPagesCountRef.current = payload.pagesCount;
+        pushProgress({
+          status: payload.status,
+          agentManifest: lastManifestRef.current ?? undefined,
+          pagesCount: lastPagesCountRef.current ?? undefined,
+          error: payload.error,
+        });
+
         if (payload.status === 'degraded') {
-          if (payload.error?.includes('timed out')) { setFailed(true); setFailReason(payload.error); es.close(); }
+          if (payload.error?.includes('timed out')) { setFailed(true); es.close(); }
           return;
         }
-        if (payload.error) { setFailed(true); setFailReason(payload.error); es.close(); return; }
-        if (payload.pagesCount != null) setPagesCount(payload.pagesCount);
-        if (payload.issuesCount != null) setIssuesCount(payload.issuesCount);
+        if (payload.error) { setFailed(true); es.close(); return; }
 
         if (payload.agentManifest) {
           const manifestStages = stageFromManifest(payload.agentManifest);
@@ -371,19 +308,14 @@ export function AuditProgress({ domain, auditId }: AuditProgressProps) {
             if (manifestStages.active && next[manifestStages.active] !== 'complete') next[manifestStages.active] = 'active';
             return next;
           });
-          setStageSubStatus((previous) => ({ ...previous, ...manifestStages.messages }));
         }
 
         if (payload.stage) {
           const mapped = STAGE_MAP[payload.stage.toLowerCase()] ?? null;
           if (mapped) advanceToStage(mapped);
-          if (payload.message) {
-            setStageSubStatus((prev) => ({ ...prev, [mapped ?? payload.stage!]: payload.message! }));
-          }
         }
 
         if (payload.status === 'partial') {
-          setStageSubStatus((prev) => ({ ...prev, report: 'Available results saved before the live audit time limit.' }));
           setTimeout(() => router.push('/audit/' + encodeURIComponent(domain)), 800);
           es.close();
           return;
@@ -394,7 +326,7 @@ export function AuditProgress({ domain, auditId }: AuditProgressProps) {
           setTimeout(() => router.push(`/audit/${encodeURIComponent(domain)}`), 800);
           es.close();
         }
-        if (payload.status === 'failed') { setFailed(true); setFailReason('The audit failed. Please try again.'); es.close(); }
+        if (payload.status === 'failed') { setFailed(true); es.close(); }
       };
 
       es.onerror = () => {
@@ -412,180 +344,46 @@ export function AuditProgress({ domain, auditId }: AuditProgressProps) {
           setTimeout(() => { metricsRef.current.recoveries += 1; syncMetrics(); connect(); }, delay);
         } else {
           setFailed(true);
-          setFailReason('Lost connection to the audit stream. Please refresh.');
+          pushProgress({ status: 'failed', error: 'Lost connection to the audit stream. Please refresh.' });
         }
       };
     }
 
     connect();
     return () => { unmounted = true; esRef.current?.close(); };
-  }, [auditId, domain, advanceToStage, markAllComplete, router, syncMetrics]);
-
-  // ─── Hex node positions (ring around center) ───────────────────────────────
-  const ringSize = 340;
-  const center = ringSize / 2;
-  const nodeRadius = 120;
-  const nodePositions = useMemo(() => getNodePositions(STAGE_DEFS.length, nodeRadius, center, center), [center]);
-
-  const activeStage = STAGE_DEFS.find((s) => stageStatuses[s.id] === 'active');
+  }, [auditId, domain, advanceToStage, markAllComplete, router, syncMetrics, pushProgress]);
 
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-[#040A12] px-4 py-12">
-      {/* Particle background */}
-      <ParticleField />
-
-      {/* Subtle radial gradient behind the ring */}
-      <div className="pointer-events-none absolute" style={{ width: 600, height: 600, left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}>
-        <div className="h-full w-full rounded-full bg-[radial-gradient(circle,rgba(0,200,255,0.04)_0%,transparent_70%)]" />
-      </div>
-
-      {/* ─── Top bar: domain + status ──────────────────────────────────────── */}
-      <div className="relative z-10 mb-8 text-center">
-        <div className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-4 py-1.5 backdrop-blur-sm">
-          {!failed && <span className="relative flex h-2 w-2"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan opacity-75" /><span className="relative inline-flex h-2 w-2 rounded-full bg-cyan" /></span>}
-          {failed && <span className="h-2 w-2 rounded-full bg-red-500" />}
-          <span className="text-[11px] font-medium uppercase tracking-widest text-slate-400">
-            {failed ? 'Audit Failed' : 'Auditing'}
-          </span>
-        </div>
-        <h1 className="mt-3 text-2xl font-bold tracking-tight text-white sm:text-3xl">{domain}</h1>
-        {failed && failReason && (
-          <p className="mx-auto mt-3 max-w-md rounded-lg border border-red-500/20 bg-red-500/[0.08] px-4 py-2 text-sm text-red-400">
-            {failReason}
-          </p>
-        )}
-      </div>
-
-      {/* ─── Mission control ring ──────────────────────────────────────────── */}
-      <div className="relative z-10" style={{ width: ringSize, height: ringSize }}>
-        {/* Center: progress ring + percentage */}
-        <div className="absolute" style={{ left: center - 90, top: center - 90 }}>
-          <ProgressRing progress={progressPct} />
-          <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-4xl font-black tabular-nums text-white">{progressPct}<span className="text-lg text-slate-500">%</span></span>
-            <span className="mt-0.5 text-[10px] font-medium uppercase tracking-widest text-slate-500">
-              {progressPct >= 100 ? 'Complete' : activeStage ? activeStage.shortLabel : 'Starting'}
-            </span>
-          </div>
-        </div>
-
-        {/* Connector lines from center to each node */}
-        <svg className="absolute inset-0" width={ringSize} height={ringSize}>
-          {nodePositions.map((pos, i) => {
-            const status = stageStatuses[STAGE_DEFS[i].id] ?? 'pending';
-            const strokeColor = status === 'complete' ? 'rgba(16,185,129,0.3)' : status === 'active' ? 'rgba(0,200,255,0.3)' : 'rgba(255,255,255,0.04)';
-            return (
-              <line key={STAGE_DEFS[i].id} x1={center} y1={center} x2={pos.x} y2={pos.y}
-                stroke={strokeColor} strokeWidth={1.5}
-                className="transition-all duration-500" />
-            );
-          })}
-        </svg>
-
-        {/* Agent nodes */}
-        {STAGE_DEFS.map((stage, i) => {
-          const pos = nodePositions[i];
-          const status = stageStatuses[stage.id] ?? 'pending';
-          const isActive = status === 'active';
-          const isComplete = status === 'complete';
-
-          const borderColor = isComplete ? 'border-green-500/40' : isActive ? 'border-cyan/50' : 'border-white/[0.06]';
-          const bgColor = isComplete ? 'bg-green-500/[0.08]' : isActive ? 'bg-cyan/[0.08]' : 'bg-white/[0.02]';
-          const textColor = isComplete ? 'text-green-400' : isActive ? 'text-cyan' : 'text-slate-600';
-
-          return (
-            <div
-              key={stage.id}
-              className={`absolute flex flex-col items-center justify-center rounded-full border-2 transition-all duration-500 ${borderColor} ${bgColor}`}
-              style={{
-                width: 64, height: 64,
-                left: pos.x - 32, top: pos.y - 32,
-                boxShadow: isActive ? '0 0 20px rgba(0,200,255,0.15), 0 0 40px rgba(0,200,255,0.05)' :
-                           isComplete ? '0 0 20px rgba(16,185,129,0.1)' : 'none',
-              }}
+    <AuditExperience
+      domain={domain}
+      progressState={progressState}
+      startedAtMs={startedAtMsRef.current}
+      phases={phases}
+      feedEvents={liveFeed}
+      lastAnnouncement={lastAnnouncement}
+      belowRing={
+        !failed && (
+          <div className="relative z-10 mt-5 w-full max-w-md">
+            <button
+              onClick={() => setShowSrs(!showSrs)}
+              className="mb-2 flex w-full items-center justify-between rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-left transition-colors hover:bg-white/[0.04]"
             >
-              {/* Ping ring for active node */}
-              {isActive && (
-                <span className="absolute inset-0 rounded-full border border-cyan/30 animate-ping" style={{ animationDuration: '2s' }} />
-              )}
-              <span className="text-lg leading-none">{stage.icon}</span>
-              <span className={`mt-0.5 text-[8px] font-bold uppercase tracking-wider ${textColor}`}>{stage.shortLabel}</span>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* ─── Active stage detail ───────────────────────────────────────────── */}
-      {activeStage && !failed && (
-        <div className="relative z-10 mt-6 flex items-center gap-3 rounded-xl border border-cyan/10 bg-cyan/[0.03] px-5 py-3 backdrop-blur-sm">
-          <svg className="h-4 w-4 animate-spin text-cyan" viewBox="0 0 24 24" fill="none">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-          </svg>
-          <div>
-            <span className="text-sm font-medium text-white">{activeStage.label}</span>
-            {stageSubStatus[activeStage.id] && (
-              <span className="ml-2 text-xs text-slate-500">{stageSubStatus[activeStage.id]}</span>
-            )}
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-[#4A6280]">
+                Stream Health
+              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold tabular-nums" style={{ color: srsColor(srs) }}>{srs.toFixed(1)}</span>
+                <svg className={`h-3 w-3 text-slate-600 transition-transform ${showSrs ? 'rotate-180' : ''}`} viewBox="0 0 12 12" fill="none">
+                  <path d="M3 5l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </div>
+            </button>
+            {showSrs && <SrsWidget srs={srs} mode={mode} C={C} I={I} D={D} E={E} R={R} />}
           </div>
-        </div>
-      )}
-
-      {/* ─── Live counters ─────────────────────────────────────────────────── */}
-      <div className="relative z-10 mt-8 grid w-full max-w-md grid-cols-3 gap-3">
-        {[
-          { label: 'Pages', value: pagesCount, color: '#00C8FF' },
-          { label: 'Issues', value: issuesCount, color: issuesCount > 0 ? '#F59E0B' : '#0BCEBC' },
-          { label: 'Elapsed', value: elapsed, color: '#8B5CF6' },
-        ].map(({ label, value, color }) => (
-          <div key={label} className="flex flex-col items-center rounded-xl border border-white/[0.06] bg-white/[0.02] py-4 backdrop-blur-sm">
-            <span className="text-2xl font-bold tabular-nums" style={{ color }}>{value}</span>
-            <span className="mt-1 text-[10px] font-medium uppercase tracking-widest text-slate-600">{label}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* ─── Completed stages bar ──────────────────────────────────────────── */}
-      <div className="relative z-10 mt-5 flex w-full max-w-md gap-1.5">
-        {STAGE_DEFS.map((stage) => {
-          const status = stageStatuses[stage.id] ?? 'pending';
-          return (
-            <div
-              key={stage.id}
-              className="h-1 flex-1 rounded-full transition-all duration-500"
-              style={{
-                background: status === 'complete' ? '#10B981' : status === 'active' ? '#00C8FF' : 'rgba(255,255,255,0.05)',
-                boxShadow: status === 'active' ? '0 0 8px rgba(0,200,255,0.3)' : 'none',
-              }}
-            />
-          );
-        })}
-      </div>
-
-      {/* ─── SRS toggle + widget ───────────────────────────────────────────── */}
-      {!failed && (
-        <div className="relative z-10 mt-5 w-full max-w-md">
-          <button
-            onClick={() => setShowSrs(!showSrs)}
-            className="mb-2 flex w-full items-center justify-between rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-left transition-colors hover:bg-white/[0.04]"
-          >
-            <span className="text-[10px] font-semibold uppercase tracking-widest text-[#4A6280]">
-              Stream Health
-            </span>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold tabular-nums" style={{ color: srsColor(srs) }}>{srs.toFixed(1)}</span>
-              <svg className={`h-3 w-3 text-slate-600 transition-transform ${showSrs ? 'rotate-180' : ''}`} viewBox="0 0 12 12" fill="none">
-                <path d="M3 5l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </div>
-          </button>
-          {showSrs && <SrsWidget srs={srs} mode={mode} C={C} I={I} D={D} E={E} R={R} />}
-        </div>
-      )}
-
-      {/* ─── Footer ────────────────────────────────────────────────────────── */}
-      <div className="relative z-10 mt-6 text-center">
-        {failed ? (
+        )
+      }
+      footer={
+        failed ? (
           <button onClick={() => router.push('/dashboard')} className="text-sm text-[#4A6280] underline hover:text-white transition-colors">
             Back to dashboard
           </button>
@@ -593,8 +391,8 @@ export function AuditProgress({ domain, auditId }: AuditProgressProps) {
           <p className="text-[11px] text-slate-700">
             Keep this tab open — you&apos;ll be redirected when the audit completes.
           </p>
-        )}
-      </div>
-    </div>
+        )
+      }
+    />
   );
 }
