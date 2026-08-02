@@ -110,6 +110,18 @@ export function mapLegacyEvidenceToScoringSignalTypes(evidence: EvidenceProjecti
   } else if (code.includes('schema')) {
     if (present) types.push('VALID_SCHEMA_CONFIRMED');
     else diagnostics.push(diagnostic('NO_SIGNAL_VALUE', evidence, 'Schema evidence value is not present.'));
+  } else if (code === 'missing_sitemap') {
+    // The issue's own existence with an eligible verification state already
+    // establishes confirmed absence — there is no "value" to check presence of.
+    types.push('SITEMAP_MISSING');
+  } else if (code === 'missing_robots_txt') {
+    types.push('ROBOTS_MISSING');
+  } else if (code === 'sitemap-accessible') {
+    if (present) types.push('SITEMAP_ACCESSIBLE');
+    else diagnostics.push(diagnostic('NO_SIGNAL_VALUE', evidence, 'Sitemap-accessible evidence does not establish a confirmed positive signal.'));
+  } else if (code === 'robots-accessible') {
+    if (present) types.push('ROBOTS_ACCESSIBLE');
+    else diagnostics.push(diagnostic('NO_SIGNAL_VALUE', evidence, 'Robots-accessible evidence does not establish a confirmed positive signal.'));
   } else {
     diagnostics.push(diagnostic('UNRECOGNIZED_EVIDENCE_CODE', evidence, `Legacy evidence code "${evidence.issueCode ?? evidence.category}" has no Phase 15 scoring vocabulary mapping.`));
   }

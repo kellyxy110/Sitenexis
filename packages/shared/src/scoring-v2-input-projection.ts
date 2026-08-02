@@ -47,6 +47,8 @@ export const SCORING_V2_SIGNAL_POLICY: Record<string, ScoringV2SignalPolicyEntry
   HEALTHY_STATUS_CONFIRMED: { categories: ['Technical SEO'], magnitude: 'MODERATE', polarity: 'POSITIVE' },
   ROBOTS_ACCESSIBLE: { categories: ['Technical SEO'], magnitude: 'MODERATE', polarity: 'POSITIVE' },
   SITEMAP_ACCESSIBLE: { categories: ['Technical SEO'], magnitude: 'MODERATE', polarity: 'POSITIVE' },
+  ROBOTS_MISSING: { categories: ['Technical SEO'], magnitude: 'MODERATE', polarity: 'NEGATIVE' },
+  SITEMAP_MISSING: { categories: ['Technical SEO'], magnitude: 'MODERATE', polarity: 'NEGATIVE' },
   CANONICAL_CONFIRMED: { categories: ['Technical SEO', 'On-Page SEO'], magnitude: 'MODERATE', polarity: 'POSITIVE' },
   CANONICAL_CONFLICT: { categories: ['Technical SEO', 'On-Page SEO'], magnitude: 'HIGH', polarity: 'NEGATIVE', categoryDefining: true },
   TITLE_CONFIRMED: { categories: ['On-Page SEO'], magnitude: 'MODERATE', polarity: 'POSITIVE' },

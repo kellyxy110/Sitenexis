@@ -93,6 +93,36 @@ describe('mapLegacyEvidenceToScoringSignalTypes', () => {
     expect(result.signalTypes).toEqual(['H1_CONFIRMED']);
   });
 
+  it('maps a missing_sitemap issue to SITEMAP_MISSING purely from its existence — no value check needed', () => {
+    const result = mapLegacyEvidenceToScoringSignalTypes(evidence({ issueCode: 'missing_sitemap', category: 'seo' }));
+    expect(result.signalTypes).toEqual(['SITEMAP_MISSING']);
+    expect(result.diagnostics).toEqual([]);
+  });
+
+  it('maps a missing_robots_txt issue to ROBOTS_MISSING purely from its existence', () => {
+    const result = mapLegacyEvidenceToScoringSignalTypes(evidence({ issueCode: 'missing_robots_txt', category: 'seo' }));
+    expect(result.signalTypes).toEqual(['ROBOTS_MISSING']);
+  });
+
+  it('never maps missing_sitemap/missing_robots_txt for a weak verification state, same as every other signal', () => {
+    const result = mapLegacyEvidenceToScoringSignalTypes(evidence({ issueCode: 'missing_sitemap', verificationState: 'PARTIAL' }));
+    expect(result.signalTypes).toEqual([]);
+    expect(result.diagnostics[0]?.code).toBe('VERIFICATION_STATE_TOO_WEAK');
+  });
+
+  it('maps a present sitemap-accessible / robots-accessible value to the positive confirmation signals', () => {
+    const sitemap = mapLegacyEvidenceToScoringSignalTypes(evidence({ issueCode: 'sitemap-accessible', rawValue: true }));
+    expect(sitemap.signalTypes).toEqual(['SITEMAP_ACCESSIBLE']);
+    const robots = mapLegacyEvidenceToScoringSignalTypes(evidence({ issueCode: 'robots-accessible', rawValue: true }));
+    expect(robots.signalTypes).toEqual(['ROBOTS_ACCESSIBLE']);
+  });
+
+  it('emits NO_SIGNAL_VALUE (not a fabricated confirmation) when accessible evidence carries no value', () => {
+    const result = mapLegacyEvidenceToScoringSignalTypes(evidence({ issueCode: 'sitemap-accessible', rawValue: null }));
+    expect(result.signalTypes).toEqual([]);
+    expect(result.diagnostics[0]?.code).toBe('NO_SIGNAL_VALUE');
+  });
+
   it('leaves an unrecognized issue code unmapped with UNRECOGNIZED_EVIDENCE_CODE', () => {
     const result = mapLegacyEvidenceToScoringSignalTypes(evidence({ issueCode: 'thin_content', rawValue: 'x' }));
     expect(result.signalTypes).toEqual([]);

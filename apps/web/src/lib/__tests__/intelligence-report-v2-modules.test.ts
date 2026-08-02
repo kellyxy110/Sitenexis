@@ -41,6 +41,44 @@ describe('deriveModuleAndProviderState', () => {
     }]);
   });
 
+  it('emits a PROVIDER_ERROR provider entry for a no_data agent — e.g. information-gain without SERPER_API_KEY — using its real keyOutput as the reason', () => {
+    const result = deriveModuleAndProviderState({
+      agentManifest: { agents: { 'information-gain': { agent: 'information-gain', status: 'no_data', keyOutput: 'Requires SERPER_API_KEY, which is not configured' } } },
+    });
+    expect(result.providers).toEqual([{
+      provider: 'information-gain', available: false, configured: true, reasonCode: 'PROVIDER_ERROR',
+      reason: 'Requires SERPER_API_KEY, which is not configured',
+    }]);
+  });
+
+  it('emits an EXECUTION_FAILED provider entry for a failed agent, preferring its real failureReason over keyOutput', () => {
+    const result = deriveModuleAndProviderState({
+      agentManifest: { agents: { performance: { agent: 'performance', status: 'failed', failureReason: 'Lighthouse timed out after 60s', keyOutput: 'stale key output' } } },
+    });
+    expect(result.providers).toEqual([{
+      provider: 'performance', available: false, configured: true, reasonCode: 'EXECUTION_FAILED',
+      reason: 'Lighthouse timed out after 60s',
+    }]);
+  });
+
+  it('falls back to a generic reason when no_data/failed carries no keyOutput or failureReason', () => {
+    const result = deriveModuleAndProviderState({
+      agentManifest: { agents: { scout: { agent: 'scout', status: 'no_data' } } },
+    });
+    expect(result.providers[0]).toMatchObject({ provider: 'scout', reasonCode: 'PROVIDER_ERROR', reason: expect.stringContaining('scout') });
+  });
+
+  it('does not emit a provider entry for ordinary terminal states that are not provider gaps (completed/partial/not_applicable)', () => {
+    const result = deriveModuleAndProviderState({
+      agentManifest: { agents: {
+        seo: { agent: 'seo', status: 'completed' },
+        schema: { agent: 'schema', status: 'partial' },
+        links: { agent: 'links', status: 'not_applicable' },
+      } },
+    });
+    expect(result.providers).toEqual([]);
+  });
+
   it('routes the citation agent through the citation-intelligence normalizer and uses the real stored citationProbabilityScore', () => {
     const result = deriveModuleAndProviderState({
       agentManifest: { agents: { citation: { agent: 'citation', status: 'completed' } } },

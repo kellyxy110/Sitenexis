@@ -25,6 +25,8 @@ interface RawAuditAgentState {
   finishedAt?: unknown;
   durationMs?: unknown;
   retryCount?: unknown;
+  keyOutput?: unknown;
+  failureReason?: unknown;
 }
 
 export interface RawAgentManifestLike {
@@ -89,15 +91,39 @@ export function deriveModuleAndProviderState(input: DeriveModuleAndProviderState
       }));
     }
 
-    // 'not_configured' is the one AgentResultStatus value that directly and
-    // honestly states a provider/integration was unavailable for this run.
+    // Three distinct AgentResultStatus values each represent a genuine
+    // provider/evidence gap, and were previously conflated or silently
+    // dropped — 'no_data' (e.g. information-gain without SERPER_API_KEY) and
+    // 'failed' (e.g. a live analysis call that errored) are just as real a
+    // provider-unavailability signal as 'not_configured', just for a
+    // different reason. Each keeps its own reasonCode so the report can
+    // distinguish "never set up" from "ran and came back empty" from "broke".
+    const keyOutput = stringOrUndefined(state.keyOutput);
+    const failureReason = stringOrUndefined(state.failureReason);
+
     if (status === 'not_configured') {
       providers.push({
         provider: agentId,
         available: false,
         configured: false,
         reasonCode: 'MISSING_INTEGRATION',
-        reason: `The ${agentId} agent reported its provider or integration as not configured for this audit.`,
+        reason: keyOutput ?? failureReason ?? `The ${agentId} agent reported its provider or integration as not configured for this audit.`,
+      });
+    } else if (status === 'no_data') {
+      providers.push({
+        provider: agentId,
+        available: false,
+        configured: true,
+        reasonCode: 'PROVIDER_ERROR',
+        reason: keyOutput ?? failureReason ?? `The ${agentId} agent completed without producing usable data for this audit.`,
+      });
+    } else if (status === 'failed') {
+      providers.push({
+        provider: agentId,
+        available: false,
+        configured: true,
+        reasonCode: 'EXECUTION_FAILED',
+        reason: failureReason ?? keyOutput ?? `The ${agentId} agent failed to execute for this audit.`,
       });
     }
   }
