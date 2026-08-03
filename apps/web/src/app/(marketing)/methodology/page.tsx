@@ -24,7 +24,7 @@ const METHOD_SCHEMA = {
   publisher: { '@id': `${appUrl}/#organization` },
   url: `${appUrl}/methodology`,
   datePublished: '2025-01-01',
-  dateModified: '2026-06-22',
+  dateModified: '2026-08-02',
   speakable: {
     '@type': 'SpeakableSpecification',
     cssSelector: ['h1', 'h2', '.speakable'],
@@ -218,6 +218,63 @@ const COMPOSITE_SCORES = [
   { name: 'Machine Trust Intelligence Score', formula: 'Retrieval Quality (20%) + Machine Trust (25%) + Authority Velocity (15%) + Recommendation Surface (20%) + Entity Authenticity Confidence (20%)' },
 ];
 
+// ── Intelligence Report v2 / 25-category evidence model ────────────────────────
+// Category names and weights are copied verbatim from the enforced runtime
+// policy (packages/shared/src/scoring-v2-input-projection.ts) — weights sum to
+// exactly 100 and are validated at startup. The six family groupings below are
+// presentational only, built for this page; the scoring engine treats all 25
+// categories as an independent flat list with no family concept of its own.
+const SCORING_V2_FAMILIES = [
+  {
+    name: 'Discoverability & Technical Foundation',
+    weight: 27,
+    categories: [
+      ['Web Health and Crawlability', 5], ['Crawl Stability', 3], ['Sitemap and Index Hygiene', 3],
+      ['Technical SEO', 6], ['On-Page SEO', 5], ['Structured Data and Schema', 5],
+    ],
+  },
+  {
+    name: 'Content Intelligence',
+    weight: 9,
+    categories: [['Content Depth and Information Gain', 6], ['Passage Quality and Readability', 3]],
+  },
+  {
+    name: 'AI Visibility',
+    weight: 17,
+    categories: [['AI Retrievability', 6], ['AI Answer Readiness', 5], ['AI Recommendation Readiness', 6]],
+  },
+  {
+    name: 'Identity',
+    weight: 14,
+    categories: [
+      ['Entity Detection', 2], ['Entity Consistency', 5], ['Entity Authenticity', 5], ['Brand Consistency', 2],
+    ],
+  },
+  {
+    name: 'Authority & Citation',
+    weight: 16,
+    categories: [
+      ['Citation Readiness', 4], ['Citation Authority', 5], ['Topical Authority', 3],
+      ['Social and Off-Site Amplification', 1], ['Local and Geographic Visibility', 3],
+    ],
+  },
+  {
+    name: 'Trust & Governance',
+    weight: 17,
+    categories: [
+      ['E-E-A-T', 5], ['Machine Trust', 5], ['Temporal Authority', 1],
+      ['Visual Integrity', 1], ['Security and AI Governance', 5],
+    ],
+  },
+] as const;
+
+const V2_VERIFICATION_STATES = [
+  { state: 'CONFIRMED', desc: 'Directly observed in crawled HTML, rendered DOM, or schema markup.' },
+  { state: 'LIKELY / PARTIAL / INFERRED', desc: 'Evidence supports the finding with reduced certainty — factored into scoring at a lower verification weight, never at full confidence.' },
+  { state: 'NOT_APPLICABLE / NOT_DETECTED', desc: 'The signal genuinely does not apply, or was checked for and is absent — a real finding, not a gap.' },
+  { state: 'PROVIDER_UNAVAILABLE / CRAWL_FAILED / TEMPORARY_FAILURE / RENDERING_REQUIRED / EXTERNAL_DATA_REQUIRED', desc: 'Measurement could not be completed. Excluded from the category\'s scoring weight entirely — never converted into a zero or a penalizing claim.' },
+] as const;
+
 const FAQS = [
   {
     q: 'Are SiteNexis scores reproducible?',
@@ -301,6 +358,80 @@ export default function MethodologyPage() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Intelligence Report v2 / 25-Category Evidence Model ── */}
+      <section className="border-t border-white/[0.05] bg-[#07111F] py-20 px-6">
+        <div className="mx-auto max-w-4xl">
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan/70">Evidence Layer · v2</p>
+          <h2 className="mb-4 text-[28px] font-bold text-white">Intelligence Report v2 &amp; the 25-category evidence model</h2>
+          <p className="mb-8 max-w-2xl text-[15px] leading-[1.75] text-slate-400">
+            Intelligence Report v2 is an additive synthesis layer over the four-layer stack above — it does not
+            replace the engines that produce those 12 dimension scores, and v1 remains the default report every
+            audit delivers. What v2 adds is a stricter accounting discipline: every one of 25 fixed categories is
+            scored only from evidence that was actually verified, with an explicit, auditable record of what
+            wasn&apos;t measurable and why.
+          </p>
+
+          <div className="mb-8 grid gap-4 md:grid-cols-2">
+            {[
+              { label: 'Categories', value: '25', detail: 'fixed weights, sum to 100' },
+              { label: 'Verification states', value: '13', detail: 'from CONFIRMED to PROVIDER_UNAVAILABLE' },
+              { label: 'Grade scale', value: '7-tier', detail: 'Excellent → Critical' },
+              { label: 'Coverage & confidence', value: 'separate fields', detail: 'never blended into the score itself' },
+            ].map(({ label, value, detail }) => (
+              <div key={label} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
+                <p className="text-[22px] font-bold text-cyan-300">{value}</p>
+                <p className="mt-1 text-[13px] font-medium text-white">{label}</p>
+                <p className="mt-1 text-[11px] text-slate-500">{detail}</p>
+              </div>
+            ))}
+          </div>
+
+          <h3 className="mb-4 text-[16px] font-semibold text-white">The 25 categories, grouped for readability</h3>
+          <p className="mb-6 max-w-2xl text-[13px] leading-[1.7] text-slate-500">
+            The scoring engine treats these as 25 independent, flat-weighted categories — the six groupings below
+            exist only to make this page easier to scan.
+          </p>
+          <div className="mb-10 grid gap-4 md:grid-cols-2">
+            {SCORING_V2_FAMILIES.map((family) => (
+              <div key={family.name} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5">
+                <div className="mb-3 flex items-center justify-between">
+                  <h4 className="text-[13px] font-semibold text-white">{family.name}</h4>
+                  <span className="rounded-full border border-cyan/20 bg-cyan/[0.06] px-2 py-0.5 text-[11px] font-bold text-cyan-300">{family.weight} pts</span>
+                </div>
+                <ul className="space-y-1">
+                  {family.categories.map(([cat, w]) => (
+                    <li key={cat} className="flex items-center justify-between text-[12px] text-slate-400">
+                      <span>{cat}</span>
+                      <span className="tabular-nums text-slate-600">{w}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+
+          <h3 className="mb-4 text-[16px] font-semibold text-white">Verification states</h3>
+          <div className="mb-10 space-y-2">
+            {V2_VERIFICATION_STATES.map(({ state, desc }) => (
+              <div key={state} className="rounded-lg border border-white/[0.05] bg-white/[0.015] p-4">
+                <code className="text-[11px] font-mono text-teal-300">{state}</code>
+                <p className="mt-1 text-[12px] leading-[1.7] text-slate-400">{desc}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="rounded-xl border border-cyan/15 bg-cyan/[0.04] p-5">
+            <p className="text-[12px] leading-[1.7] text-slate-400">
+              <span className="font-semibold text-cyan">Unavailable ≠ zero: </span>
+              When a category has no verified evidence at all, it is marked <code className="font-mono text-teal-300">UNAVAILABLE</code> with
+              a null score and its weight is excluded from the overall calculation entirely — the score is
+              normalized only across categories that were actually measured. A provider outage or a blocked
+              crawl can never be scored as if it were a failing result.
+            </p>
           </div>
         </div>
       </section>

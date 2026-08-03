@@ -128,6 +128,20 @@ const SCORES_PREVIEW = [
 ];
 
 
+const EVIDENCE_CHAIN_STEPS = [
+  'Evidence', 'Findings', 'Contradictions', 'Root Causes', 'Scoring', 'Recommendations', 'Opportunities',
+];
+
+const SAMPLE_V2_FAMILIES = [
+  { label: 'Discoverability & Technical', score: 71 },
+  { label: 'AI Visibility',               score: 58 },
+  { label: 'Identity',                    score: 64 },
+  { label: 'Authority & Citation',        score: 49 },
+  { label: 'Trust & Governance',          score: 77 },
+];
+
+const OPS_PIPELINE_STEPS = ['AI / Search Ecosystem', 'SiteNexis', 'SiteNexis Ops', 'Telegram', 'Operational Intelligence'];
+
 const PRICING = [
   {
     name: 'Free',
@@ -872,6 +886,140 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ── Evidence-first ────────────────────────────────────────────────── */}
+      <section className="border-t border-white/[0.05] bg-[#0A1628] py-32 px-6">
+        <div className="mx-auto max-w-6xl">
+          <div className="grid items-start gap-16 lg:grid-cols-2">
+            <Reveal>
+              <p className="mb-5 text-[11px] font-semibold tracking-[0.18em] text-cyan/70 uppercase">Evidence Model</p>
+              <h2 className="text-[clamp(2rem,4vw,3rem)] font-bold leading-[1.1] tracking-[-0.03em] text-white text-balance">
+                A score without evidence
+                <br />
+                <span className="text-gradient-cyan">is just a number.</span>
+              </h2>
+              <p className="mt-6 text-[16px] leading-[1.8] text-[#94A3B8]">
+                Every finding in a SiteNexis audit traces back through the same chain: evidence, an affected URL, a verification state, a confidence level, a root cause, a score impact, and a recommendation. If any link is missing, the finding does not ship.
+              </p>
+              <div className="mt-8 grid grid-cols-2 gap-3">
+                {[
+                  ['Unavailable ≠ Zero', 'A category with no verified signal is excluded from scoring, never scored as a failure.'],
+                  ['Not detected ≠ Missing', 'Checked-for-and-absent is a real finding, not a gap in coverage.'],
+                  ['Crawl failure ≠ Website defect', 'A blocked or timed-out crawl is recorded as a measurement limit, not a site problem.'],
+                  ['Provider failure ≠ Website failure', 'A third-party data source going down never becomes evidence against the site being audited.'],
+                ].map(([title, body]) => (
+                  <div key={title} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+                    <p className="text-[12px] font-semibold text-white">{title}</p>
+                    <p className="mt-1.5 text-[11px] leading-[1.6] text-slate-500">{body}</p>
+                  </div>
+                ))}
+              </div>
+            </Reveal>
+
+            <Reveal delay={0.15}>
+              <div className="rounded-card border border-white/[0.07] bg-[#07111F] p-6">
+                <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-slate-600">Illustrative finding</p>
+                <div className="space-y-3">
+                  {[
+                    ['Finding', 'Primary entity description conflicts between homepage and schema markup'],
+                    ['Evidence', 'Homepage body text vs. Organization schema — 2 sources compared'],
+                    ['Affected URL', '/about'],
+                    ['Verification', 'CONFIRMED'],
+                    ['Confidence', 'High'],
+                    ['Root cause', 'Entity identity inconsistency'],
+                    ['Score impact', 'Entity Consistency −4 pts'],
+                    ['Recommendation', 'Align schema description with homepage copy'],
+                  ].map(([k, v]) => (
+                    <div key={k} className="flex items-start justify-between gap-4 border-b border-white/[0.04] pb-3 last:border-0 last:pb-0">
+                      <span className="shrink-0 text-[11px] font-medium uppercase tracking-wide text-slate-600">{k}</span>
+                      <span className="text-right text-[12px] text-slate-300">{v}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-5 rounded-lg border border-amber-500/[0.15] bg-amber-500/[0.04] p-4">
+                  <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-amber-400/80">Unavailable measurement — same finding format</p>
+                  <div className="space-y-1.5 text-[12px]">
+                    <div className="flex justify-between"><span className="text-slate-500">Finding</span><span className="text-slate-300">Backlink provider unavailable</span></div>
+                    <div className="flex justify-between"><span className="text-slate-500">Measurement</span><span className="text-slate-300">Unavailable</span></div>
+                    <div className="flex justify-between"><span className="text-slate-500">Website penalty</span><span className="font-semibold text-emerald-400">None</span></div>
+                  </div>
+                </div>
+                <p className="mt-4 text-[10px] text-slate-700">Illustrative example — not a real audit result.</p>
+              </div>
+            </Reveal>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Intelligence Report v2 ────────────────────────────────────────── */}
+      <section className="border-t border-white/[0.05] bg-[#07111F] py-32 px-6">
+        <div className="mx-auto max-w-6xl">
+          <Reveal className="mb-16 text-center">
+            <p className="mb-5 text-[11px] font-semibold tracking-[0.18em] text-cyan/70 uppercase">Intelligence Report v2</p>
+            <h2 className="text-[clamp(2rem,4vw,3rem)] font-bold leading-[1.1] tracking-[-0.03em] text-white">
+              25 categories.
+              <br />
+              <span className="text-slate-400 font-normal">Evidence-verified, not estimated.</span>
+            </h2>
+            <p className="mx-auto mt-5 max-w-xl text-[16px] leading-[1.8] text-[#94A3B8]">
+              An additive scoring layer on top of the twelve-score report above — every one of 25 fixed categories is scored only from evidence that was actually verified, with coverage and confidence reported as separate, honest fields.
+            </p>
+          </Reveal>
+
+          <div className="grid items-center gap-12 lg:grid-cols-2">
+            <Reveal>
+              <p className="mb-4 text-[11px] font-medium uppercase tracking-[0.14em] text-slate-500">Why this score?</p>
+              <div className="flex flex-wrap items-center gap-x-1.5 gap-y-3">
+                {EVIDENCE_CHAIN_STEPS.map((step, i) => (
+                  <div key={step} className="flex items-center gap-1.5">
+                    <span className="rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1.5 text-[11px] font-medium text-slate-300 whitespace-nowrap">{step}</span>
+                    {i < EVIDENCE_CHAIN_STEPS.length - 1 && <ArrowRight size={11} className="shrink-0 text-slate-700" />}
+                  </div>
+                ))}
+              </div>
+              <p className="mt-6 text-[14px] leading-[1.8] text-slate-500">
+                Categories with no verifiable evidence are marked <code className="rounded bg-white/[0.06] px-1.5 py-0.5 font-mono text-[12px] text-slate-300">UNAVAILABLE</code> and excluded from the weighted total — the overall score is normalized only across what was actually measured.
+              </p>
+              <a href="/methodology" className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-slate-300 hover:text-white transition-colors duration-150">
+                Read the full category breakdown <ArrowRight size={14} />
+              </a>
+            </Reveal>
+
+            <Reveal delay={0.15}>
+              <div className="card-glow card-glow-teal rounded-card border border-white/[0.06] bg-[#0A1628] p-6 backdrop-blur-xl">
+                <div className="mb-5 flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-slate-500">Sample audit</p>
+                    <p className="mt-0.5 text-[10px] uppercase tracking-wide text-slate-700">Illustrative — not a real customer result</p>
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <span className="text-[22px] font-bold text-white">64<span className="text-[13px] text-slate-500">/100</span></span>
+                    <span className="text-[10px] font-medium text-amber-400">Grade: Fair</span>
+                  </div>
+                </div>
+
+                <div className="mb-5 grid grid-cols-2 gap-3">
+                  <div className="rounded-lg border border-white/[0.05] bg-white/[0.015] px-3 py-2.5">
+                    <p className="text-[10px] uppercase tracking-wide text-slate-600">Coverage</p>
+                    <p className="mt-1 text-[15px] font-semibold text-white">82%</p>
+                  </div>
+                  <div className="rounded-lg border border-white/[0.05] bg-white/[0.015] px-3 py-2.5">
+                    <p className="text-[10px] uppercase tracking-wide text-slate-600">Confidence</p>
+                    <p className="mt-1 text-[15px] font-semibold text-white">Moderate</p>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-4">
+                  {SAMPLE_V2_FAMILIES.map((f) => (
+                    <ScoreBar key={f.label} label={f.label} score={f.score} delta="" />
+                  ))}
+                </div>
+              </div>
+            </Reveal>
+          </div>
+        </div>
+      </section>
+
       {/* ── Methodology section ───────────────────────────────────────────── */}
       <section id="methodology" className="border-t border-white/[0.05] bg-[#07111F] py-32 px-6">
         <div className="mx-auto max-w-6xl">
@@ -1156,6 +1304,63 @@ export default function HomePage() {
               {[['Evidence first', 'Recommendations link to crawl pages or issue records.'], ['Explainable scores', 'Every score card shows the formula and confidence.'], ['Google and AI views', 'Read technical impact and machine interpretation impact separately.'], ['Honest limits', 'Missing data stays unavailable. It does not become zero.']].map(([title, body]) => <div key={title} className="rounded-xl border border-white/[0.07] bg-white/[0.03] p-5"><h3 className="text-sm font-semibold text-white">{title}</h3><p className="mt-2 text-xs leading-6 text-slate-400">{body}</p></div>)}
             </div>
           </Reveal>
+        </div>
+      </section>
+
+      {/* ── SiteNexis Ops ─────────────────────────────────────────────────── */}
+      <section className="border-t border-white/[0.05] bg-[#0A1628] py-32 px-6">
+        <div className="mx-auto max-w-6xl">
+          <div className="grid items-center gap-16 lg:grid-cols-2">
+            <Reveal>
+              <p className="mb-5 text-[11px] font-semibold tracking-[0.18em] text-cyan/70 uppercase">Operational Intelligence</p>
+              <h2 className="text-[clamp(2rem,4vw,3rem)] font-bold leading-[1.1] tracking-[-0.03em] text-white text-balance">
+                Built to watch the web.
+                <br />
+                <span className="text-gradient-cyan">Built to watch itself.</span>
+              </h2>
+              <p className="mt-6 text-[16px] leading-[1.8] text-[#94A3B8]">
+                SiteNexis Ops is internal operational infrastructure — it watches SiteNexis&apos;s own audit pipeline, provider availability, and platform health, and raises alerts to a private Telegram channel when something needs attention. It is not a customer-facing chatbot.
+              </p>
+
+              <div className="mt-8 flex flex-wrap items-center gap-x-1.5 gap-y-3">
+                {OPS_PIPELINE_STEPS.map((step, i) => (
+                  <div key={step} className="flex items-center gap-1.5">
+                    <span className="rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1.5 text-[11px] font-medium text-slate-300 whitespace-nowrap">{step}</span>
+                    {i < OPS_PIPELINE_STEPS.length - 1 && <ArrowRight size={11} className="shrink-0 text-slate-700" />}
+                  </div>
+                ))}
+              </div>
+
+              <p className="mt-8 text-[13px] font-medium text-slate-400">Monitors: audit failures · partial/stalled audits · abnormal audit performance · provider degradation · integration health · platform health · operational incidents.</p>
+            </Reveal>
+
+            <Reveal delay={0.15}>
+              <div className="rounded-card border border-white/[0.07] bg-[#07111F] p-6">
+                <div className="mb-4 flex items-center gap-2.5">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full border border-amber-500/25 bg-amber-500/10 text-amber-400">⚠</span>
+                  <span className="text-[12px] font-semibold uppercase tracking-widest text-slate-400">SiteNexis Ops</span>
+                </div>
+
+                <p className="mb-4 text-[14px] font-medium text-white">Provider degradation detected</p>
+
+                <div className="space-y-2.5">
+                  {[
+                    ['Scout enrichment', 'Rate limited', 'text-amber-400'],
+                    ['Fallback', 'Deterministic classifier active', 'text-cyan'],
+                    ['Core audit', 'Continuing normally', 'text-emerald-400'],
+                    ['Impact', 'Limited', 'text-slate-300'],
+                  ].map(([k, v, color]) => (
+                    <div key={k} className="flex items-center justify-between rounded-lg border border-white/[0.05] bg-white/[0.015] px-3.5 py-2.5">
+                      <span className="text-[12px] text-slate-500">{k}</span>
+                      <span className={`text-[12px] font-medium ${color}`}>{v}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <p className="mt-5 text-[10px] leading-[1.6] text-slate-700">Illustrative example — not a live incident. Provider unavailable ≠ website failed. Fallback active ≠ audit failed.</p>
+              </div>
+            </Reveal>
+          </div>
         </div>
       </section>
 

@@ -57,7 +57,9 @@ AdNexis does not claim to know actual campaign results unless the user provides 
 - Information gain analysis
 - Audit narrative reports
 - PDF report generation
-- Google Analytics and Search Console connectors
+- Google Analytics and Search Console connectors (Intelligence Center)
+- Intelligence Report v2 — 25-category evidence-verified scoring layer, additive on top of the default report
+- SiteNexis Ops — internal operational alerting (audit failures, provider degradation, deployment status) plus read-only Audit Intelligence (`/audit <domain>`, scores, issues, recommendations, evidence, report) via Telegram
 
 ## AdNexis features
 
@@ -86,6 +88,12 @@ Serverless mode runs on Vercel. It uses Next.js server functions and `after()`.
 This mode does not need Redis or a worker. It crawls a smaller page set and stores results in PostgreSQL.
 
 Redis failure does not cause an audit to fail when serverless execution is available. A database failure can cause a `503` response.
+
+## SiteNexis Ops
+
+SiteNexis Ops is internal operational infrastructure with two layers behind one bot. **Operations Intelligence** watches SiteNexis's own audit pipeline, worker health, provider availability, and deployments, and raises alerts to a private Telegram channel — it is not a scoring input, and a SiteNexis platform incident is never evidence that an audited website has a problem. **Audit Intelligence** is a read-only Telegram presentation layer over the existing canonical audit/scoring/report system (`/audit <domain>` and friends) — it never independently calculates a score; it reads the same data and, for the two prose commands, shares the exact same cache as the dashboard's Executive Summary and Narrative Report.
+
+All commands are read-only and gated behind a single numeric admin-chat allowlist: `/status`, `/audits`, `/failures`, `/providers`, `/incidents`, `/deployments` (Operations) and `/audit`, `/scores`, `/issues`, `/recommendations`, `/evidence`, `/report` (Audit Intelligence). See [docs/SITENEXIS_OPS.md](docs/SITENEXIS_OPS.md) for the full architecture, event model, and consistency guarantees.
 
 ## Technology
 
@@ -365,10 +373,50 @@ See [docs/PRODUCTION_INTEGRATIONS_VERIFICATION.md](docs/PRODUCTION_INTEGRATIONS_
 
 ## Documentation
 
+**Scoring & evidence methodology** (the approved v2 baseline — see also the public [`/methodology`](https://sitenexis.vercel.app/methodology) page):
+
+- [Scoring methodology v2](docs/scoring-methodology-v2.md) — the 25-category weighted model
+- [Root-cause penalty model](docs/root-cause-penalty-model.md)
+- [Evidence model](docs/evidence-model.md)
+- [Report language rules](docs/report-language-rules.md)
+- [Citation methodology](docs/citation-methodology.md)
+- [E-E-A-T methodology](docs/e-e-a-t-methodology.md)
+- [Entity Intelligence methodology](docs/entity-intelligence-methodology.md)
+- [Local SEO methodology](docs/local-seo-methodology.md)
+- [Visual Integrity methodology](docs/visual-integrity-methodology.md)
+- [Commercial-risk classification](docs/commercial-risk-classification.md)
+- [Benchmark classification](docs/benchmark-classification.md)
+
+**Intelligence Report v2:**
+
+- [Product contract](docs/intelligence-report-v2.md)
+- [Additive architecture plan](docs/intelligence-report-v2-plan.md)
+- [Current-state baseline](docs/intelligence-report-v2-current-state.md)
+- [Migration contract](docs/intelligence-report-v2-migration.md)
+
+**Operations:**
+
+- [SiteNexis Ops (Telegram)](docs/SITENEXIS_OPS.md)
+- [Dashboard pipeline audit](docs/dashboard/DASHBOARD_PIPELINE_AUDIT.md)
+- [Decision log](docs/DECISION_LOG.md)
+
+**Integrations:**
+
+- [Google setup (GA4 / Search Console)](docs/intelligence-center/GOOGLE_SETUP.md)
+- [Intelligence Center MVP](docs/intelligence-center/MVP.md)
+- [Google integrations forensic audit](docs/GOOGLE_INTEGRATIONS_FORENSIC_AUDIT.md)
+- [Citation Intelligence free-first model](docs/CITATION_INTELLIGENCE_FREE_FIRST.md)
+
+**Verification & audits:**
+
 - [Production integration verification](docs/PRODUCTION_INTEGRATIONS_VERIFICATION.md)
 - [Enterprise foundation audit](docs/ENTERPRISE_FOUNDATION_AUDIT.md)
 - [Final implementation report](docs/FINAL_IMPLEMENTATION_REPORT.md)
-- [Google setup](docs/intelligence-center/GOOGLE_SETUP.md)
+- [Heading/canonical accuracy audit](docs/audits/HEADING-CANONICAL-ACCURACY-AUDIT.md)
+
+**Other:**
+
+- [Machine Resource Studio](docs/MACHINE_RESOURCE_STUDIO.md)
 - [Project instructions](CLAUDE.md)
 
 ## Contribution rules

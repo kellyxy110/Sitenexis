@@ -55,6 +55,7 @@ const SECTIONS = [
   { id: 'auth',         label: 'Authentication',     icon: Key },
   { id: 'audit',        label: 'Running an Audit',   icon: Terminal },
   { id: 'scores',       label: 'Score Reference',    icon: BookOpen },
+  { id: 'evidence',     label: 'Evidence Model v2',  icon: BookOpen },
   { id: 'api',          label: 'API Reference',      icon: Code2 },
   { id: 'webhooks',     label: 'Webhooks',           icon: Webhook },
 ]
@@ -268,6 +269,9 @@ source.addEventListener('complete', () => {
               <p className="mt-3 text-[15px] leading-[1.75] text-slate-400">
                 Every score is 0–100. Every deduction maps to a named Issue with a description and recommendation. All scores are fully reproducible — the same content always produces the same score.
               </p>
+              <p className="mt-3 text-[13px] leading-[1.75] text-slate-500">
+                The four composite formulas below are the default report every audit delivers. Intelligence Report v2 adds a stricter, evidence-verified 25-category scoring layer on top — see <a href="#evidence" className="text-cyan-400 hover:underline">Evidence Model v2</a>.
+              </p>
             </Reveal>
             <Reveal delay={0.05}>
               <div className="mt-6 flex flex-col gap-4">
@@ -296,6 +300,27 @@ source.addEventListener('complete', () => {
                   </div>
                 ))}
               </div>
+            </Reveal>
+          </section>
+
+          {/* Evidence Model v2 */}
+          <section id="evidence" className="mb-20 scroll-mt-24">
+            <Reveal>
+              <div className="flex items-center gap-2 border-t border-white/[0.05] pt-12">
+                <BookOpen size={16} className="text-slate-500" strokeWidth={1.5} />
+                <h2 className="text-[26px] font-bold tracking-[-0.02em] text-white">Evidence Model v2</h2>
+              </div>
+              <p className="mt-3 text-[15px] leading-[1.75] text-slate-400">
+                Intelligence Report v2 scores 25 fixed categories (weights sum to 100) from verified evidence only.
+                A category with no verifiable signal is marked <code className="rounded bg-white/[0.06] px-1.5 py-0.5 font-mono text-[12px] text-slate-300">UNAVAILABLE</code> and
+                excluded from the weighted total — it is never scored as a zero. Coverage (how much of the site was
+                actually examined) and confidence (how certain the evidence is) are reported as separate fields, never
+                folded into the score itself.
+              </p>
+              <p className="mt-3 text-[13px] leading-[1.75] text-slate-500">
+                v2 is additive — it does not replace the four composite scores above, and v1 remains the default
+                report delivery. Full category breakdown and verification-state reference: <Link href="/methodology" className="text-cyan-400 hover:underline">Methodology</Link>.
+              </p>
             </Reveal>
           </section>
 

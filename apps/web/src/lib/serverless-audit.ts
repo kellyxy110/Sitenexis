@@ -1002,6 +1002,27 @@ async function mapWithConcurrency<T>(items: T[], concurrency: number, worker: (i
   await Promise.all(runners);
 }
 
+/**
+ * Pre-warms the executive-summary/narrative-report Redis caches right after
+ * an audit finishes, so the first viewer — dashboard or Telegram's /audit
+ * and /report commands — sees a populated report instead of "not currently
+ * available". This calls the exact same canonical generation path those
+ * surfaces already use (same cache keys), just proactively instead of
+ * lazily on first request — it is not a second report generator. Never
+ * throws: a failure here must never affect the audit result, which has
+ * already been persisted as 'complete'/'partial' by the time this runs.
+ */
+export async function warmReportCaches(auditId: string, domain: string): Promise<void> {
+  try {
+    const [{ getExecutiveSummary }, { getNarrativeReport }] = await Promise.all([
+      import('@/lib/audit-intelligence/executive-summary-service'),
+      import('@/lib/audit-intelligence/narrative-report-service'),
+    ]);
+    await Promise.allSettled([getExecutiveSummary(auditId), getNarrativeReport(auditId)]);
+  } catch (warmErr) {
+    logger.warn({ auditId, domain, err: warmErr }, 'Post-audit report cache warm failed (non-fatal)');
+  }
+}
 
 export async function runServerlessAudit(
   auditId: string,
@@ -1932,6 +1953,8 @@ export async function runServerlessAudit(
     const finalStatus = layer4Failed ? 'partial' : 'complete';
     clearTimeout(budgetTimer);
     await updateAuditStatus(auditId, finalStatus, { pageCount: pages.length });
+
+    await warmReportCaches(auditId, domain);
     if (finalStatus === 'partial') {
       void notifyOps({
         type: 'AUDIT_PARTIAL',
