@@ -9,6 +9,7 @@ const h = vi.hoisted(() => ({
   getAiReferralMetrics: vi.fn(),
   getAppliedOptimizationSessionsForUser: vi.fn(),
   replaceAiVisibilityInsights: vi.fn(),
+  getAIVisibilityScore: vi.fn(),
 }));
 
 vi.mock('@/lib/logger', () => ({ logger: { warn: vi.fn(), error: vi.fn(), info: vi.fn() } }));
@@ -42,6 +43,10 @@ vi.mock('@sitenexis/analyzers', () => ({
   detectPostRecommendationImprovement: (inputs: Array<{ page: string; impressionsBefore: number; impressionsAfter: number }>) =>
     inputs.filter((i) => i.impressionsBefore > 0 && ((i.impressionsAfter - i.impressionsBefore) / i.impressionsBefore) * 100 >= 10)
       .map((i) => ({ type: 'post_recommendation_improvement', affectedPage: i.page, evidence: {}, confidence: 0.7, recommendedAction: 'x', verificationMethod: 'x' })),
+  detectCitationOpportunity: (pages: Array<{ page: string; clicks: number; impressions: number }>, score: number | null) =>
+    score !== null && score < 50
+      ? pages.filter((p) => p.clicks >= 50).map((p) => ({ type: 'citation_opportunity', affectedPage: p.page, evidence: {}, confidence: 0.5, recommendedAction: 'x', verificationMethod: 'x' }))
+      : [],
 }));
 
 const { generateInsightsForUser } = await import('../insights-runner');
@@ -56,6 +61,7 @@ beforeEach(() => {
   h.getAiReferralMetrics.mockResolvedValue([]);
   h.getAppliedOptimizationSessionsForUser.mockResolvedValue([]);
   h.replaceAiVisibilityInsights.mockResolvedValue(undefined);
+  h.getAIVisibilityScore.mockResolvedValue(null);
 });
 
 describe('generateInsightsForUser', () => {
@@ -110,5 +116,28 @@ describe('generateInsightsForUser', () => {
     const hit = saved.find((c: { type: string }) => c.type === 'post_recommendation_improvement');
     expect(hit).toBeDefined();
     expect(hit.affectedPage).toBe('/blog/a');
+  });
+
+  it('detects a citation opportunity when there is a complete audit with a weak citation score and a strong-organic page', async () => {
+    h.getAuditsByUser.mockResolvedValue([{ id: 'audit-1', status: 'complete' }]);
+    h.getAIVisibilityScore.mockResolvedValue({ citationProbabilityScore: 30 });
+    h.getTopSearchPages.mockResolvedValue([{ page: '/blog/a', clicks: 120, impressions: 2000, ctr: 0.06, avgPosition: 5 }]);
+
+    await generateInsightsForUser('user-1');
+
+    expect(h.getAIVisibilityScore).toHaveBeenCalledWith('audit-1');
+    const saved = h.replaceAiVisibilityInsights.mock.calls[0][1];
+    expect(saved.some((c: { type: string }) => c.type === 'citation_opportunity')).toBe(true);
+  });
+
+  it('never calls getAIVisibilityScore or generates a citation opportunity without a complete audit', async () => {
+    h.getAuditsByUser.mockResolvedValue([{ id: 'audit-1', status: 'running' }]);
+    h.getTopSearchPages.mockResolvedValue([{ page: '/blog/a', clicks: 120, impressions: 2000, ctr: 0.06, avgPosition: 5 }]);
+
+    await generateInsightsForUser('user-1');
+
+    expect(h.getAIVisibilityScore).not.toHaveBeenCalled();
+    const saved = h.replaceAiVisibilityInsights.mock.calls[0][1];
+    expect(saved.some((c: { type: string }) => c.type === 'citation_opportunity')).toBe(false);
   });
 });

@@ -12,6 +12,10 @@ import {
 import { TrendSection } from '@/components/intelligence-center/TrendSection';
 import { BreakdownCards } from '@/components/intelligence-center/BreakdownCards';
 import { AiCorrelationSection } from '@/components/intelligence-center/AiCorrelationSection';
+import { QueriesSection } from '@/components/intelligence-center/QueriesSection';
+import { PagesSection } from '@/components/intelligence-center/PagesSection';
+import { LandingPagesSection } from '@/components/intelligence-center/LandingPagesSection';
+import { TrafficAcquisitionSection } from '@/components/intelligence-center/TrafficAcquisitionSection';
 
 interface AiVisibilityScoreData {
   aiVisibilityScore: number;
@@ -65,65 +69,19 @@ export default function IntelligenceCenterPage() {
 
             <AiCorrelationSection />
 
-            <div className="mb-6 grid gap-4 md:grid-cols-2">
-              <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
-                <h2 className="mb-3 text-sm font-semibold text-white">Channels</h2>
-                <div className="space-y-2">
-                  {(data?.channels ?? []).map((c) => (
-                    <div key={c.channelGroup} className="flex items-center justify-between text-xs">
-                      <span className="text-[#7A9AB4]">{c.channelGroup}</span>
-                      <span className="font-semibold tabular-nums text-white">{c.sessions}</span>
-                    </div>
-                  ))}
-                  {(data?.channels ?? []).length === 0 && <p className="text-xs text-[#4A6280]">No channel data yet.</p>}
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
-                <h2 className="mb-3 text-sm font-semibold text-white">Connector health</h2>
-                <div className="space-y-1 text-xs text-[#7A9AB4]">
-                  <div>GA4: {data?.connector.ga4PropertyName ?? 'not selected'}</div>
-                  <div>Search Console: {data?.connector.gscSiteName ?? 'not selected'}</div>
-                  <div>Last synced: {data?.connector.lastSyncedAt ? new Date(data.connector.lastSyncedAt).toLocaleString() : 'never'}</div>
-                </div>
+            <div className="mb-6 rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+              <h2 className="mb-3 text-sm font-semibold text-white">Connector health</h2>
+              <div className="space-y-1 text-xs text-[#7A9AB4]">
+                <div>GA4: {data?.connector.ga4PropertyName ?? 'not selected'}</div>
+                <div>Search Console: {data?.connector.gscSiteName ?? 'not selected'}</div>
+                <div>Last synced: {data?.connector.lastSyncedAt ? new Date(data.connector.lastSyncedAt).toLocaleString() : 'never'}</div>
               </div>
             </div>
 
-            <div className="mb-6 grid gap-4 md:grid-cols-2">
-              <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
-                <h2 className="mb-3 text-sm font-semibold text-white">Top pages</h2>
-                <table className="w-full text-xs">
-                  <thead><tr className="text-[#4A6280]"><th className="text-left font-normal">Page</th><th className="text-right font-normal">Clicks</th><th className="text-right font-normal">Impr.</th></tr></thead>
-                  <tbody>
-                    {(data?.topPages ?? []).map((p) => (
-                      <tr key={p.page} className="border-t border-white/[0.04]">
-                        <td className="max-w-[200px] truncate py-1.5 text-[#C8DFE8]">{p.page}</td>
-                        <td className="py-1.5 text-right tabular-nums text-white">{p.clicks}</td>
-                        <td className="py-1.5 text-right tabular-nums text-white">{p.impressions}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {(data?.topPages ?? []).length === 0 && <p className="text-xs text-[#4A6280]">No page data yet.</p>}
-              </div>
-
-              <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
-                <h2 className="mb-3 text-sm font-semibold text-white">Top queries</h2>
-                <table className="w-full text-xs">
-                  <thead><tr className="text-[#4A6280]"><th className="text-left font-normal">Query</th><th className="text-right font-normal">Clicks</th><th className="text-right font-normal">Impr.</th></tr></thead>
-                  <tbody>
-                    {(data?.topQueries ?? []).map((q) => (
-                      <tr key={q.query} className="border-t border-white/[0.04]">
-                        <td className="max-w-[200px] truncate py-1.5 text-[#C8DFE8]">{q.query}</td>
-                        <td className="py-1.5 text-right tabular-nums text-white">{q.clicks}</td>
-                        <td className="py-1.5 text-right tabular-nums text-white">{q.impressions}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {(data?.topQueries ?? []).length === 0 && <p className="text-xs text-[#4A6280]">No query data yet.</p>}
-              </div>
-            </div>
+            <PagesSection />
+            <QueriesSection />
+            <TrafficAcquisitionSection />
+            <LandingPagesSection />
 
             <div className="mb-6 rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
               <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-white"><Lightbulb size={14} className="text-cyan" /> Recommendations</h2>

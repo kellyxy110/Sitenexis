@@ -66,6 +66,18 @@ export function Footer() {
               <br />
               Built for the machine-first web.
             </p>
+            <p className="mt-3 text-[12px] leading-relaxed text-[#1E293B]">
+              SiteNexis is the flagship product of{' '}
+              <a
+                href="https://nexishub.vercel.app"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#334155] underline decoration-white/10 underline-offset-2 transition-colors hover:text-[#94A3B8]"
+              >
+                NexisHub
+              </a>
+              .
+            </p>
             <div className="mt-5 flex items-center gap-3">
               <a
                 href="https://x.com/Sitenexis"

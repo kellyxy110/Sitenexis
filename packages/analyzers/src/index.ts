@@ -58,11 +58,11 @@ export { PAGE_INTELLIGENCE_SYSTEM_PROMPT, buildPageIntelligenceUserPrompt } from
 export type { PageIntelligenceContext } from './page-intelligence/prompt';
 export {
   detectImpressionsFallingOnIssuePages, detectHighImpressionsLowCtr, detectTrafficWithoutConversion,
-  detectAiReferralReachingPage, detectPostRecommendationImprovement,
+  detectAiReferralReachingPage, detectPostRecommendationImprovement, detectCitationOpportunity,
 } from './ai-visibility-insights/detectors';
 export type {
   InsightType, InsightCandidate, PageImpressionsDelta, PageIssueInfo, SearchPageStat,
-  LandingPageStat, AiReferralStat, TopLandingPage, RecommendationImpactInput,
+  LandingPageStat, AiReferralStat, TopLandingPage, RecommendationImpactInput, CitationOpportunityPageStat,
 } from './ai-visibility-insights/detectors';
 export { bucketKeyForDate, bucketTrafficSeries, bucketSearchSeries } from './ai-visibility-insights/trend-bucketing';
 export type {

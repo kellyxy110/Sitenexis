@@ -41,6 +41,7 @@ export const INSIGHT_TYPE_LABELS: Record<string, string> = {
   traffic_without_conversion: 'Traffic without conversion',
   ai_referral_reaching_page: 'AI referral traffic detected',
   post_recommendation_improvement: 'Recommendation confirmed working',
+  citation_opportunity: 'Citation-strengthening opportunity',
 };
 
 export function formatEvidence(type: string, evidence: Record<string, unknown>): string {
@@ -55,6 +56,8 @@ export function formatEvidence(type: string, evidence: Record<string, unknown>):
       return `${String(evidence.totalAiReferralSessions)} sessions from ${String(evidence.topAiSource)}`;
     case 'post_recommendation_improvement':
       return `Impressions up ${String(evidence.improvementPct)}% since the fix was applied (${String(evidence.impressionsBefore)} → ${String(evidence.impressionsAfter)})`;
+    case 'citation_opportunity':
+      return `${String(evidence.clicks)} organic clicks · site Citation Probability score: ${String(evidence.siteWideCitationProbabilityScore)}/100`;
     default:
       return '';
   }

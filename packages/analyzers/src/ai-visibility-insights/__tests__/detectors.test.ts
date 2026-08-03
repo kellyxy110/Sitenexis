@@ -5,6 +5,7 @@ import {
   detectTrafficWithoutConversion,
   detectAiReferralReachingPage,
   detectPostRecommendationImprovement,
+  detectCitationOpportunity,
 } from '../detectors';
 
 describe('detectImpressionsFallingOnIssuePages', () => {
@@ -110,5 +111,53 @@ describe('detectPostRecommendationImprovement', () => {
       { page: '/blog/a', appliedAt: new Date('2026-07-01'), impressionsBefore: 0, impressionsAfter: 50, recommendationAction: 'x' },
     ]);
     expect(result).toHaveLength(0);
+  });
+});
+
+describe('detectCitationOpportunity', () => {
+  it('flags a strong-organic page when the site-wide Citation Probability score is weak', () => {
+    const result = detectCitationOpportunity(
+      [{ page: '/blog/a', clicks: 120, impressions: 2000 }],
+      35,
+    );
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({ type: 'citation_opportunity', affectedPage: '/blog/a' });
+    expect(result[0]!.evidence.siteWideCitationProbabilityScore).toBe(35);
+  });
+
+  it('never flags anything when the citation score is strong, even with high organic clicks', () => {
+    const result = detectCitationOpportunity(
+      [{ page: '/blog/a', clicks: 500, impressions: 5000 }],
+      85,
+    );
+    expect(result).toHaveLength(0);
+  });
+
+  it('never flags anything when the citation score is unknown (null) — no fabricated evidence', () => {
+    const result = detectCitationOpportunity(
+      [{ page: '/blog/a', clicks: 500, impressions: 5000 }],
+      null,
+    );
+    expect(result).toHaveLength(0);
+  });
+
+  it('does not flag a low-traffic page even with a weak citation score', () => {
+    const result = detectCitationOpportunity(
+      [{ page: '/blog/tiny', clicks: 3, impressions: 40 }],
+      30,
+    );
+    expect(result).toHaveLength(0);
+  });
+
+  it('caps results at maxResults, keeping the highest-click pages', () => {
+    const pages = Array.from({ length: 10 }, (_, i) => ({ page: `/p${i}`, clicks: 100 - i, impressions: 1000 }));
+    const result = detectCitationOpportunity(pages, 20, { maxResults: 3 });
+    expect(result).toHaveLength(3);
+    expect(result.map((r) => r.affectedPage)).toEqual(['/p0', '/p1', '/p2']);
+  });
+
+  it('is deterministic for identical inputs', () => {
+    const pages = [{ page: '/blog/a', clicks: 120, impressions: 2000 }];
+    expect(detectCitationOpportunity(pages, 35)).toEqual(detectCitationOpportunity(pages, 35));
   });
 });

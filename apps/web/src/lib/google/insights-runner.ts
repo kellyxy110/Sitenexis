@@ -16,11 +16,12 @@ export async function generateInsightsForUser(userId: string): Promise<{ generat
   const {
     getAuditsByUser, getIssuesByAudit, getAggregatedSearchPageMetrics, getTopSearchPages,
     getLandingPageMetrics, getAiReferralMetrics, getAppliedOptimizationSessionsForUser, replaceAiVisibilityInsights,
+    getAIVisibilityScore,
   } = await import('@sitenexis/db');
 
   const {
     detectImpressionsFallingOnIssuePages, detectHighImpressionsLowCtr, detectTrafficWithoutConversion,
-    detectAiReferralReachingPage, detectPostRecommendationImprovement,
+    detectAiReferralReachingPage, detectPostRecommendationImprovement, detectCitationOpportunity,
   } = await import('@sitenexis/analyzers');
   type RecommendationImpactInput = Parameters<typeof detectPostRecommendationImprovement>[0][number];
 
@@ -110,6 +111,16 @@ export async function generateInsightsForUser(userId: string): Promise<{ generat
     recommendationImpacts.push({ page: session.page, appliedAt, impressionsBefore: beforeImpressions, impressionsAfter: afterImpressions, recommendationAction: session.recommendedAction });
   }
   candidates.push(...detectPostRecommendationImprovement(recommendationImpacts));
+
+  // 6. Strong organic pages against a weak site-wide Citation Probability score
+  if (latestComplete) {
+    const aiVisibility = await getAIVisibilityScore(latestComplete.id).catch(() => null);
+    const citationProbabilityScore = aiVisibility?.citationProbabilityScore ?? null;
+    candidates.push(...detectCitationOpportunity(
+      aggregatedPageStats.map((p) => ({ page: p.page, clicks: p.clicks, impressions: p.impressions })),
+      citationProbabilityScore,
+    ));
+  }
 
   try {
     await replaceAiVisibilityInsights(userId, candidates as Parameters<typeof replaceAiVisibilityInsights>[1]);

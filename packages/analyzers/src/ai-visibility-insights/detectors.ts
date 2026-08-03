@@ -10,7 +10,8 @@ export type InsightType =
   | 'high_impressions_low_ctr'
   | 'traffic_without_conversion'
   | 'ai_referral_reaching_page'
-  | 'post_recommendation_improvement';
+  | 'post_recommendation_improvement'
+  | 'citation_opportunity';
 
 export interface InsightCandidate {
   type: InsightType;
@@ -158,4 +159,39 @@ export function detectPostRecommendationImprovement(
         verificationMethod: 'Continue monitoring impressions for 2-4 more weeks to confirm the improvement is sustained, not a short-term fluctuation.',
       };
     });
+}
+
+// ── 6. Strong organic visibility, weak site-wide citation authority ─────────
+//
+// This flags real, currently-strong organic pages (real clicks/impressions
+// from Search Console) against the site's real, already-computed Citation
+// Probability score — it never invents a per-page citation number the
+// Citation Intelligence engine doesn't produce. The relationship is framed
+// as "associated with an opportunity", never causal.
+
+export interface CitationOpportunityPageStat { page: string; clicks: number; impressions: number }
+
+export function detectCitationOpportunity(
+  pages: CitationOpportunityPageStat[],
+  siteWideCitationProbabilityScore: number | null,
+  opts: { clicksThreshold?: number; weakCitationThreshold?: number; maxResults?: number } = {},
+): InsightCandidate[] {
+  if (siteWideCitationProbabilityScore === null || siteWideCitationProbabilityScore >= (opts.weakCitationThreshold ?? 50)) {
+    return [];
+  }
+  const clicksThreshold = opts.clicksThreshold ?? 50;
+  const maxResults = opts.maxResults ?? 5;
+
+  return [...pages]
+    .filter((p) => p.clicks >= clicksThreshold)
+    .sort((a, b) => b.clicks - a.clicks)
+    .slice(0, maxResults)
+    .map((p) => ({
+      type: 'citation_opportunity' as const,
+      affectedPage: p.page,
+      evidence: { clicks: p.clicks, impressions: p.impressions, siteWideCitationProbabilityScore },
+      confidence: Math.min(0.75, 0.35 + (p.clicks / clicksThreshold) * 0.05),
+      recommendedAction: 'This page earns strong organic clicks, but the site\'s overall Citation Probability score is weak — strengthening factual density, source attribution, and structural citation signals here is associated with a higher likelihood of AI citation.',
+      verificationMethod: 'Re-check the Citation Probability score on the next audit, and confirm this page continues to receive strong organic clicks.',
+    }));
 }

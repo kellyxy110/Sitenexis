@@ -365,6 +365,98 @@ export async function getAggregatedSearchPageMetrics(userId: string, from: Date,
   return rows.map((r) => ({ page: r.page, clicks: r._sum.clicks ?? 0, impressions: r._sum.impressions ?? 0 }));
 }
 
+export interface AggregatedSearchStat {
+  clicks: number;
+  impressions: number;
+  ctr: number;
+  avgPosition: number;
+}
+
+/**
+ * Sums clicks/impressions per unique page across a date range and recomputes
+ * ctr/avgPosition from the summed components (impressions-weighted) — never
+ * an average-of-daily-averages, which would silently mis-weight low-traffic
+ * days as equal to high-traffic ones. Used by the Pages intelligence route,
+ * where (unlike `getAggregatedSearchPageMetrics`) ctr/avgPosition are needed.
+ */
+export async function getAggregatedSearchPageStats(userId: string, from: Date, to: Date): Promise<Array<AggregatedSearchStat & { page: string }>> {
+  const rows = await db.searchPageMetric.findMany({
+    where: { userId, date: { gte: from, lte: to } },
+    select: { page: true, clicks: true, impressions: true, avgPosition: true },
+  });
+  const byPage = new Map<string, { clicks: number; impressions: number; positionWeightedSum: number }>();
+  for (const r of rows) {
+    const existing = byPage.get(r.page) ?? { clicks: 0, impressions: 0, positionWeightedSum: 0 };
+    existing.clicks += r.clicks;
+    existing.impressions += r.impressions;
+    existing.positionWeightedSum += r.avgPosition * r.impressions;
+    byPage.set(r.page, existing);
+  }
+  return [...byPage.entries()].map(([page, v]) => ({
+    page,
+    clicks: v.clicks,
+    impressions: v.impressions,
+    ctr: v.impressions > 0 ? v.clicks / v.impressions : 0,
+    avgPosition: v.impressions > 0 ? v.positionWeightedSum / v.impressions : 0,
+  }));
+}
+
+/** Same impressions-weighted aggregation as `getAggregatedSearchPageStats`, keyed by query instead of page. */
+export async function getAggregatedSearchQueryMetrics(userId: string, from: Date, to: Date): Promise<Array<AggregatedSearchStat & { query: string }>> {
+  const rows = await db.searchQueryMetric.findMany({
+    where: { userId, date: { gte: from, lte: to } },
+    select: { query: true, clicks: true, impressions: true, avgPosition: true },
+  });
+  const byQuery = new Map<string, { clicks: number; impressions: number; positionWeightedSum: number }>();
+  for (const r of rows) {
+    const existing = byQuery.get(r.query) ?? { clicks: 0, impressions: 0, positionWeightedSum: 0 };
+    existing.clicks += r.clicks;
+    existing.impressions += r.impressions;
+    existing.positionWeightedSum += r.avgPosition * r.impressions;
+    byQuery.set(r.query, existing);
+  }
+  return [...byQuery.entries()].map(([query, v]) => ({
+    query,
+    clicks: v.clicks,
+    impressions: v.impressions,
+    ctr: v.impressions > 0 ? v.clicks / v.impressions : 0,
+    avgPosition: v.impressions > 0 ? v.positionWeightedSum / v.impressions : 0,
+  }));
+}
+
+/** Sums GA4 landing-page metrics per unique page path across a date range — no weighted average needed since every field here is a plain count. */
+export async function getAggregatedLandingPageMetrics(userId: string, from: Date, to: Date) {
+  const rows = await db.landingPageMetric.groupBy({
+    by: ['pagePath'],
+    where: { userId, date: { gte: from, lte: to } },
+    _sum: { sessions: true, activeUsers: true, keyEvents: true },
+    _avg: { avgEngagementTimeSec: true },
+  });
+  return rows.map((r) => ({
+    pagePath: r.pagePath,
+    sessions: r._sum.sessions ?? 0,
+    activeUsers: r._sum.activeUsers ?? 0,
+    keyEvents: r._sum.keyEvents ?? 0,
+    avgEngagementTimeSec: r._avg.avgEngagementTimeSec ?? 0,
+  }));
+}
+
+/** Sums GA4 acquisition-channel metrics per channelGroup + source across a date range, preserving the AI-referral flag. */
+export async function getAggregatedAcquisitionMetrics(userId: string, from: Date, to: Date) {
+  const rows = await db.acquisitionChannelMetric.groupBy({
+    by: ['channelGroup', 'source', 'isAiReferral'],
+    where: { userId, date: { gte: from, lte: to } },
+    _sum: { sessions: true, activeUsers: true },
+  });
+  return rows.map((r) => ({
+    channelGroup: r.channelGroup,
+    source: r.source,
+    isAiReferral: r.isAiReferral,
+    sessions: r._sum.sessions ?? 0,
+    activeUsers: r._sum.activeUsers ?? 0,
+  }));
+}
+
 // ─── Deterministic insights ────────────────────────────────────────────────────
 
 export interface AiVisibilityInsightInput {
