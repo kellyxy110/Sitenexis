@@ -46,7 +46,7 @@ async function runCommand(label: string, title: string, fn: () => Promise<string
   }
 }
 
-function fmtTime(d: Date | null): string {
+export function fmtTime(d: Date | null): string {
   if (!d) return '—';
   return d.toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
 }
@@ -194,30 +194,36 @@ export async function commandDeployments(): Promise<string> {
 }
 
 /** Telegram's HTML parse_mode requires &, <, > to be escaped in text content — user-sourced strings (domains, error messages) are never trusted to already be safe. */
-function escapeHtml(value: string): string {
+export function escapeHtml(value: string): string {
   return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-const COMMAND_NAMES = ['/status', '/audits', '/failures', '/providers', '/incidents', '/deployments'] as const;
+export { runCommand };
+
+const OPERATIONS_COMMANDS = ['/status', '/audits', '/failures', '/providers', '/incidents', '/deployments'] as const;
+const AUDIT_INTELLIGENCE_COMMANDS = ['/audit <domain>', '/scores <domain>', '/issues <domain>', '/recommendations <domain>', '/evidence <domain>', '/report <domain>'] as const;
 
 /** /start — an explicit welcome/help response, distinct from the generic unknown-command fallback in the webhook route. */
 export async function commandStart(): Promise<string> {
   return [
     '<b>SiteNexis Ops</b>',
-    'Internal operational alerting for the SiteNexis audit pipeline. All commands below are read-only.',
+    'Internal operational alerting and read-only audit intelligence for SiteNexis. All commands below are read-only.',
     '',
-    'Available commands:',
+    '<b>Operations</b>',
     '/start',
-    ...COMMAND_NAMES,
+    ...OPERATIONS_COMMANDS,
+    '',
+    '<b>Audit Intelligence</b>',
+    ...AUDIT_INTELLIGENCE_COMMANDS,
   ].join('\n');
 }
 
-export const COMMANDS: Record<string, () => Promise<string>> = {
-  '/start': commandStart,
-  '/status': commandStatus,
-  '/audits': commandAudits,
-  '/failures': commandFailures,
-  '/providers': commandProviders,
-  '/incidents': commandIncidents,
-  '/deployments': commandDeployments,
+export const COMMANDS: Record<string, (args: string[]) => Promise<string>> = {
+  '/start': () => commandStart(),
+  '/status': () => commandStatus(),
+  '/audits': () => commandAudits(),
+  '/failures': () => commandFailures(),
+  '/providers': () => commandProviders(),
+  '/incidents': () => commandIncidents(),
+  '/deployments': () => commandDeployments(),
 };

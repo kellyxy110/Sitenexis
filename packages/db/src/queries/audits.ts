@@ -266,6 +266,56 @@ export async function getPreviousCompletedAuditIdForDomain(
   return audit?.id ?? null;
 }
 
+export interface OpsDomainAuditRecord {
+  id: string;
+  domain: string;
+  status: AuditStatus;
+  createdAt: Date;
+  completedAt: Date | null;
+}
+
+export interface DomainAuditLookupResult {
+  audit: OpsDomainAuditRecord | null;
+  isPartial: boolean;
+  latestAny: { status: AuditStatus; createdAt: Date } | null;
+}
+
+const DOMAIN_AUDIT_SELECT = { id: true, domain: true, status: true, createdAt: true, completedAt: true } as const;
+
+/**
+ * Cross-user "latest usable audit for a domain" lookup for operational
+ * tooling (Telegram Audit Intelligence) — mirrors the listRecentAuditsForOps
+ * precedent rather than getLatestAuditByDomain, since the Telegram admin
+ * already has cross-user visibility into every audit on the platform.
+ * Prefers the latest 'complete' audit; falls back to the latest 'partial'
+ * audit only when no completed audit exists; never surfaces
+ * 'queued'/'running'/'failed' as usable intelligence. `latestAny` lets
+ * callers report a truthful reason (e.g. "still running") instead of a
+ * generic "not found" when something exists but isn't usable yet.
+ */
+export async function getLatestUsableAuditForDomainOps(domain: string): Promise<DomainAuditLookupResult> {
+  const [completed, partial, latestAny] = await Promise.all([
+    db.audit.findFirst({
+      where: { domain, archivedAt: null, isDemo: false, status: 'complete' },
+      orderBy: { completedAt: 'desc' },
+      select: DOMAIN_AUDIT_SELECT,
+    }),
+    db.audit.findFirst({
+      where: { domain, archivedAt: null, isDemo: false, status: 'partial' },
+      orderBy: { updatedAt: 'desc' },
+      select: DOMAIN_AUDIT_SELECT,
+    }),
+    db.audit.findFirst({
+      where: { domain, archivedAt: null, isDemo: false },
+      orderBy: { createdAt: 'desc' },
+      select: { status: true, createdAt: true },
+    }),
+  ]);
+  if (completed) return { audit: completed, isPartial: false, latestAny };
+  if (partial) return { audit: partial, isPartial: true, latestAny };
+  return { audit: null, isPartial: false, latestAny };
+}
+
 export async function countAuditsThisMonth(userId: string): Promise<number> {
   const start = new Date();
   start.setDate(1);

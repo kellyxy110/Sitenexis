@@ -12,7 +12,18 @@ export const dynamic = 'force-dynamic';
 import { type NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 import { isValidWebhookSecret, isAdminChat, sendTelegramMessage } from '@/lib/telegram-ops/telegram-provider';
-import { COMMANDS } from '@/lib/telegram-ops/commands';
+import { COMMANDS as OPS_COMMANDS } from '@/lib/telegram-ops/commands';
+import { commandAudit, commandScores, commandIssues, commandRecommendations, commandEvidence, commandReport } from '@/lib/telegram-ops/audit-commands';
+
+const COMMANDS: Record<string, (args: string[]) => Promise<string>> = {
+  ...OPS_COMMANDS,
+  '/audit': commandAudit,
+  '/scores': commandScores,
+  '/issues': commandIssues,
+  '/recommendations': commandRecommendations,
+  '/evidence': commandEvidence,
+  '/report': commandReport,
+};
 
 interface TelegramUpdate {
   message?: {
@@ -53,12 +64,15 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ ok: true });
   }
 
-  // Strip an @BotName suffix (group-chat command form) and any trailing args.
-  const commandKey = text.split(/\s+/)[0]?.replace(/@\w+$/, '') ?? '';
+  // Strip an @BotName suffix (group-chat command form); everything after the
+  // command word is passed through as args (e.g. "/audit example.com").
+  const parts = text.split(/\s+/);
+  const commandKey = parts[0]?.replace(/@\w+$/, '') ?? '';
+  const args = parts.slice(1);
   const handler = COMMANDS[commandKey];
 
   try {
-    const reply = handler ? await handler() : HELP_TEXT;
+    const reply = handler ? await handler(args) : HELP_TEXT;
     const sent = await sendTelegramMessage(String(chatId), reply);
     if (!sent) {
       // Authorization and dispatch both succeeded, but delivery back to Telegram

@@ -561,6 +561,30 @@ export default function MethodologyPage() {
         </div>
       </section>
 
+      {/* ── Telegram Audit Intelligence ── */}
+      <section className="border-t border-white/[0.05] bg-[#0A1628] py-20 px-6">
+        <div className="mx-auto max-w-4xl">
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan/70">System Architecture</p>
+          <h2 className="mb-4 text-[28px] font-bold text-white">Telegram Audit Intelligence is a presentation layer, not a second scoring engine</h2>
+          <p className="mb-6 max-w-2xl text-[15px] leading-[1.75] text-slate-400">
+            SiteNexis Ops (see the Operations documentation) exposes read-only Telegram commands —
+            <code className="mx-1 rounded bg-black/30 px-1.5 py-0.5 text-[13px] text-cyan-300">/audit</code>,
+            <code className="mx-1 rounded bg-black/30 px-1.5 py-0.5 text-[13px] text-cyan-300">/scores</code>,
+            <code className="mx-1 rounded bg-black/30 px-1.5 py-0.5 text-[13px] text-cyan-300">/issues</code>,
+            <code className="mx-1 rounded bg-black/30 px-1.5 py-0.5 text-[13px] text-cyan-300">/recommendations</code>,
+            <code className="mx-1 rounded bg-black/30 px-1.5 py-0.5 text-[13px] text-cyan-300">/evidence</code>, and
+            <code className="mx-1 rounded bg-black/30 px-1.5 py-0.5 text-[13px] text-cyan-300">/report</code> —
+            for retrieving an existing audit&apos;s intelligence from within Telegram. It does not calculate AI Visibility, Retrieval
+            Readiness, Citation Probability, Semantic Trust, Entity Confidence, Machine Trust, or any Technical SEO score. Every
+            score it displays is read from the same canonical tables this methodology describes, using the same dedupe and Fix
+            Plan logic the dashboard uses. The two prose commands (<code className="mx-1 rounded bg-black/30 px-1.5 py-0.5 text-[13px] text-cyan-300">/audit</code>&apos;s
+            executive assessment and <code className="mx-1 rounded bg-black/30 px-1.5 py-0.5 text-[13px] text-cyan-300">/report</code>)
+            read from the exact same cache as the dashboard&apos;s Executive Summary and Narrative Report, so the same audit never
+            shows different numbers on Telegram than on the dashboard.
+          </p>
+        </div>
+      </section>
+
       {/* ── Mission Control & Audit Progress ── */}
       <section className="border-t border-white/[0.05] bg-[#0A1628] py-20 px-6">
         <div className="mx-auto max-w-4xl">
