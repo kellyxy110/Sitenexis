@@ -526,6 +526,7 @@ export async function POST(req: NextRequest, { params }: Params): Promise<NextRe
         semanticTrustScore: aiScores.semanticTrustScore,
         recommendationConfidence: aiScores.recommendationConfidence,
       } : null,
+      machineTrust: trust ? { overall: trust.overall } : null,
       pages: auditTyped.pages.map((p) => ({ id: p.id, url: p.url, statusCode: p.statusCode, isIndexable: p.isIndexable, wordCount: p.wordCount, internalLinks: p.internalLinks, externalLinks: p.externalLinks })),
       issues: issues.map((i) => ({ id: i.id, module: i.module, type: i.type, severity: i.severity, message: i.message, recommendation: i.recommendation, ...(i.pageUrl !== undefined ? { pageUrl: i.pageUrl } : {}), createdAt: i.createdAt.toISOString() })),
     };
