@@ -28,13 +28,15 @@ export async function GET(req: NextRequest, { params }: Params): Promise<NextRes
   const { id } = await params;
 
   try {
-    const { getAuditWithResults } = await import('@sitenexis/db');
+    const { getAuditWithResults, getMachineTrustScore } = await import('@sitenexis/db');
     const audit = await getAuditWithResults(id, user.id) as unknown as MRSDatabaseAudit | null;
     if (!audit) return gtlEmpty();
     if (audit.userId !== user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const state = resolveGTLState(audit.status, Boolean(audit.scores));
     if (!audit.scores && audit.status !== 'complete') return gtlResponse(state, null);
+
+    const trust = await getMachineTrustScore(id);
 
     const input: MRSInput = {
       audit: {
@@ -60,6 +62,7 @@ export async function GET(req: NextRequest, { params }: Params): Promise<NextRes
         semanticTrustScore: audit.aiVisibilityScores.semanticTrustScore,
         recommendationConfidence: audit.aiVisibilityScores.recommendationConfidence,
       } : null,
+      machineTrust: trust ? { overall: trust.overall } : null,
       pages: audit.pages.map((page) => ({ id: page.id, url: page.url, statusCode: page.statusCode, isIndexable: page.isIndexable, wordCount: page.wordCount, internalLinks: page.internalLinks, externalLinks: page.externalLinks })),
       issues: audit.issues.map((issue) => ({ id: issue.id, module: issue.module, type: issue.type, severity: issue.severity, message: issue.message, recommendation: issue.recommendation, ...(issue.pageUrl !== undefined ? { pageUrl: issue.pageUrl } : {}), createdAt: issue.createdAt.toISOString() })),
     };

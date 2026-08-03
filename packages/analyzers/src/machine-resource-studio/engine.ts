@@ -33,6 +33,7 @@ export function buildMachineResourceStudioReport(input: MRSInput): MRSReport {
   const pageCount = input.pages.length;
   const ai = input.aiVisibility;
   const scores = input.scores;
+  const machineTrust = input.machineTrust;
   const evidence = [
     ...input.pages.slice(0, 100).map((page) => ({ id: `page:${page.id}`, source: 'crawl' as const, module: 'crawl', detail: `${page.url} returned HTTP ${page.statusCode}, has ${page.wordCount} words, ${page.internalLinks} internal links, and ${page.externalLinks} external links.`, timestamp, confidence: 0.98 })),
     ...input.issues.map((issue) => ({ id: `issue:${issue.id}`, source: 'issue' as const, module: issue.module, detail: issue.message, timestamp: issue.createdAt, confidence: issue.severity === 'critical' ? 0.92 : issue.severity === 'warning' ? 0.8 : 0.66 })),
@@ -46,7 +47,7 @@ export function buildMachineResourceStudioReport(input: MRSInput): MRSReport {
     scoreCard('performance', 'Performance', scores?.performanceScore ?? null, 'Stored performance score.', pageCount),
     scoreCard('citation', 'Citation readiness', ai?.citationProbabilityScore ?? null, 'Stored citation probability score.', ai ? pageCount : 0),
     scoreCard('retrieval', 'Retrieval readiness', ai?.retrievalReadinessScore ?? null, 'Stored retrieval readiness score.', ai ? pageCount : 0),
-    scoreCard('trust', 'Machine trust', ai?.semanticTrustScore ?? null, 'Stored semantic trust score.', ai ? pageCount : 0),
+    scoreCard('trust', 'Machine trust', machineTrust?.overall ?? null, 'Stored Machine Trust score (entity credibility, schema alignment, external validation, contradiction absence, decay resistance).', machineTrust ? pageCount : 0),
   ];
   const available = scoreCards.map((item) => item.value).filter((value): value is number => value != null);
   const overallScore = scores?.overall ?? (available.length ? clamp(available.reduce((sum, value) => sum + value, 0) / available.length) : null);
@@ -69,6 +70,6 @@ export function buildMachineResourceStudioReport(input: MRSInput): MRSReport {
     issueDistribution: [{ label: 'Critical', value: critical, color: '#F87171' }, { label: 'Warning', value: warnings, color: '#FBBF24' }, { label: 'Info', value: infos, color: '#38BDF8' }],
     recommendations: [...input.issues].sort((a, b) => severityWeight[b.severity] - severityWeight[a.severity]).slice(0, 10).map(recommendationFor),
     evidence,
-    limitations: [ ...(pageCount ? [] : ['No crawl pages are stored for this audit.']), ...(input.issues.length ? [] : ['No issue records are stored for this audit.']), ...(ai ? [] : ['AI visibility scores are unavailable for this audit.']) ],
+    limitations: [ ...(pageCount ? [] : ['No crawl pages are stored for this audit.']), ...(input.issues.length ? [] : ['No issue records are stored for this audit.']), ...(ai ? [] : ['AI visibility scores are unavailable for this audit.']), ...(machineTrust ? [] : ['Machine Trust score is unavailable for this audit (Layer 4 analysis required).']) ],
   };
 }
