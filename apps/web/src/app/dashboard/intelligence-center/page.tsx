@@ -52,9 +52,9 @@ export default function IntelligenceCenterPage() {
 
         <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
           <StatCard icon={Activity} label="AI Visibility Score" value={aiVisibility ? String(Math.round(aiVisibility.aiVisibilityScore)) : '—'} />
-          <StatCard icon={Users} label="Visitors (30d)" value={isConnected ? String(data?.traffic?.totalVisitors ?? 0) : '—'} />
-          <StatCard icon={Activity} label="Sessions (30d)" value={isConnected ? String(data?.traffic?.totalSessions ?? 0) : '—'} />
-          <StatCard icon={Sparkles} label="AI Referral Sessions" value={isConnected ? String(data?.aiReferrals?.totalSessions ?? 0) : '—'} sub="Traffic from ChatGPT, Perplexity, Claude, Gemini…" />
+          <StatCard icon={Users} label="Visitors (30d)" value={isConnected && data?.ga4Available ? String(data?.traffic?.totalVisitors ?? 0) : '—'} />
+          <StatCard icon={Activity} label="Sessions (30d)" value={isConnected && data?.ga4Available ? String(data?.traffic?.totalSessions ?? 0) : '—'} />
+          <StatCard icon={Sparkles} label="AI Referral Sessions" value={isConnected && data?.ga4Available ? String(data?.aiReferrals?.totalSessions ?? 0) : '—'} sub="Traffic from ChatGPT, Perplexity, Claude, Gemini…" />
           <StatCard icon={MousePointerClick} label="Clicks (30d)" value={isConnected ? String(data?.search?.totalClicks ?? 0) : '—'} />
           <StatCard icon={Eye} label="Impressions (30d)" value={isConnected ? String(data?.search?.totalImpressions ?? 0) : '—'} />
           <StatCard icon={Search} label="Avg CTR" value={isConnected ? `${((data?.search?.avgCtr ?? 0) * 100).toFixed(1)}%` : '—'} />

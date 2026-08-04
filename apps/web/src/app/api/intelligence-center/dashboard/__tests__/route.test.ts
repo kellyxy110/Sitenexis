@@ -12,6 +12,7 @@ const h = vi.hoisted(() => ({
   getTopSearchPages: vi.fn(),
   getAggregatedSearchPageMetrics: vi.fn(),
   getAiVisibilityInsights: vi.fn(),
+  getLatestGoogleSyncLogForProvider: vi.fn(),
 }));
 
 vi.mock('@/lib/auth', () => ({
@@ -28,6 +29,7 @@ vi.mock('@sitenexis/db', () => ({
   getTopSearchPages: h.getTopSearchPages,
   getAggregatedSearchPageMetrics: h.getAggregatedSearchPageMetrics,
   getAiVisibilityInsights: h.getAiVisibilityInsights,
+  getLatestGoogleSyncLogForProvider: h.getLatestGoogleSyncLogForProvider,
 }));
 
 const { GET } = await import('../route');
@@ -47,6 +49,7 @@ beforeEach(() => {
   h.getTopSearchPages.mockResolvedValue([]);
   h.getAggregatedSearchPageMetrics.mockResolvedValue([]);
   h.getAiVisibilityInsights.mockResolvedValue([]);
+  h.getLatestGoogleSyncLogForProvider.mockResolvedValue(null);
 });
 
 describe('GET /api/intelligence-center/dashboard', () => {
@@ -133,5 +136,71 @@ describe('GET /api/intelligence-center/dashboard', () => {
     const json = await res.json();
     expect(json.insights).toHaveLength(1);
     expect(json.insights[0]).toMatchObject({ id: 'insight-1', type: 'high_impressions_low_ctr', affectedPage: '/blog/a' });
+  });
+
+  // "Unavailable ≠ Zero": GSC can have real data while GA4 has never
+  // successfully synced (e.g. the YYYYMMDD date-format defect). In that
+  // state daily=[] purely because GA4 never ran — not because Google
+  // measured zero traffic — so ga4Available must say so explicitly.
+  describe('ga4Available — unavailable vs. legitimate zero', () => {
+    const connectedBase = {
+      status: 'connected', ga4PropertyId: 'prop-1', gscSiteUrl: 'https://x.com/',
+      lastSyncedAt: new Date(), googleAccountEmail: 'a@gmail.com',
+    };
+
+    it('is false when GA4 has never been attempted (no sync log at all)', async () => {
+      h.getGoogleConnection.mockResolvedValue(connectedBase);
+      h.getSearchVisibilityMetrics.mockResolvedValue([{ date: new Date(), clicks: 0, impressions: 22, ctr: 0, avgPosition: 15.3 }]);
+      h.getLatestGoogleSyncLogForProvider.mockResolvedValue(null);
+
+      const res = await GET(req());
+      const json = await res.json();
+      expect(json.ga4Available).toBe(false);
+      expect(json.traffic.totalVisitors).toBe(0);
+      expect(json.search.totalImpressions).toBe(22);
+    });
+
+    it('is false when GA4\'s most recent sync attempt failed', async () => {
+      h.getGoogleConnection.mockResolvedValue(connectedBase);
+      h.getSearchVisibilityMetrics.mockResolvedValue([{ date: new Date(), clicks: 0, impressions: 22, ctr: 0, avgPosition: 15.3 }]);
+      h.getLatestGoogleSyncLogForProvider.mockResolvedValue({ provider: 'ga4', status: 'failed', errorMessage: 'Invalid startDate' });
+
+      const res = await GET(req());
+      const json = await res.json();
+      expect(json.ga4Available).toBe(false);
+    });
+
+    it('is true when GA4\'s most recent sync attempt succeeded, even if it returned zero rows', async () => {
+      h.getGoogleConnection.mockResolvedValue(connectedBase);
+      h.getDailyTrafficMetrics.mockResolvedValue([]); // Google genuinely returned nothing
+      h.getLatestGoogleSyncLogForProvider.mockResolvedValue({ provider: 'ga4', status: 'success', recordsSynced: 0 });
+      h.getSearchVisibilityMetrics.mockResolvedValue([{ date: new Date(), clicks: 0, impressions: 22, ctr: 0, avgPosition: 15.3 }]);
+
+      const res = await GET(req());
+      const json = await res.json();
+      expect(json.ga4Available).toBe(true);
+      expect(json.traffic.totalVisitors).toBe(0); // a legitimate, trustworthy zero
+    });
+
+    it('is true and reflects real numbers when GA4 has real synced data', async () => {
+      h.getGoogleConnection.mockResolvedValue(connectedBase);
+      h.getDailyTrafficMetrics.mockResolvedValue([{ date: new Date(), sessions: 100, activeUsers: 80 }]);
+      h.getLatestGoogleSyncLogForProvider.mockResolvedValue({ provider: 'ga4', status: 'success', recordsSynced: 12 });
+
+      const res = await GET(req());
+      const json = await res.json();
+      expect(json.ga4Available).toBe(true);
+      expect(json.traffic.totalVisitors).toBe(80);
+    });
+
+    it('never queries the GA4 sync log when the connection has no ga4PropertyId', async () => {
+      h.getGoogleConnection.mockResolvedValue({ ...connectedBase, ga4PropertyId: null });
+      h.getSearchVisibilityMetrics.mockResolvedValue([{ date: new Date(), clicks: 0, impressions: 22, ctr: 0, avgPosition: 15.3 }]);
+
+      const res = await GET(req());
+      const json = await res.json();
+      expect(h.getLatestGoogleSyncLogForProvider).not.toHaveBeenCalled();
+      expect(json.ga4Available).toBe(false);
+    });
   });
 });

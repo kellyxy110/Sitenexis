@@ -23,7 +23,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   const {
     getGoogleConnection, getDailyTrafficMetrics, getAcquisitionChannelMetrics, getAiReferralMetrics,
     getSearchVisibilityMetrics, getTopSearchQueries, getTopSearchPages, getAggregatedSearchPageMetrics,
-    getAiVisibilityInsights,
+    getAiVisibilityInsights, getLatestGoogleSyncLogForProvider,
   } = await import('@sitenexis/db');
 
   const connection = await getGoogleConnection(user.id);
@@ -45,7 +45,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   const from = daysAgo(RANGE_DAYS);
   const to = new Date();
 
-  const [daily, channels, aiReferrals, search, topQueries, topPages, insights] = await Promise.all([
+  const [daily, channels, aiReferrals, search, topQueries, topPages, insights, latestGa4Log] = await Promise.all([
     connection.ga4PropertyId ? getDailyTrafficMetrics(user.id, from, to) : Promise.resolve([]),
     connection.ga4PropertyId ? getAcquisitionChannelMetrics(user.id, from, to) : Promise.resolve([]),
     connection.ga4PropertyId ? getAiReferralMetrics(user.id, from, to) : Promise.resolve([]),
@@ -53,7 +53,13 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     connection.gscSiteUrl ? getTopSearchQueries(user.id, from, to, TOP_N) : Promise.resolve([]),
     connection.gscSiteUrl ? getTopSearchPages(user.id, from, to, TOP_N) : Promise.resolve([]),
     getAiVisibilityInsights(user.id, TOP_N * 2),
+    connection.ga4PropertyId ? getLatestGoogleSyncLogForProvider(user.id, 'ga4') : Promise.resolve(null),
   ]);
+
+  // GA4-derived totals must never render as a bare 0 unless GA4 itself last
+  // reported success — otherwise "sync has never succeeded" is visually
+  // indistinguishable from "Google confirmed zero traffic" (unavailable ≠ zero).
+  const ga4Available = latestGa4Log?.status === 'success';
 
   // ── No data yet — connected, but the daily cron hasn't produced rows (or has
   // run but genuinely found nothing, e.g. a brand-new GA4 property) ────────────
@@ -111,6 +117,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       gscSiteName: connection.gscSiteName,
       lastSyncedAt: connection.lastSyncedAt,
     },
+    ga4Available,
     traffic: { totalVisitors, totalSessions, dailySeries: daily.map((d) => ({ date: d.date, sessions: d.sessions, activeUsers: d.activeUsers })) },
     channels: [...channelTotals.entries()].map(([channelGroup, sessions]) => ({ channelGroup, sessions })).sort((a, b) => b.sessions - a.sessions),
     aiReferrals: { totalSessions: totalAiReferralSessions, bySource: aiReferrals.map((r) => ({ source: r.source, sessions: r.sessions, date: r.date })) },

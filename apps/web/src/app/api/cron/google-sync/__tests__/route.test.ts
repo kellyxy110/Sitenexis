@@ -97,4 +97,81 @@ describe('GET /api/cron/google-sync', () => {
     const json = await res.json();
     expect(json).toMatchObject({ totalConnections: 2, ga4Synced: 1, failures: 1 });
   });
+
+  // Regression coverage for the YYYYMMDD-vs-YYYY-MM-DD defect: GA4's Data API
+  // rejects dateRanges.startDate/endDate unless they are YYYY-MM-DD (or a
+  // relative keyword). The cron route previously passed a compact YYYYMMDD
+  // string (built for GA4's *response* date format, not its request format),
+  // which Google rejected outright before any report ever ran.
+  it('sends GA4 dateRanges as YYYY-MM-DD, never as compact YYYYMMDD', async () => {
+    h.getAllSyncableGoogleConnections.mockResolvedValue([
+      { id: 'conn-1', userId: 'user-1', ga4PropertyId: 'prop-1', gscSiteUrl: null },
+    ]);
+    await GET(req('Bearer test-cron-secret'));
+
+    expect(h.fetchGa4Metrics).toHaveBeenCalledTimes(1);
+    const [, , range] = h.fetchGa4Metrics.mock.calls[0]!;
+    expect(range.startDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(range.endDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(range.startDate).not.toMatch(/^\d{8}$/);
+    expect(range.endDate).not.toMatch(/^\d{8}$/);
+  });
+
+  it('sends GSC dateRanges as YYYY-MM-DD too, unaffected by the GA4 fix', async () => {
+    h.getAllSyncableGoogleConnections.mockResolvedValue([
+      { id: 'conn-1', userId: 'user-1', ga4PropertyId: null, gscSiteUrl: 'https://example.com/' },
+    ]);
+    await GET(req('Bearer test-cron-secret'));
+
+    expect(h.fetchGscMetrics).toHaveBeenCalledTimes(1);
+    const [, , range] = h.fetchGscMetrics.mock.calls[0]!;
+    expect(range.startDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(range.endDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it('a Search Console failure does not block that same user\'s GA4 sync', async () => {
+    h.getAllSyncableGoogleConnections.mockResolvedValue([
+      { id: 'conn-1', userId: 'user-1', ga4PropertyId: 'prop-1', gscSiteUrl: 'https://example.com/' },
+    ]);
+    h.fetchGscMetrics.mockRejectedValue(new Error('GSC API error'));
+    const res = await GET(req('Bearer test-cron-secret'));
+    const json = await res.json();
+    expect(json).toMatchObject({ ga4Synced: 1, gscSynced: 0, failures: 1 });
+    expect(h.fetchGa4Metrics).toHaveBeenCalled();
+  });
+
+  it('persists a successful GA4 response into all three GA4 tables', async () => {
+    h.getAllSyncableGoogleConnections.mockResolvedValue([
+      { id: 'conn-1', userId: 'user-1', ga4PropertyId: 'prop-1', gscSiteUrl: null },
+    ]);
+    const daily = [{ date: new Date('2026-07-31'), sessions: 5, activeUsers: 4, newUsers: 1, engagedSessions: 3, avgEngagementTimeSec: 12, keyEvents: 0, pageViews: 9, bounceRate: 0.2, deviceBreakdown: {}, countryBreakdown: {} }];
+    const channels = [{ date: new Date('2026-07-31'), channelGroup: 'Organic Search', source: 'google', sessions: 5, activeUsers: 4, isAiReferral: false }];
+    const landingPages = [{ date: new Date('2026-07-31'), pagePath: '/', sessions: 5, activeUsers: 4, avgEngagementTimeSec: 12, keyEvents: 0 }];
+    h.fetchGa4Metrics.mockResolvedValue({ daily, channels, landingPages });
+
+    const res = await GET(req('Bearer test-cron-secret'));
+    const json = await res.json();
+
+    expect(json).toMatchObject({ ga4Synced: 1, failures: 0 });
+    expect(h.upsertDailyTrafficMetrics).toHaveBeenCalledWith('user-1', daily);
+    expect(h.upsertAcquisitionChannelMetrics).toHaveBeenCalledWith('user-1', channels);
+    expect(h.upsertLandingPageMetrics).toHaveBeenCalledWith('user-1', landingPages);
+    expect(h.logGoogleSync).toHaveBeenCalledWith(expect.objectContaining({ provider: 'ga4', status: 'success', recordsSynced: 3 }));
+  });
+
+  it('never persists fabricated data for GA4 when the fetch fails — upserts are simply never called', async () => {
+    h.getAllSyncableGoogleConnections.mockResolvedValue([
+      { id: 'conn-1', userId: 'user-1', ga4PropertyId: 'prop-1', gscSiteUrl: null },
+    ]);
+    h.fetchGa4Metrics.mockRejectedValue(new Error('Invalid startDate : 20260731. startDate must be YYYY-MM-DD, NdaysAgo, yesterday, or today.'));
+
+    const res = await GET(req('Bearer test-cron-secret'));
+    const json = await res.json();
+
+    expect(json).toMatchObject({ ga4Synced: 0, failures: 1 });
+    expect(h.upsertDailyTrafficMetrics).not.toHaveBeenCalled();
+    expect(h.upsertAcquisitionChannelMetrics).not.toHaveBeenCalled();
+    expect(h.upsertLandingPageMetrics).not.toHaveBeenCalled();
+    expect(h.logGoogleSync).toHaveBeenCalledWith(expect.objectContaining({ provider: 'ga4', status: 'failed' }));
+  });
 });

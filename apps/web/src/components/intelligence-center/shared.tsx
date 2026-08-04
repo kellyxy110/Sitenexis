@@ -24,6 +24,8 @@ export interface DashboardData {
     lastSyncedAt?: string | null;
     lastError?: string | null;
   };
+  /** True only when GA4's most recent sync attempt succeeded — false/undefined means GA4-derived fields below are not yet trustworthy and must render as unavailable, never as 0 (unavailable ≠ zero). */
+  ga4Available?: boolean;
   traffic?: { totalVisitors: number; totalSessions: number; dailySeries?: Array<{ date: string; sessions: number; activeUsers: number }> };
   channels?: Array<{ channelGroup: string; sessions: number }>;
   aiReferrals?: { totalSessions: number };

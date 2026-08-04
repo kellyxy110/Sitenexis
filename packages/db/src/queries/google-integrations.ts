@@ -177,6 +177,11 @@ export async function getLatestGoogleSyncLogs(userId: string, limit = 10) {
   return db.googleSyncLog.findMany({ where: { userId }, orderBy: { createdAt: 'desc' }, take: limit });
 }
 
+/** Most recent sync attempt for one provider — used to distinguish "never successfully synced" from "synced and genuinely found zero" so dashboards never render unavailable data as a literal 0. */
+export async function getLatestGoogleSyncLogForProvider(userId: string, provider: GoogleSyncProvider) {
+  return db.googleSyncLog.findFirst({ where: { userId, provider }, orderBy: { createdAt: 'desc' } });
+}
+
 // ─── GA4 — daily traffic ──────────────────────────────────────────────────────
 
 export interface DailyTrafficRow {

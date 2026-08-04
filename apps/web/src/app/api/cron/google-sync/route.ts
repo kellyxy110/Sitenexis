@@ -14,9 +14,6 @@ const SYNC_WINDOW_DAYS = 3; // rolling window — re-upserts recent days to abso
 function isoDate(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
-function ga4Date(d: Date): string {
-  return isoDate(d).replace(/-/g, '');
-}
 
 /**
  * Daily GA4 + Search Console sync for every connected user. Vercel Cron-triggered
@@ -57,7 +54,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     if (conn.ga4PropertyId) {
       const startedAt = new Date();
       try {
-        const result = await fetchGa4Metrics(conn.ga4PropertyId, accessToken, { startDate: ga4Date(start), endDate: ga4Date(end) });
+        const result = await fetchGa4Metrics(conn.ga4PropertyId, accessToken, { startDate: isoDate(start), endDate: isoDate(end) });
         await Promise.all([
           upsertDailyTrafficMetrics(conn.userId, result.daily),
           upsertAcquisitionChannelMetrics(conn.userId, result.channels),

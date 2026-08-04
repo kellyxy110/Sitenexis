@@ -44,7 +44,10 @@ export function GA4GSCSummaryCard() {
     );
   }
 
-  const sessions = data?.traffic?.totalSessions ?? 0;
+  // GA4-derived sessions must never render as 0 unless GA4's last sync actually
+  // succeeded — otherwise "GA4 has never synced" reads identically to "Google
+  // confirmed zero sessions" (unavailable ≠ zero).
+  const sessions = data?.ga4Available ? String(data?.traffic?.totalSessions ?? 0) : '—';
   const clicks = data?.search?.totalClicks ?? 0;
 
   return (
