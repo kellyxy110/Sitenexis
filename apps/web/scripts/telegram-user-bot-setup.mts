@@ -61,8 +61,12 @@ const COMMANDS: Array<{ command: string; description: string }> = [
 ];
 
 const BOT_NAME_RECOMMENDATION = 'SiteNexis';
+// Telegram's setMyShortDescription hard-limits this to 120 characters and
+// rejects violations with the (unhelpfully-named) BOT_SHARETEXT_INVALID
+// error rather than a length-specific message. The previous 126-char value
+// with an ampersand tripped this. Keep this short, plain ASCII, no "&".
 const SHORT_DESCRIPTION =
-  'Your AI Visibility & Machine Trust Intelligence assistant. Audit any website, then track scores, issues, and fixes right here.';
+  'AI visibility, website audits, scores, issues, reports and Scout intelligence.';
 const FULL_DESCRIPTION =
   'SiteNexis models how AI systems like ChatGPT, Perplexity, Google AI Overviews, and Gemini retrieve, interpret, trust, and recommend your website — then gives you a prioritized plan to fix what is blocking that process.\n\n' +
   'Connect your SiteNexis account with /start, then run audits and read your scores, issues, and fix plan directly from this chat. Ask Scout, the AI-grounded Q&A assistant, anything about your latest audit.';
@@ -75,6 +79,12 @@ function assertValidCommands(): void {
     if (c.description.length === 0 || c.description.length > 256) {
       throw new Error(`Invalid description length for /${c.command}: ${c.description.length} chars (must be 1-256)`);
     }
+  }
+}
+
+function assertValidShortDescription(): void {
+  if (SHORT_DESCRIPTION.length === 0 || SHORT_DESCRIPTION.length > 120) {
+    throw new Error(`Invalid short description length: ${SHORT_DESCRIPTION.length} chars (must be 1-120 — Telegram rejects violations as BOT_SHARETEXT_INVALID)`);
   }
 }
 
@@ -94,6 +104,7 @@ async function callBotApi(token: string, method: string, body: Record<string, un
 
 async function main(): Promise<void> {
   assertValidCommands();
+  assertValidShortDescription();
 
   const apply = process.argv.includes('--apply');
   const token = process.env.TELEGRAM_USER_BOT_TOKEN;
