@@ -27,6 +27,7 @@ const h = vi.hoisted(() => ({
   deriveModuleAndProviderState: vi.fn(),
   getLatestUsableAuditForDomainOps: vi.fn(),
   getAuditById: vi.fn(),
+  getAuditIntelligenceReport: vi.fn(),
   getAuditScores: vi.fn(),
   getAIVisibilityScore: vi.fn(),
   getMachineTrustScore: vi.fn(),
@@ -47,6 +48,7 @@ vi.mock('@/lib/intelligence-report-v2-modules', () => ({ deriveModuleAndProvider
 vi.mock('@sitenexis/db', () => ({
   getLatestUsableAuditForDomainOps: h.getLatestUsableAuditForDomainOps,
   getAuditById: h.getAuditById,
+  getAuditIntelligenceReport: h.getAuditIntelligenceReport,
   getAuditScores: h.getAuditScores,
   getAIVisibilityScore: h.getAIVisibilityScore,
   getMachineTrustScore: h.getMachineTrustScore,
@@ -101,6 +103,7 @@ beforeEach(() => {
     { id: 'p1', url: 'https://truvyx.org/', statusCode: 200, isIndexable: true, robotsDirective: null, canonicalUrl: 'https://truvyx.org/', canonicalValidity: 'valid', h1: 'Welcome', schemaData: [{ '@type': 'Organization' }] },
   ]);
   h.getEntitiesByAudit.mockResolvedValue([{ name: 'Truvyx', sameAsUrls: ['https://en.wikipedia.org/wiki/Truvyx'] }]);
+  h.getAuditIntelligenceReport.mockResolvedValue(null);
   h.redisGet.mockResolvedValue(null);
 });
 

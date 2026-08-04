@@ -5,7 +5,45 @@ import { shouldSuppressDuplicate } from './dedup';
 import { isTelegramConfigured, sendTelegramMessage } from './telegram-provider';
 import type { OperationalEvent } from './types';
 
+/** &, <, > must be escaped in any user/crawl-sourced metadata field (domain, finding text) before HTML parse_mode. */
+function escapeHtml(value: string): string {
+  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function formatAuditCompleteMessage(event: OperationalEvent): string {
+  const m = event.metadata ?? {};
+  const domain = m.domain != null ? escapeHtml(String(m.domain)) : 'unknown domain';
+  const lines = ['✅ <b>SiteNexis Audit Complete</b>', '', `Domain: ${domain}`, `Status: ${escapeHtml(String(m.status ?? 'complete'))}`];
+
+  const scoreLine = (label: string, key: string) => {
+    const v = m[key];
+    if (v != null) lines.push(`${label}: ${v}/100`);
+  };
+  scoreLine('AI Visibility', 'aiVisibility');
+  scoreLine('Technical SEO', 'technicalSeo');
+  scoreLine('Machine Trust', 'machineTrust');
+
+  lines.push('');
+  lines.push(`Intelligence Report: ${m.reportStatus === 'ready' ? 'Ready' : 'Processing'}`);
+
+  if (m.priorityFinding != null) {
+    lines.push('');
+    lines.push(`Key priority: ${escapeHtml(String(m.priorityFinding))}`);
+  }
+  if (m.viewUrl != null) {
+    lines.push('');
+    lines.push(`View: ${String(m.viewUrl)}`);
+  }
+  lines.push('');
+  lines.push(`/audit ${domain}`);
+  lines.push(`/report ${domain}`);
+
+  return lines.join('\n');
+}
+
 function formatMessage(event: OperationalEvent): string {
+  if (event.type === 'AUDIT_COMPLETE') return formatAuditCompleteMessage(event);
+
   const decision = routeEvent(event);
   const icon = SEVERITY_ICON[decision.severity];
   const lines = [`${icon} <b>${event.type.replace(/_/g, ' ')}</b>`, event.summary];

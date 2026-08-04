@@ -26,3 +26,5 @@ export * from './queries/machine-trust-security';
 export * from './queries/browser-agent-probe';
 export * from './queries/ai-governance';
 export * from './queries/redlab';
+export * from './queries/audit-intelligence-report';
+export * from './queries/telegram-connections';

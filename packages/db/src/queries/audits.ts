@@ -316,6 +316,59 @@ export async function getLatestUsableAuditForDomainOps(domain: string): Promise<
   return { audit: null, isPartial: false, latestAny };
 }
 
+/**
+ * User-scoped counterpart to `getLatestUsableAuditForDomainOps` — identical
+ * "prefer complete, fall back to partial, never surface queued/running/
+ * failed" semantics, but additionally filtered by `userId` so one Telegram
+ * user can never resolve another user's audit for the same domain string.
+ * Used by the Telegram User Assistant's canonical intelligence commands
+ * (/scores, /issues, /fixplan, /report, etc.) — unlike the Ops variant,
+ * which is intentionally cross-user for admin tooling.
+ */
+export async function getLatestUsableAuditForDomainAndUser(domain: string, userId: string): Promise<DomainAuditLookupResult> {
+  const [completed, partial, latestAny] = await Promise.all([
+    db.audit.findFirst({
+      where: { domain, userId, archivedAt: null, isDemo: false, status: 'complete' },
+      orderBy: { completedAt: 'desc' },
+      select: DOMAIN_AUDIT_SELECT,
+    }),
+    db.audit.findFirst({
+      where: { domain, userId, archivedAt: null, isDemo: false, status: 'partial' },
+      orderBy: { updatedAt: 'desc' },
+      select: DOMAIN_AUDIT_SELECT,
+    }),
+    db.audit.findFirst({
+      where: { domain, userId, archivedAt: null, isDemo: false },
+      orderBy: { createdAt: 'desc' },
+      select: { status: true, createdAt: true },
+    }),
+  ]);
+  if (completed) return { audit: completed, isPartial: false, latestAny };
+  if (partial) return { audit: partial, isPartial: true, latestAny };
+  return { audit: null, isPartial: false, latestAny };
+}
+
+export interface CompletedAuditRef {
+  id: string;
+  completedAt: Date;
+}
+
+/**
+ * The latest two 'complete' audits for a user-owned domain, newest first —
+ * the exact input /compare needs. Never includes 'partial' audits: a
+ * meaningful score comparison requires two audits that both ran to full
+ * completion, not one full and one degraded run.
+ */
+export async function getLatestTwoCompleteAuditsForDomainAndUser(domain: string, userId: string): Promise<CompletedAuditRef[]> {
+  const rows = await db.audit.findMany({
+    where: { domain, userId, status: 'complete', archivedAt: null, completedAt: { not: null } },
+    orderBy: { completedAt: 'desc' },
+    take: 2,
+    select: { id: true, completedAt: true },
+  });
+  return rows.map((r) => ({ id: r.id, completedAt: r.completedAt as Date }));
+}
+
 export async function countAuditsThisMonth(userId: string): Promise<number> {
   const start = new Date();
   start.setDate(1);

@@ -5,6 +5,7 @@ import type { OperationalEvent, OperationalEventType, OperationalEventSeverity, 
  * decisions live. Pure: same event type always routes the same way.
  */
 const POLICY: Record<OperationalEventType, RoutingDecision> = {
+  AUDIT_COMPLETE:          { severity: 'info',     shouldNotify: true, dedupeWindowSeconds: 300 },
   AUDIT_FAILED:            { severity: 'critical', shouldNotify: true, dedupeWindowSeconds: 300 },
   AUDIT_PARTIAL:           { severity: 'warning',  shouldNotify: true, dedupeWindowSeconds: 900 },
   AUDIT_STALLED:           { severity: 'warning',  shouldNotify: true, dedupeWindowSeconds: 900 },

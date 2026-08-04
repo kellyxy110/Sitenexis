@@ -1,21 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { NextRequest } from 'next/server';
 
-// importOriginal pulls in the real @sitenexis/analyzers barrel — under
-// full-suite parallel load that alone can exceed the default 5s test timeout.
-vi.setConfig({ testTimeout: 20_000 });
-
 const h = vi.hoisted(() => ({
   requireAuth: vi.fn(),
-  getAuditWithResults: vi.fn(),
-  getIssuesByAudit: vi.fn(),
-  getMachineTrustScore: vi.fn(),
-  getTemporalAuthorityRecord: vi.fn(),
-  getRetrievalSimulations: vi.fn(),
-  getRecommendationSurfaceMap: vi.fn(),
-  executiveSummaryPrompt: vi.fn(),
-  routeTask: vi.fn(),
-  callAI: vi.fn(),
+  getAuditById: vi.fn(),
+  getExecutiveSummary: vi.fn(),
 }));
 
 vi.mock('@/lib/auth', () => ({
@@ -23,27 +12,8 @@ vi.mock('@/lib/auth', () => ({
   unauthorizedResponse: () => new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 }),
 }));
 vi.mock('@/lib/logger', () => ({ logger: { warn: vi.fn(), error: vi.fn(), info: vi.fn() } }));
-vi.mock('@sitenexis/crawler', () => ({
-  createRedisClient: () => ({ get: async () => null, set: async () => {} }),
-  getRedisUrl: () => null,
-}));
-vi.mock('@sitenexis/db', () => ({
-  getAuditWithResults: h.getAuditWithResults,
-  getIssuesByAudit: h.getIssuesByAudit,
-  getMachineTrustScore: h.getMachineTrustScore,
-  getTemporalAuthorityRecord: h.getTemporalAuthorityRecord,
-  getRetrievalSimulations: h.getRetrievalSimulations,
-  getRecommendationSurfaceMap: h.getRecommendationSurfaceMap,
-}));
-vi.mock('@sitenexis/analyzers', async (importOriginal) => {
-  const actual = await importOriginal<Record<string, unknown>>();
-  return {
-    ...actual,
-    executiveSummaryPrompt: h.executiveSummaryPrompt,
-    routeTask: h.routeTask,
-    callAI: h.callAI,
-  };
-});
+vi.mock('@sitenexis/db', () => ({ getAuditById: h.getAuditById }));
+vi.mock('@/lib/audit-intelligence/executive-summary-service', () => ({ getExecutiveSummary: h.getExecutiveSummary }));
 
 const { GET } = await import('../route');
 
@@ -52,47 +22,61 @@ function req(): NextRequest {
 }
 const params = { params: Promise.resolve({ id: 'audit-1' }) };
 
-function issue(overrides: Record<string, unknown>): Record<string, unknown> {
-  return {
-    id: 'issue-1', auditId: 'audit-1', pageId: null, pageUrl: null,
-    module: 'seo', type: 'title_too_long', severity: 'warning',
-    message: 'Title is too long', recommendation: 'Shorten the title to under 70 characters.',
-    problem: null, solution: null,
-    ...overrides,
-  };
-}
-
 beforeEach(() => {
   vi.clearAllMocks();
   h.requireAuth.mockResolvedValue({ id: 'user-1', email: 'a@b.com' });
-  h.getAuditWithResults.mockResolvedValue({
-    userId: 'user-1', status: 'complete', domain: 'example.com', pageCount: 10,
-    scores: { seoScore: 80, aiScore: 70, overall: 75 },
-    aiVisibilityScores: { aiVisibilityScore: 70, entityConfidenceScore: 60, citationProbabilityScore: 65, machineReadabilityScore: 75, semanticTrustScore: 68 },
-    entities: [],
-  });
-  h.getMachineTrustScore.mockResolvedValue(null);
-  h.getTemporalAuthorityRecord.mockResolvedValue(null);
-  h.getRetrievalSimulations.mockResolvedValue([]);
-  h.getRecommendationSurfaceMap.mockResolvedValue(null);
-  h.executiveSummaryPrompt.mockReturnValue('PROMPT');
-  h.routeTask.mockResolvedValue({ headline: 'ok' });
+  h.getAuditById.mockResolvedValue({ id: 'audit-1', userId: 'user-1', domain: 'example.com', status: 'complete' });
 });
 
-describe('GET /api/audit/[id]/executive-summary — issue dedup wiring', () => {
-  it('feeds the AI prompt a deduplicated, page-annotated topIssues list, not raw per-page rows', async () => {
-    h.getIssuesByAudit.mockResolvedValueOnce([
-      issue({ id: 'i1', pageUrl: 'https://x.com/a', message: 'Title is 101 chars (max 70)' }),
-      issue({ id: 'i2', pageUrl: 'https://x.com/b', message: 'Title is 89 chars (max 70)' }),
-      issue({ id: 'i3', pageUrl: 'https://x.com/c', message: 'Title is 79 chars (max 70)' }),
-    ]);
+describe('GET /api/audit/[id]/executive-summary — read-only contract', () => {
+  it('401 when unauthenticated', async () => {
+    h.requireAuth.mockRejectedValueOnce(new Error('no'));
+    const res = await GET(req(), params);
+    expect(res.status).toBe(401);
+  });
+
+  it('returns an empty GTL state when the audit does not exist', async () => {
+    h.getAuditById.mockResolvedValue(null);
+    const res = await GET(req(), params);
+    const json = await res.json();
+    expect(json.state).toBe('empty');
+    expect(h.getExecutiveSummary).not.toHaveBeenCalled();
+  });
+
+  it('403 when the audit belongs to another user', async () => {
+    h.getAuditById.mockResolvedValue({ id: 'audit-1', userId: 'someone-else', domain: 'example.com', status: 'complete' });
+    const res = await GET(req(), params);
+    expect(res.status).toBe(403);
+    expect(h.getExecutiveSummary).not.toHaveBeenCalled();
+  });
+
+  it('returns the persisted canonical summary when available, calling the exact same read function Telegram uses', async () => {
+    h.getExecutiveSummary.mockResolvedValue({ state: 'complete', data: { auditId: 'audit-1', modelVersion: 'v1.0', domain: 'example.com', composite_score: 8.1, composite_label: 'Good' } });
 
     const res = await GET(req(), params);
-    expect(res.status).toBe(200);
+    const json = await res.json();
 
-    expect(h.executiveSummaryPrompt).toHaveBeenCalledTimes(1);
-    const context = h.executiveSummaryPrompt.mock.calls[0][0] as { topIssues: Array<{ message: string }> };
-    expect(context.topIssues).toHaveLength(1);
-    expect(context.topIssues[0]!.message).toContain('affects 3 pages');
+    expect(res.status).toBe(200);
+    expect(h.getExecutiveSummary).toHaveBeenCalledWith('audit-1');
+    expect(json.data.composite_score).toBe(8.1);
+  });
+
+  it('returns a truthful "processing" state instead of an error when nothing has been generated yet — never generates itself', async () => {
+    h.getExecutiveSummary.mockResolvedValue({ state: 'complete', data: null });
+
+    const res = await GET(req(), params);
+    const json = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(json.data.reportStatus).toBe('processing');
+  });
+
+  it('returns empty when the read service reports the audit as gone (defensive double-check)', async () => {
+    h.getExecutiveSummary.mockResolvedValue(null);
+
+    const res = await GET(req(), params);
+    const json = await res.json();
+
+    expect(json.state).toBe('empty');
   });
 });

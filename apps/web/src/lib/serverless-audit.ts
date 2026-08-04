@@ -1003,31 +1003,34 @@ async function mapWithConcurrency<T>(items: T[], concurrency: number, worker: (i
 }
 
 /**
- * Pre-warms the executive-summary/narrative-report Redis caches right after
- * an audit finishes, so the first viewer — dashboard or Telegram's /audit
- * and /report commands — sees a populated report instead of "not currently
- * available". This calls the exact same canonical generation path those
- * surfaces already use (same cache keys), just proactively instead of
- * lazily on first request — it is not a second report generator. Never
- * throws: a failure here must never affect the audit result, which has
- * already been persisted as 'complete'/'partial' by the time this runs.
+ * Generates and durably persists the canonical Intelligence Report right
+ * after an audit finishes — this is the ONE place generation happens (aside
+ * from the explicit, separately-authorized regeneration route). Dashboard,
+ * Telegram, and any future consumer all read the row this writes; none of
+ * them generate on their own. Idempotent (see `claimReportGeneration`), so a
+ * retry of this whole function, a redeploy mid-run, or a concurrent trigger
+ * can never produce two generations for the same audit. Never throws: a
+ * failure here must never affect the audit result, which has already been
+ * persisted as 'complete'/'partial' by the time this runs.
  */
-export async function warmReportCaches(auditId: string, domain: string): Promise<void> {
+export async function warmReportCaches(auditId: string, domain: string): Promise<'ready' | 'partial' | 'failed' | 'skipped' | 'error'> {
   try {
-    const [{ getExecutiveSummary }, { getNarrativeReport }] = await Promise.all([
-      import('@/lib/audit-intelligence/executive-summary-service'),
-      import('@/lib/audit-intelligence/narrative-report-service'),
-    ]);
-    await Promise.allSettled([getExecutiveSummary(auditId), getNarrativeReport(auditId)]);
+    const { generateAndPersistIntelligenceReport } = await import('@/lib/audit-intelligence/report-generation-service');
+    const result = await generateAndPersistIntelligenceReport(auditId);
+    if (result.status === 'failed') {
+      logger.warn({ auditId, domain }, 'Post-audit Intelligence Report generation failed (non-fatal — audit result unaffected)');
+    }
+    return result.status;
   } catch (warmErr) {
-    logger.warn({ auditId, domain, err: warmErr }, 'Post-audit report cache warm failed (non-fatal)');
+    logger.warn({ auditId, domain, err: warmErr }, 'Post-audit Intelligence Report generation failed (non-fatal)');
+    return 'error';
   }
 }
 
 export async function runServerlessAudit(
   auditId: string,
   domain: string,
-  _userId: string,
+  userId: string,
   selfAuditRunId?: string,
 ): Promise<void> {
   const { updateAuditStatus, updateAuditAgentState, db } = await import('@sitenexis/db');
@@ -1045,6 +1048,9 @@ export async function runServerlessAudit(
       occurredAt: new Date().toISOString(),
       metadata: { auditId, domain },
     });
+    void import('@/lib/telegram-user/audit-notifications')
+      .then(({ notifyTelegramUserAuditResult }) => notifyTelegramUserAuditResult(userId, domain, 'partial', auditId))
+      .catch((err) => logger.warn({ err, auditId, domain }, 'Telegram user notification failed (non-fatal)'));
   }, LIVE_AUDIT_BUDGET_MS);
   const stopIfBudgetExpired = (): void => {
     if (budgetExpired) throw new Error('LIVE_AUDIT_BUDGET_EXCEEDED');
@@ -1954,7 +1960,32 @@ export async function runServerlessAudit(
     clearTimeout(budgetTimer);
     await updateAuditStatus(auditId, finalStatus, { pageCount: pages.length });
 
-    await warmReportCaches(auditId, domain);
+    const reportGenerationStatus = await warmReportCaches(auditId, domain);
+
+    if (finalStatus === 'complete') {
+      try {
+        const { env } = await import('@/lib/env');
+        void notifyOps({
+          type: 'AUDIT_COMPLETE',
+          summary: `Audit for ${domain} completed.`,
+          dedupeKey: `audit-complete:${auditId}`,
+          occurredAt: new Date().toISOString(),
+          metadata: {
+            auditId,
+            domain,
+            status: finalStatus,
+            aiVisibility: Math.round(aiScores.aiScore),
+            technicalSeo: Math.round(seoScore),
+            machineTrust: Math.round(machineTrustData.overall),
+            reportStatus: reportGenerationStatus === 'ready' || reportGenerationStatus === 'partial' ? 'ready' : 'processing',
+            viewUrl: `${env.NEXT_PUBLIC_APP_URL}/audit/${domain}`,
+          },
+        });
+      } catch (notifyErr) {
+        logger.warn({ auditId, domain, err: notifyErr }, 'AUDIT_COMPLETE notification failed (non-fatal)');
+      }
+    }
+
     if (finalStatus === 'partial') {
       void notifyOps({
         type: 'AUDIT_PARTIAL',
@@ -1964,6 +1995,14 @@ export async function runServerlessAudit(
         metadata: { auditId, domain },
       });
     }
+
+    try {
+      const { notifyTelegramUserAuditResult } = await import('@/lib/telegram-user/audit-notifications');
+      await notifyTelegramUserAuditResult(userId, domain, finalStatus, auditId);
+    } catch (telegramErr) {
+      logger.warn({ auditId, domain, err: telegramErr }, 'Telegram user notification failed (non-fatal)');
+    }
+
     perf.emitSummary(auditId, domain, Date.now() - startedAt);
     logger.info({ auditId, domain, pages: pages.length, overall, finalStatus }, 'Serverless audit finished');
 
@@ -1989,5 +2028,11 @@ export async function runServerlessAudit(
       occurredAt: new Date().toISOString(),
       metadata: { auditId, domain },
     });
+    try {
+      const { notifyTelegramUserAuditResult } = await import('@/lib/telegram-user/audit-notifications');
+      await notifyTelegramUserAuditResult(userId, domain, 'failed', auditId);
+    } catch (telegramErr) {
+      logger.warn({ auditId, domain, err: telegramErr }, 'Telegram user notification failed (non-fatal)');
+    }
   }
 }

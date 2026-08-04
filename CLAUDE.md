@@ -1725,6 +1725,22 @@ PRs must pass: `typecheck` + `lint` + `pnpm test`. Main branch protected.
 | Uncertainty decomposition over confidence labels | Named uncertainty sources with interval contributions are actionable; confidence labels hide what is unknown and why |
 | Simulation compressed to four output primitives | Position / Trajectory / Displacement / Decision covers the full decision surface; internal model complexity is queryable but not exposed by default |
 | Tradeoff engine as first-class output | Opportunity cost of action sequencing is as important as the action itself; users need to know what they give up, not just what they gain |
+| Conversational Scout confined to `packages/analyzers` | The AI-calling boundary (`answerScoutQuestion` / `scoutChatPrompt` in `packages/analyzers/src/ai/`) must stay canonical and reusable; Telegram (`apps/web/src/lib/telegram-user/scout-command.ts`) is orchestration/delivery only — it assembles context and renders output, it never reasons or calls an AI client directly |
+| Deterministic Scout and conversational Scout stay separate systems | `runScoutAnalysis` (query-intent classification, `packages/analyzers/src/intent/engine.ts`, run once per audit via `packages/agents/src/scout-agent.ts`) is unrelated machinery to the conversational Q&A Scout added for the Telegram User Assistant; the deterministic result is consumed only as one more grounding input (`scoutIntent` field on `ScoutChatContext`) — the two are never merged into one engine, and no second conversational-AI implementation may be created elsewhere |
+
+### Known Technical Debt
+
+**Concurrent dynamic imports of the same mocked module are unreliable under Vitest — and the same code path is fragile in production, just without a visible symptom.**
+
+Any function that internally does `await import('@sitenexis/db')` (or any other workspace package) and is itself invoked from inside a `Promise.all([...])` alongside sibling calls doing the same internal dynamic import will, under Vitest's `vi.mock` module interception, sometimes resolve with an incomplete/stale module binding — a destructured export comes back `undefined`, the call silently returns `null`/falls through a guard clause, or the whole `Promise.all` hangs until the timeout. This is not a flaky-test artifact particular to the test runner; it is the same race that would exist against the real dynamic import machinery in production, just without an assertion to catch the wrong (early/incomplete) resolution there.
+
+Found and fixed twice so far, both in the Telegram User Assistant, both via the same fix:
+- `/compare` (T4) — two concurrent `getAuditScorecard()` calls, each doing its own internal `await import('@sitenexis/db')`, raced under `Promise.all`.
+- `/scout` (T5) — six concurrent canonical service calls (`getAuditScorecard`, `getAuditIssueSummary`, `getAuditFixPlan`, `getAuditEvidenceSummary`, `getExecutiveSummary`, `getScoutAnalysis`), each independently importing `@sitenexis/db` internally, raced the same way.
+
+**Standing rule until this is properly fixed:** any new code that fans out multiple calls to functions with their own internal `await import(...)` of a workspace package MUST await them sequentially, not via `Promise.all`. Do not rediscover this the hard way — before adding new concurrent fan-out, check whether the callees do their own internal dynamic import of a workspace package.
+
+**Root cause is not yet fixed.** The dynamic-import-per-call pattern itself (used throughout `apps/web/src/lib/audit-intelligence/*` and several `packages/db` query modules, to defer pulling in `@sitenexis/db` until the function actually runs) is the source of the fragility. A proper fix would hoist these to static imports or memoize the dynamic import per module — but that touches every file in `audit-intelligence/` plus several DB query modules, is unrelated to any single feature's scope, and carries real regression risk across the T1–T5 zero-LLM / user-isolation guarantees those files already prove. Do not attempt this refactor opportunistically inside a feature phase unless it is directly blocking production readiness — track it as standalone technical debt instead.
 
 ---
 

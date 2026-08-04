@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import type { ResponseCookie } from 'next/dist/compiled/@edge-runtime/cookies';
 
-const PROTECTED_PATHS = ['/dashboard', '/audit', '/api/audit', '/api/audits', '/api/usage'];
+const PROTECTED_PATHS = ['/dashboard', '/audit', '/api/audit', '/api/audits', '/api/usage', '/link-telegram', '/api/telegram-user'];
 
 // Public paths that never need auth checks (avoids unnecessary Supabase calls)
 const PUBLIC_PATHS = [

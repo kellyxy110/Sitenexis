@@ -86,3 +86,60 @@ describe('notifyOps', () => {
     expect(h.sendTelegramMessage).toHaveBeenCalledWith('123456789', expect.stringContaining('extra context here'));
   });
 });
+
+describe('notifyOps — AUDIT_COMPLETE rich formatting', () => {
+  function completeEvent(metadata: Record<string, string | number | boolean | null>): OperationalEvent {
+    return {
+      type: 'AUDIT_COMPLETE',
+      summary: 'Audit for example.com completed.',
+      dedupeKey: 'audit-complete:a1',
+      occurredAt: new Date().toISOString(),
+      metadata,
+    };
+  }
+
+  it('renders domain, status, and real scores', async () => {
+    await notifyOps(completeEvent({ domain: 'truvyx.org', status: 'complete', aiVisibility: 87, technicalSeo: 98, machineTrust: 39, reportStatus: 'ready' }));
+
+    const [, text] = h.sendTelegramMessage.mock.calls[0]!;
+    expect(text).toContain('truvyx.org');
+    expect(text).toContain('AI Visibility: 87/100');
+    expect(text).toContain('Technical SEO: 98/100');
+    expect(text).toContain('Machine Trust: 39/100');
+  });
+
+  it('shows "Ready" when the report generated, "Processing" when it has not', async () => {
+    await notifyOps(completeEvent({ domain: 'truvyx.org', status: 'complete', reportStatus: 'ready' }));
+    expect(h.sendTelegramMessage.mock.calls[0]![1]).toContain('Intelligence Report: Ready');
+
+    vi.clearAllMocks();
+    h.shouldSuppressDuplicate.mockResolvedValue(false);
+    h.sendTelegramMessage.mockResolvedValue(true);
+    await notifyOps(completeEvent({ domain: 'truvyx.org', status: 'complete', reportStatus: 'processing' }));
+    expect(h.sendTelegramMessage.mock.calls[0]![1]).toContain('Intelligence Report: Processing');
+  });
+
+  it('never fabricates an executive assessment when the report is still processing', async () => {
+    await notifyOps(completeEvent({ domain: 'truvyx.org', status: 'complete', reportStatus: 'processing' }));
+
+    const text = h.sendTelegramMessage.mock.calls[0]![1] as string;
+    expect(text).not.toContain('Executive Assessment');
+  });
+
+  it('HTML-escapes a domain value before it reaches Telegram', async () => {
+    await notifyOps(completeEvent({ domain: 'evil<script>&.com', status: 'complete', reportStatus: 'ready' }));
+
+    const text = h.sendTelegramMessage.mock.calls[0]![1] as string;
+    expect(text).not.toContain('<script>');
+    expect(text).toContain('evil&lt;script&gt;&amp;.com');
+  });
+
+  it('includes the view URL and follow-up commands when provided', async () => {
+    await notifyOps(completeEvent({ domain: 'truvyx.org', status: 'complete', reportStatus: 'ready', viewUrl: 'https://sitenexis.vercel.app/audit/truvyx.org' }));
+
+    const text = h.sendTelegramMessage.mock.calls[0]![1] as string;
+    expect(text).toContain('https://sitenexis.vercel.app/audit/truvyx.org');
+    expect(text).toContain('/audit truvyx.org');
+    expect(text).toContain('/report truvyx.org');
+  });
+});

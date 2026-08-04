@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const h = vi.hoisted(() => ({
   getAuditById: vi.fn(),
+  getAuditIntelligenceReport: vi.fn(),
   getRedisUrl: vi.fn(),
   redisGet: vi.fn(),
   routeTask: vi.fn(),
@@ -9,7 +10,7 @@ const h = vi.hoisted(() => ({
   executiveSummaryPrompt: vi.fn(),
 }));
 
-vi.mock('@sitenexis/db', () => ({ getAuditById: h.getAuditById }));
+vi.mock('@sitenexis/db', () => ({ getAuditById: h.getAuditById, getAuditIntelligenceReport: h.getAuditIntelligenceReport }));
 vi.mock('@sitenexis/crawler', () => ({
   getRedisUrl: h.getRedisUrl,
   createRedisClient: () => ({ get: h.redisGet }),
@@ -27,22 +28,39 @@ const { getExecutiveSummary } = await import('../executive-summary-service');
 beforeEach(() => {
   vi.clearAllMocks();
   h.getRedisUrl.mockReturnValue('redis://localhost:6379');
+  h.getAuditIntelligenceReport.mockResolvedValue(null);
 });
 
 describe('getExecutiveSummary — read-only / cost-isolation boundary', () => {
-  it('returns null when the audit does not exist, without touching Redis or any AI module', async () => {
+  it('returns null when the audit does not exist, without touching Redis, the DB report table, or any AI module', async () => {
     h.getAuditById.mockResolvedValue(null);
 
     const result = await getExecutiveSummary('missing-audit');
 
     expect(result).toBeNull();
+    expect(h.getAuditIntelligenceReport).not.toHaveBeenCalled();
     expect(h.redisGet).not.toHaveBeenCalled();
     expect(h.routeTask).not.toHaveBeenCalled();
     expect(h.callAI).not.toHaveBeenCalled();
   });
 
-  it('returns the cached prose on a cache hit, verbatim, with no AI call', async () => {
+  it('prefers the persisted canonical report over Redis when both exist', async () => {
     h.getAuditById.mockResolvedValue({ id: 'a1', domain: 'truvyx.org', status: 'complete' });
+    const persisted = { auditId: 'a1', modelVersion: 'v1.0', domain: 'truvyx.org', composite_score: 8.7, composite_label: 'Strong', overall_verdict: 'From DB.', sections: [], top_recommendations: [], audit_date: '2026-08-01', benchmark_statement: '', trajectory: '' };
+    h.getAuditIntelligenceReport.mockResolvedValue({ executiveSummary: persisted });
+    h.redisGet.mockResolvedValue(JSON.stringify({ ...persisted, overall_verdict: 'From Redis — should never be used.' }));
+
+    const result = await getExecutiveSummary('a1');
+
+    expect(result?.data).toEqual(persisted);
+    expect(h.redisGet).not.toHaveBeenCalled();
+    expect(h.routeTask).not.toHaveBeenCalled();
+    expect(h.callAI).not.toHaveBeenCalled();
+  });
+
+  it('falls back to the legacy Redis cache when no persisted row exists', async () => {
+    h.getAuditById.mockResolvedValue({ id: 'a1', domain: 'truvyx.org', status: 'complete' });
+    h.getAuditIntelligenceReport.mockResolvedValue(null);
     const cached = { auditId: 'a1', modelVersion: 'v1.0', domain: 'truvyx.org', composite_score: 8.7, composite_label: 'Strong', overall_verdict: 'Strong.', sections: [], top_recommendations: [], audit_date: '2026-08-01', benchmark_statement: '', trajectory: '' };
     h.redisGet.mockResolvedValue(JSON.stringify(cached));
 
@@ -55,8 +73,9 @@ describe('getExecutiveSummary — read-only / cost-isolation boundary', () => {
     expect(h.executiveSummaryPrompt).not.toHaveBeenCalled();
   });
 
-  it('on a cache miss, returns data: null and NEVER calls routeTask or callAI — this is the non-negotiable guarantee', async () => {
+  it('when neither the persisted row nor Redis has it, returns data: null and NEVER calls routeTask or callAI — the non-negotiable guarantee', async () => {
     h.getAuditById.mockResolvedValue({ id: 'a1', domain: 'truvyx.org', status: 'complete' });
+    h.getAuditIntelligenceReport.mockResolvedValue(null);
     h.redisGet.mockResolvedValue(null);
 
     const result = await getExecutiveSummary('a1');
@@ -68,7 +87,18 @@ describe('getExecutiveSummary — read-only / cost-isolation boundary', () => {
     expect(h.executiveSummaryPrompt).not.toHaveBeenCalled();
   });
 
-  it('on a cache miss with Redis entirely unavailable, still returns data: null without ever attempting generation', async () => {
+  it('treats a DB lookup failure as "not persisted" and still falls back to Redis rather than throwing', async () => {
+    h.getAuditById.mockResolvedValue({ id: 'a1', domain: 'truvyx.org', status: 'complete' });
+    h.getAuditIntelligenceReport.mockRejectedValue(new Error('db unreachable'));
+    const cached = { auditId: 'a1', modelVersion: 'v1.0', domain: 'truvyx.org', composite_score: 8.7, composite_label: 'Strong', overall_verdict: 'Strong.', sections: [], top_recommendations: [], audit_date: '2026-08-01', benchmark_statement: '', trajectory: '' };
+    h.redisGet.mockResolvedValue(JSON.stringify(cached));
+
+    const result = await getExecutiveSummary('a1');
+
+    expect(result?.data).toEqual(cached);
+  });
+
+  it('on total cache miss with Redis entirely unavailable, still returns data: null without ever attempting generation', async () => {
     h.getAuditById.mockResolvedValue({ id: 'a1', domain: 'truvyx.org', status: 'complete' });
     h.getRedisUrl.mockReturnValue(undefined);
 

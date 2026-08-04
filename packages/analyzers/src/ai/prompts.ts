@@ -671,6 +671,126 @@ Return this exact JSON structure:
 }`;
 }
 
+// ─── Prompt 10: Scout — conversational grounded Q&A ───────────────────────────
+
+/**
+ * Scout is the only conversational (free-text question) AI surface in the
+ * Telegram User Assistant. Every other Telegram intelligence command is a
+ * zero-LLM read of already-computed canonical data. Scout answers a
+ * user's specific question by grounding strictly in that same canonical
+ * data — it never runs its own crawl, scoring, or retrieval, and it must
+ * never invent a score, URL, finding, or recommendation that isn't present
+ * in the supplied context.
+ *
+ * Token budget: ~1500 input, ~700 output.
+ */
+
+export interface ScoutChatContext {
+  domain: string;
+  auditStatus: string;
+  isPartialAudit: boolean;
+  scores: {
+    aiVisibility: number | null;
+    machineReadability: number | null;
+    entityConfidence: number | null;
+    retrievalReadiness: number | null;
+    citationProbability: number | null;
+    semanticTrust: number | null;
+    machineTrustOverall: number | null;
+    machineTrustEntityCredibility: number | null;
+    machineTrustSchemaAlignment: number | null;
+    machineTrustExternalValidation: number | null;
+    machineTrustContradictionAbsence: number | null;
+    technicalSeoOverall: number | null;
+    schemaScore: number | null;
+    linkGraphScore: number | null;
+    performanceScore: number | null;
+  };
+  topCriticalIssues: string[];
+  topWarningIssues: string[];
+  fixPlanTopItems: Array<{ priority: string; message: string; recommendation: string }>;
+  evidence: {
+    pageCount: number;
+    primaryEntityName: string | null;
+    entityCount: number;
+    sameAsLinksCount: number;
+    pagesWithSchema: number;
+    pagesWithoutSchema: number;
+    distinctSchemaTypes: string[];
+    indexablePages: number;
+    nonIndexablePages: number;
+  } | null;
+  executiveVerdict: string | null;
+  scoutIntent: {
+    state: string;
+    dominantIntent: string | null;
+    intentCoverageScore: number | null;
+    intentAlignmentScore: number | null;
+  } | null;
+}
+
+export interface ScoutChatOutput {
+  answer: string;
+  observedEvidence: string[];
+  derivedIntelligence: string[];
+  interpretation: string;
+  evidenceAvailable: boolean;
+}
+
+export const SCOUT_CHAT_SYSTEM_PROMPT =
+  'You are Scout, a grounded Q&A assistant inside the SiteNexis AI Retrieval and Machine Trust Intelligence platform. ' +
+  'You answer questions strictly from the audit data supplied to you. You never invent a score, URL, page, finding, ' +
+  'entity, or recommendation that is not present in the supplied context. If the data needed to answer is not present, ' +
+  'you say so explicitly rather than guessing. ' +
+  'You always return a single valid JSON object with no surrounding text, explanation, or markdown.';
+
+const MAX_SCOUT_CONTEXT_CHARS = 6_000;
+const MAX_SCOUT_QUESTION_CHARS = 500;
+
+export function scoutChatPrompt(context: ScoutChatContext, question: string): string {
+  const ctx = truncateWithWarning(
+    JSON.stringify(context, null, 2),
+    MAX_SCOUT_CONTEXT_CHARS,
+    `scoutChatPrompt domain="${context.domain}"`,
+  );
+  const q = truncateWithWarning(question, MAX_SCOUT_QUESTION_CHARS, `scoutChatPrompt question domain="${context.domain}"`);
+
+  return `A user is asking about the SiteNexis audit intelligence for their own domain, ${context.domain}.
+
+AUDIT CONTEXT (canonical, already-computed by SiteNexis — this is the ONLY data you may reference):
+${ctx}
+
+USER QUESTION:
+${q}
+
+## CORE RULE
+
+You must NEVER invent data. Only use facts present in AUDIT CONTEXT above.
+- A "score" mentioned in your answer must be a value that appears in the context.
+- A "finding" or "issue" you cite must be one of the listed critical/warning issues or fix plan items.
+- A "recommendation" you give must come from the fix plan items, or be a direct, obvious restatement of one.
+- Never reference a specific page URL unless one appears in the context.
+- If the context does not contain enough information to answer the question, say so plainly in "answer" and set "evidenceAvailable": false.
+
+## RESPONSE STRUCTURE
+
+Your response must distinguish three kinds of content:
+1. observedEvidence — concrete facts read directly from the audit data (e.g. a specific score, a specific issue count). Short strings, each a single fact.
+2. derivedIntelligence — conclusions SiteNexis's own scoring/fix-plan engines already reached (e.g. "Machine Trust is driven primarily by low Entity Credibility" — only if that is actually reflected in the data, such as that sub-score being the lowest). Short strings.
+3. interpretation — YOUR OWN reasoning connecting the above to the user's question, clearly framed as interpretation rather than a fact from the audit. 2-4 sentences.
+
+"answer" is a single, direct, conversational reply (3-6 sentences) synthesizing the above for the user — this is what gets shown first.
+
+Return ONLY valid JSON. No explanation. No markdown.
+Example: {
+  "answer": "Your biggest opportunity right now is Machine Trust, which is sitting at 42/100 largely because of low Entity Credibility Consistency (31/100). The fastest fix in your plan is adding consistent organization schema across your top pages.",
+  "observedEvidence": ["Machine Trust overall: 42/100", "Entity Credibility Consistency: 31/100", "3 critical issues currently open"],
+  "derivedIntelligence": ["Entity Credibility Consistency is the lowest Machine Trust sub-score, so it is the primary driver of the overall Machine Trust score"],
+  "interpretation": "Because entity credibility is dragging the composite score down, fixing schema consistency first is likely to move Machine Trust more than any other single action in the current fix plan.",
+  "evidenceAvailable": true
+}`;
+}
+
 // ─── parseAIResponse<T> ───────────────────────────────────────────────────────
 
 /**

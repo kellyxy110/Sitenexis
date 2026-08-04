@@ -131,6 +131,13 @@ const envSchema = z.object({
   TELEGRAM_ADMIN_CHAT_ID: z.string().default(''),
   TELEGRAM_WEBHOOK_SECRET: secret(16),
   TELEGRAM_ALERTS_ENABLED: z.coerce.boolean().default(false),
+
+  // Telegram User Assistant — separate bot, separate token, separate webhook
+  // secret from the Ops console above. Deliberately optional (defaults to
+  // empty) so the feature can be deployed dark and enabled by setting these
+  // in Vercel once the bot is registered with BotFather.
+  TELEGRAM_USER_BOT_TOKEN: z.string().default(''),
+  TELEGRAM_USER_BOT_WEBHOOK_SECRET: secret(16),
 });
 
 export const env = envSchema.parse(process.env);

@@ -25,6 +25,12 @@ describe('routeEvent', () => {
     expect(routeEvent(eventOf('DEPLOYMENT_READY')).severity).toBe('info');
   });
 
+  it('marks AUDIT_COMPLETE as info and notifies — a successful audit is not silent', () => {
+    const decision = routeEvent(eventOf('AUDIT_COMPLETE'));
+    expect(decision.severity).toBe('info');
+    expect(decision.shouldNotify).toBe(true);
+  });
+
   it('every severity has an icon', () => {
     expect(SEVERITY_ICON.info).toBeTruthy();
     expect(SEVERITY_ICON.warning).toBeTruthy();

@@ -32,6 +32,14 @@ enum IssueSeverity {
   info
 }
 
+enum ReportGenerationStatus {
+  pending
+  generating
+  ready
+  partial
+  failed
+}
+
 // ─── v1 models ───────────────────────────────────────────────────────────────
 
 model User {
@@ -58,6 +66,9 @@ model User {
   scheduledReports   ScheduledReport[]
   ads                Ad[]                @relation("UserAds")
   adGenerations      AdGeneration[]      @relation("UserAdGenerations")
+
+  // Telegram User Intelligence Mode — one linked Telegram identity per user (v1)
+  telegramConnection TelegramConnection?
 
   // AI Visibility Intelligence Center — Google connectors
   googleConnection         GoogleConnection?
@@ -157,6 +168,9 @@ model Audit {
 
   // Page Intelligence
   optimizationSessions OptimizationSession[]
+
+  // Canonical prose Intelligence Report (executive summary + narrative report)
+  intelligenceReport AuditIntelligenceReport?
 
   @@index([userId])
   @@index([domain])
@@ -271,6 +285,42 @@ model Report {
   audit  Audit @relation(fields: [auditId], references: [id])
 
   @@map("reports")
+}
+
+/// Canonical, durable prose Intelligence Report — the single source of truth
+/// consumed by the dashboard, Telegram Audit Intelligence, and (future) PDF
+/// export. Redis remains a performance cache in front of this table, never
+/// the source of truth: a cache miss or expiry must be recoverable from here
+/// without a new LLM call. One row per audit (executiveSummary and
+/// narrativeReport are generated together by the same post-audit hook, so a
+/// single row is the smallest additive model that covers both — see
+/// docs/CANONICAL_INTELLIGENCE_REPORT.md for the full design rationale).
+model AuditIntelligenceReport {
+  id      String @id @default(cuid())
+  auditId String @unique @map("audit_id")
+
+  status ReportGenerationStatus @default(pending)
+
+  executiveSummary        Json?   @map("executive_summary")
+  executiveSummaryVersion String? @map("executive_summary_version")
+  narrativeReport         Json?   @map("narrative_report")
+  narrativeReportVersion  String? @map("narrative_report_version")
+
+  /// Provider/model of the most recent successful generation attempt (e.g. "openrouter" / "deepseek/deepseek-chat"). Never a secret — model identifiers only.
+  provider String?
+  model    String?
+
+  /// Sanitized failure reason for internal diagnostics only — never a raw stack trace, never sent to any client.
+  lastError String? @map("last_error")
+
+  generatedAt DateTime? @map("generated_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  audit Audit @relation(fields: [auditId], references: [id])
+
+  @@index([status])
+  @@map("audit_intelligence_reports")
 }
 
 model ApiKey {
@@ -1715,4 +1765,100 @@ model AiCallMetric {
   @@index([skillId])
   @@index([auditId])
   @@map("ai_call_metrics")
+}
+
+// ─── Telegram User Intelligence Mode ──────────────────────────────────────────
+// Separate, additive identity layer alongside the existing admin Ops console
+// (TELEGRAM_ADMIN_CHAT_ID, unchanged). One linked Telegram identity per
+// SiteNexis user in v1 — both telegramUserId and siteNexisUserId are unique,
+// so identity is a strict one-to-one. TelegramLinkToken represents the
+// pending-link state; a TelegramConnection row is never created until an
+// authenticated SiteNexis session confirms a valid, unexpired, unused token.
+
+enum TelegramConnectionStatus {
+  linked
+  disconnected
+}
+
+model TelegramConnection {
+  id                String                    @id @default(cuid())
+  telegramUserId    String                    @unique @map("telegram_user_id")
+  telegramChatId    String                    @map("telegram_chat_id")
+  siteNexisUserId   String                    @unique @map("sitenexis_user_id")
+  status            TelegramConnectionStatus  @default(linked)
+  activeDomain      String?                   @map("active_domain")
+  linkedAt          DateTime                  @map("linked_at")
+  lastInteractionAt DateTime?                 @map("last_interaction_at")
+  createdAt         DateTime                  @default(now()) @map("created_at")
+  updatedAt         DateTime                  @updatedAt @map("updated_at")
+
+  user              User                            @relation(fields: [siteNexisUserId], references: [id], onDelete: Restrict)
+  linkTokens        TelegramLinkToken[]
+  notificationPref  TelegramNotificationPreference?
+  events            TelegramConnectionEvent[]
+
+  @@index([telegramChatId])
+  @@map("telegram_connections")
+}
+
+/// Single-use, short-lived (~10 min) linking token. Only the SHA-256 hash is
+/// ever persisted — the raw token exists only in the message sent to the
+/// user and the confirmation request from their browser session, never in
+/// any log or database row.
+model TelegramLinkToken {
+  id                   String    @id @default(cuid())
+  tokenHash            String    @unique @map("token_hash")
+  telegramUserId       String    @map("telegram_user_id")
+  telegramChatId       String    @map("telegram_chat_id")
+  telegramConnectionId String?   @map("telegram_connection_id")
+  consumedAt           DateTime? @map("consumed_at")
+  expiresAt            DateTime  @map("expires_at")
+  createdAt            DateTime  @default(now()) @map("created_at")
+
+  connection TelegramConnection? @relation(fields: [telegramConnectionId], references: [id], onDelete: SetNull)
+
+  @@index([telegramUserId])
+  @@index([expiresAt])
+  @@map("telegram_link_tokens")
+}
+
+model TelegramNotificationPreference {
+  id                   String   @id @default(cuid())
+  telegramConnectionId String   @unique @map("telegram_connection_id")
+  notifyOnComplete     Boolean  @default(true) @map("notify_on_complete")
+  notifyOnPartial      Boolean  @default(true) @map("notify_on_partial")
+  notifyOnFailed       Boolean  @default(true) @map("notify_on_failed")
+  notifyOnStalled      Boolean  @default(false) @map("notify_on_stalled")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  connection TelegramConnection @relation(fields: [telegramConnectionId], references: [id], onDelete: Cascade)
+
+  @@map("telegram_notification_preferences")
+}
+
+enum TelegramConnectionEventType {
+  LINK_CREATED
+  LINK_CONFIRMED
+  DISCONNECTED
+  ACTIVE_DOMAIN_CHANGED
+}
+
+/// Narrow, append-only audit trail for identity/integration events only.
+/// Never stores raw tokens, session credentials, bot/webhook secrets, or
+/// message content — see report §3 for the exact prohibited-fields list.
+model TelegramConnectionEvent {
+  id                   String                        @id @default(cuid())
+  telegramConnectionId String?                        @map("telegram_connection_id")
+  siteNexisUserId      String?                        @map("sitenexis_user_id")
+  telegramUserId       String                         @map("telegram_user_id")
+  eventType            TelegramConnectionEventType    @map("event_type")
+  metadata             Json?
+  createdAt            DateTime                       @default(now()) @map("created_at")
+
+  connection TelegramConnection? @relation(fields: [telegramConnectionId], references: [id], onDelete: SetNull)
+
+  @@index([telegramConnectionId])
+  @@index([telegramUserId])
+  @@index([createdAt])
+  @@map("telegram_connection_events")
 }

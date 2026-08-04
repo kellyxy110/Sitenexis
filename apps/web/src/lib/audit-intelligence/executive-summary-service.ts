@@ -12,22 +12,23 @@ export interface ExecutiveSummaryServiceResult {
 }
 
 /**
- * Cache-only read of `/api/audit/[id]/executive-summary`'s Redis cache
- * (`exec-summary:{auditId}:v1.0`). Telegram is a read-only presentation
- * surface — it must never trigger `routeTask`/`callAI` on a cache miss,
- * both to guarantee it can never diverge from the dashboard's canonical
- * prose (there is only ever one generator: the dashboard route) and to
- * keep Telegram retrieval free of LLM cost/latency. A miss returns
- * `data: null`; callers must present a truthful "prose not currently
- * available" state and fall back to the deterministic scores/issues/
- * recommendations/evidence commands, which remain fully available.
+ * Read-only. Never generates. Lookup order: the durable, canonical
+ * `AuditIntelligenceReport` row (the source of truth) → legacy Redis cache
+ * (covers rows written before this table existed, or as a fast path while
+ * Redis is warm) → truthful "not available" if neither exists. Used by both
+ * Telegram's /audit command and (indirectly, same contract) the dashboard.
  */
 export async function getExecutiveSummary(auditId: string): Promise<ExecutiveSummaryServiceResult | null> {
-  const { getAuditById } = await import('@sitenexis/db');
+  const { getAuditById, getAuditIntelligenceReport } = await import('@sitenexis/db');
   const audit = await getAuditById(auditId);
   if (!audit) return null;
 
   const state = resolveGTLState(audit.status, true);
+
+  const persisted = await getAuditIntelligenceReport(auditId).catch(() => null);
+  if (persisted?.executiveSummary) {
+    return { state, data: persisted.executiveSummary as ExecutiveSummaryOutputWithMeta };
+  }
 
   let redisGet: ((k: string) => Promise<string | null>) | null = null;
   try {
@@ -38,10 +39,9 @@ export async function getExecutiveSummary(auditId: string): Promise<ExecutiveSum
     }
   } catch { /* Redis unavailable */ }
 
-  const cacheKey = `exec-summary:${auditId}:${CACHE_VERSION}`;
   if (redisGet) {
     try {
-      const cached = await redisGet(cacheKey);
+      const cached = await redisGet(`exec-summary:${auditId}:${CACHE_VERSION}`);
       if (cached) return { state, data: JSON.parse(cached) as ExecutiveSummaryOutputWithMeta };
     } catch { /* cache miss */ }
   }

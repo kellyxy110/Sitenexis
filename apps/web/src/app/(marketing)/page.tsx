@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion, useInView, type Variants } from 'framer-motion';
-import { ArrowRight, Globe } from 'lucide-react';
+import { ArrowRight, Globe, Send } from 'lucide-react';
 import { HeroCinematic } from '@/components/hero/HeroCinematic';
 import { MarketingNav } from '@/components/marketing/MarketingNav';
 import { Footer } from '@/components/marketing/Footer';
@@ -660,48 +660,68 @@ export default function HomePage() {
 
             {/* Right — orbiting AI systems visual */}
             <Reveal delay={0.2}>
-              <div className="relative flex h-80 items-center justify-center">
-                {/* Centre hub */}
-                <div className="relative z-10 flex h-20 w-20 items-center justify-center rounded-full border border-cyan/30 bg-[#07111F] shadow-cyan-glow">
-                  <div className="absolute inset-0 animate-pulse-slow rounded-full border border-cyan/15" />
-                  <PentagonMark size={36} />
-                </div>
-                {/* Orbit rings */}
-                <div className="absolute h-[200px] w-[200px] rounded-full border border-cyan/[0.08]" />
-                <div className="absolute h-[300px] w-[300px] rounded-full border border-white/[0.04]" />
-                {/* Orbiting entities — client-only to avoid SSR float precision mismatch */}
-                {mounted && [
-                  { label: 'ChatGPT',     color: '#10B981', deg: 0   },
-                  { label: 'Gemini',      color: '#3B82F6', deg: 72  },
-                  { label: 'Claude',      color: '#8B5CF6', deg: 144 },
-                  { label: 'Perplexity',  color: '#0BCEBC', deg: 216 },
-                  { label: 'AI Overview', color: '#00C8FF', deg: 288 },
-                ].map(({ label, color, deg }, i) => {
-                  const rad = (deg * Math.PI) / 180;
-                  const r = 130;
-                  const x = Math.round(Math.cos(rad) * r * 1000) / 1000;
-                  const y = Math.round(Math.sin(rad) * r * 1000) / 1000;
-                  return (
-                    <motion.div
-                      key={label}
-                      className="absolute flex flex-col items-center gap-1"
-                      style={{ left: `calc(50% + ${x}px)`, top: `calc(50% + ${y}px)`, transform: 'translate(-50%,-50%)' }}
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      whileInView={{ opacity: 1, scale: 1 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: 0.15 * i, duration: 0.5 }}
-                      animate={mounted ? { y: [0, -4, 0] } : {}}
-                    >
-                      <div
-                        className="flex h-9 w-9 items-center justify-center rounded-full border text-[10px] font-bold text-white"
-                        style={{ borderColor: `${color}40`, backgroundColor: `${color}12` }}
+              <div className="relative flex flex-col items-center gap-5">
+                <div className="relative flex h-80 w-full items-center justify-center">
+                  {/* Centre hub */}
+                  <div className="relative z-10 flex h-20 w-20 items-center justify-center rounded-full border border-cyan/30 bg-[#07111F] shadow-cyan-glow">
+                    <div className="absolute inset-0 animate-pulse-slow rounded-full border border-cyan/15" />
+                    <PentagonMark size={36} />
+                  </div>
+                  {/* Orbit rings */}
+                  <div className="absolute h-[200px] w-[200px] rounded-full border border-cyan/[0.08]" />
+                  <div className="absolute h-[300px] w-[300px] rounded-full border border-white/[0.04]" />
+                  {/* Orbiting entities — client-only to avoid SSR float precision mismatch */}
+                  {mounted && [
+                    { label: 'ChatGPT',     color: '#10B981', deg: 0   },
+                    { label: 'Gemini',      color: '#3B82F6', deg: 72  },
+                    { label: 'Claude',      color: '#8B5CF6', deg: 144 },
+                    { label: 'Perplexity',  color: '#0BCEBC', deg: 216 },
+                    { label: 'AI Overview', color: '#00C8FF', deg: 288 },
+                  ].map(({ label, color, deg }, i) => {
+                    const rad = (deg * Math.PI) / 180;
+                    const r = 130;
+                    const x = Math.round(Math.cos(rad) * r * 1000) / 1000;
+                    const y = Math.round(Math.sin(rad) * r * 1000) / 1000;
+                    return (
+                      <motion.div
+                        key={label}
+                        className="absolute flex flex-col items-center gap-1"
+                        style={{ left: `calc(50% + ${x}px)`, top: `calc(50% + ${y}px)`, transform: 'translate(-50%,-50%)' }}
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        whileInView={{ opacity: 1, scale: 1 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: 0.15 * i, duration: 0.5 }}
+                        animate={mounted ? { y: [0, -4, 0] } : {}}
                       >
-                        {label[0]}
-                      </div>
-                      <span className="text-[9px] text-[#475569] whitespace-nowrap">{label}</span>
-                    </motion.div>
-                  );
-                })}
+                        <div
+                          className="flex h-10 w-10 items-center justify-center rounded-full border text-[11px] font-bold tracking-tight text-white shadow-[0_0_16px_-4px_var(--glow)]"
+                          style={{ borderColor: `${color}55`, backgroundColor: `${color}14`, ['--glow' as string]: `${color}66` }}
+                        >
+                          {label[0]}
+                        </div>
+                        <span className="text-[9px] text-[#475569] whitespace-nowrap">{label}</span>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+
+                {/* Secondary branch — SiteNexis Ops, a distinct axis from AI retrieval:
+                    this observes SiteNexis's own operational health, not how AI systems
+                    perceive audited sites. Visually smaller and muted on purpose so it
+                    never competes with the primary orbit above. */}
+                <div className="flex flex-col items-center gap-2.5">
+                  <div className="h-6 w-px bg-gradient-to-b from-white/[0.14] to-transparent motion-safe:animate-pulse-slow" />
+                  <div className="flex items-center gap-2 text-[10px] text-[#475569]">
+                    <span className="rounded-full border border-white/[0.08] bg-white/[0.02] px-2.5 py-1 font-medium text-[#7A9AB4]">SiteNexis Ops</span>
+                    <ArrowRight size={10} className="shrink-0 text-[#334155]" />
+                    <span className="flex items-center gap-1.5 rounded-full border border-[#26A5E4]/25 bg-[#26A5E4]/[0.08] px-2.5 py-1 font-medium text-[#5FBDEE]">
+                      <Send size={10} className="shrink-0" />
+                      Telegram
+                    </span>
+                    <ArrowRight size={10} className="shrink-0 text-[#334155]" />
+                    <span className="rounded-full border border-white/[0.08] bg-white/[0.02] px-2.5 py-1 font-medium text-[#7A9AB4]">Operational Intelligence</span>
+                  </div>
+                </div>
               </div>
             </Reveal>
           </div>

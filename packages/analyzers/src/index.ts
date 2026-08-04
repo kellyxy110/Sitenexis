@@ -93,8 +93,11 @@ export {
   contradictionDetectionPrompt,
   hybridAuditReportPrompt,
   executiveSummaryPrompt,
+  scoutChatPrompt,
+  SCOUT_CHAT_SYSTEM_PROMPT,
 } from './ai/prompts';
-export type { HybridAuditContext, ExecutiveSummaryOutput, ExecutiveSummarySection } from './ai/prompts';
+export type { HybridAuditContext, ExecutiveSummaryOutput, ExecutiveSummarySection, ScoutChatContext, ScoutChatOutput } from './ai/prompts';
+export { answerScoutQuestion } from './ai/scout-chat';
 export { analyzeMachineReadability } from './machine-readability/engine';
 export { analyzeEntityIntelligence } from './entity/engine';
 export { analyzeCitationProbability } from './citation/engine';
