@@ -28,3 +28,4 @@ export * from './queries/ai-governance';
 export * from './queries/redlab';
 export * from './queries/audit-intelligence-report';
 export * from './queries/telegram-connections';
+export * from './queries/second-brain';

@@ -1960,6 +1960,26 @@ export async function runServerlessAudit(
     clearTimeout(budgetTimer);
     await updateAuditStatus(auditId, finalStatus, { pageCount: pages.length });
 
+    // ── Second Brain — deterministic historical-intelligence processing ─────
+    // Runs strictly after updateAuditStatus so the audit's own status row
+    // already reads complete/partial when Second Brain re-fetches it — a
+    // consumer of the same "post-terminal-state" boundary as the LoopOS
+    // write-back above, but scoped to its own claim table
+    // (SecondBrainProcessingRun) so the two systems never interfere. Non-fatal
+    // and idempotent by construction (claimSecondBrainProcessing) — a retried
+    // audit-completion invocation, or a transient failure here, can never
+    // fail or duplicate the underlying audit.
+    const endSecondBrainTiming = perf.startStage('second-brain.process');
+    try {
+      const { processSecondBrainForAudit } = await import('@/lib/second-brain/process-audit');
+      const result = await processSecondBrainForAudit(auditId);
+      endSecondBrainTiming(result.status === 'failed' ? 'error' : 'ok', result.reason);
+      logger.info({ auditId, domain, secondBrainStatus: result.status }, 'Second Brain processing finished');
+    } catch (secondBrainErr) {
+      endSecondBrainTiming('error', secondBrainErr instanceof Error ? secondBrainErr.message : String(secondBrainErr));
+      logger.warn({ auditId, domain, err: secondBrainErr }, 'Second Brain processing failed (non-fatal)');
+    }
+
     const reportGenerationStatus = await warmReportCaches(auditId, domain);
 
     if (finalStatus === 'complete') {

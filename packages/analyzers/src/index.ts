@@ -213,6 +213,20 @@ export type { FixPlanInput, SubReportIssues, IssueRecord } from './fix-plan/engi
 export { dedupeFindings, dedupeExact, collapseCanonicalTopics, CANONICAL_TOPICS } from './issues/dedupe';
 export type { DedupeInput, DedupeGroup, DedupeSeverity } from './issues/dedupe';
 
+// ─── Second Brain — deterministic historical-intelligence core (SB1) ────────
+export { computeAuditChanges } from './second-brain/change-engine';
+export { computeIssueFingerprint, groupCurrentAuditIssues, ISSUE_FINGERPRINT_VERSION } from './second-brain/issue-fingerprint';
+export { computeIssueLifecycleTransitions, detectIssueRegressions } from './second-brain/issue-lifecycle-engine';
+export { resolveFirstAudit } from './second-brain/website-memory';
+export { canonicalAuditTimestamp, findPreviousUsableAudit } from './second-brain/audit-history';
+export type { AuditTimestampCandidate } from './second-brain/audit-history';
+export { CANONICAL_METRIC_KEYS } from './second-brain/types';
+export type {
+  AuditChangeClassification, IssueLifecycleState, IssueLifecycleEventType, MetricKey,
+  AuditScoreSnapshot, MetricChange, RawIssueForFingerprint, CurrentIssueGroup,
+  IssueMemorySnapshot, IssueLifecycleTransition, WebsiteMemoryCandidate, WebsiteMemoryResolution,
+} from './second-brain/types';
+
 // ─── Enhanced Report (v2) ─────────────────────────────────────────────────────
 export { buildEnhancedReport } from './enhanced-report';
 export { enrichSEOIssues, detectSchemaGapIssues, detectContentGapIssues } from './enhanced-report';

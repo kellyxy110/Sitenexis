@@ -84,6 +84,11 @@ model User {
   // AdNexis NextAuth credentials (null for SiteNexis Supabase users)
   passwordHash String? @map("password_hash")
 
+  // Second Brain — durable historical intelligence memory
+  websiteMemories WebsiteMemory[]
+  auditChanges    AuditChange[]
+  issueMemories   IssueMemory[]
+
   @@map("users")
 }
 
@@ -171,6 +176,17 @@ model Audit {
 
   // Canonical prose Intelligence Report (executive summary + narrative report)
   intelligenceReport AuditIntelligenceReport?
+
+  // Second Brain — durable historical intelligence memory (relation-only, no new column)
+  websiteMemoriesAsFirst       WebsiteMemory[]         @relation("WebsiteMemoryFirstAudit")
+  auditChangesFrom             AuditChange[]           @relation("AuditChangeFromAudit")
+  auditChangesTo               AuditChange[]           @relation("AuditChangeToAudit")
+  issueMemoriesFirstSeen       IssueMemory[]           @relation("IssueMemoryFirstSeenAudit")
+  issueMemoriesLastSeen        IssueMemory[]           @relation("IssueMemoryLastSeenAudit")
+  issueMemoriesLastResolved    IssueMemory[]           @relation("IssueMemoryLastResolvedAudit")
+  issueLifecycleEvents         IssueLifecycleEvent[]   @relation("IssueLifecycleEventAudit")
+  recommendationOutcomes       RecommendationOutcome[] @relation("RecommendationOutcomeAudit")
+  secondBrainProcessingRun     SecondBrainProcessingRun?
 
   @@index([userId])
   @@index([domain])
@@ -1861,4 +1877,229 @@ model TelegramConnectionEvent {
   @@index([telegramUserId])
   @@index([createdAt])
   @@map("telegram_connection_events")
+}
+
+// ─── Second Brain — durable, evidence-grounded intelligence memory ───────────
+//
+// Canonical memory is deterministic-only: every row here is either a foreign
+// key, a timestamp, a classification enum, or a value copied verbatim from an
+// existing deterministic table (Issue, AuditScore, ...). No Json blob for AI
+// output, no prompt/provider/model column — unlike AuditIntelligenceReport,
+// which legitimately has those because it stores prose. LLMs may explain this
+// data later; they never originate it.
+//
+// Tenancy: every table that stores a userId also carries a direct FK to User
+// (onDelete: Restrict) — never an unconstrained string. A composite DB-level
+// FK tying (userId, domain) to a matching Audit row does not fit Prisma's
+// relation model here (Audit has no unique (userId, domain) key — a user can
+// have many audits per domain), so tenancy is additionally enforced as a
+// service-level invariant everywhere a Second Brain row is derived from an
+// Audit: `audit.userId === row.userId && normalizeDomain(audit.domain) ===
+// normalizeDomain(row.domain)`, checked and tested at the write boundary, not
+// assumed. Never scope a query by domain alone — packages/loop-os's SiteState
+// does exactly that and is a known, separately-tracked tenancy gap (see
+// docs/DECISION_LOG.md 2026-08-05) that Second Brain must not depend on or
+// repeat.
+
+enum AuditChangeClassification {
+  IMPROVED
+  REGRESSED
+  UNCHANGED
+  INTRODUCED
+  RESOLVED
+  PERSISTENT
+}
+
+enum IssueLifecycleState {
+  FIRST_SEEN
+  PERSISTING
+  RESOLVED
+  REGRESSED
+}
+
+/// FIRST_SEEN: no earlier usable audit for this fingerprint.
+/// PERSISTED: present in this audit and the immediately preceding comparable one.
+/// RESOLVED: absent from a later comparable usable audit that previously had it.
+/// REGRESSED: present again after at least one prior RESOLVED event.
+enum IssueLifecycleEventType {
+  OPENED
+  PERSISTED
+  RESOLVED
+  REGRESSED
+}
+
+enum RecommendationOutcomeState {
+  UNVERIFIED
+  STILL_PRESENT
+  RESOLVED_AFTER_RECOMMENDATION
+  REGRESSED_AFTER_RESOLUTION
+}
+
+enum SecondBrainProcessingStatus {
+  pending
+  processing
+  complete
+  failed
+}
+
+/// One row per (user, domain). firstAuditId is the chronologically EARLIEST
+/// eligible audit for this website by canonical audit timestamp
+/// (Audit.completedAt, falling back to createdAt) — not merely the first
+/// audit Second Brain happened to process. A later bounded backfill that
+/// discovers an older audit updates firstAuditId/firstAuditAt deterministically
+/// (strictly-earlier-wins compare-and-set); reprocessing is idempotent because
+/// the write is a comparison against the stored firstAuditAt, not an
+/// unconditional overwrite. firstAuditAt is denormalized here so that
+/// comparison never requires a join, and so the dashboard's "observed since"
+/// card is a single-row read.
+model WebsiteMemory {
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+  domain       String
+  firstAuditId String   @map("first_audit_id")
+  firstAuditAt DateTime @map("first_audit_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt      @map("updated_at")
+
+  user       User  @relation(fields: [userId], references: [id], onDelete: Restrict)
+  firstAudit Audit @relation("WebsiteMemoryFirstAudit", fields: [firstAuditId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, domain])
+  @@index([userId])
+  @@map("website_memories")
+}
+
+/// One row per (currentAuditId, metricKey) — the audit-to-audit delta for one
+/// canonical metric. Never recomputes the metric itself; previousValue/
+/// currentValue are copied verbatim from whatever canonical table already
+/// owns that score (AuditScore, AIVisibilityScore, MachineTrustScore, ...).
+model AuditChange {
+  id                String                     @id @default(cuid())
+  userId            String                     @map("user_id")
+  domain            String
+  previousAuditId   String                     @map("previous_audit_id")
+  currentAuditId    String                     @map("current_audit_id")
+  metricKey         String                     @map("metric_key")
+  previousValue     Float?                     @map("previous_value")
+  currentValue      Float?                     @map("current_value")
+  classification    AuditChangeClassification
+  derivationVersion String                     @default("v1") @map("derivation_version")
+  createdAt         DateTime                   @default(now()) @map("created_at")
+
+  user          User  @relation(fields: [userId], references: [id], onDelete: Restrict)
+  previousAudit Audit @relation("AuditChangeFromAudit", fields: [previousAuditId], references: [id], onDelete: Restrict)
+  currentAudit  Audit @relation("AuditChangeToAudit",   fields: [currentAuditId],  references: [id], onDelete: Restrict)
+
+  @@unique([currentAuditId, metricKey])
+  @@index([userId, domain, createdAt])
+  @@map("audit_changes")
+}
+
+/// One row per (user, domain, fingerprint) — the durable identity of "the
+/// same underlying rule violation" across audits. fingerprint = sha256(userId
+/// + '::' + domain + '::' + module + '::' + type); see TASKS.md 2026-08-05
+/// for why module+type (not pageUrl, not recommendation prose) is the
+/// correct grain — it matches packages/analyzers/src/issues/dedupe.ts, the
+/// same canonical grouping every other report surface already uses.
+/// fingerprintVersion is versioned so the v1 algorithm can be revised later
+/// without corrupting or colliding with existing rows.
+///
+/// lastResolvedAuditId = the most recent audit in which this issue was
+/// determined resolved. On a REGRESSED event it is preserved (not cleared),
+/// so "resolved, then came back" history survives the regression. On a
+/// subsequent RESOLVED event it is updated to that new audit. The full
+/// transition history always lives in IssueLifecycleEvent; this column is a
+/// convenience denormalization of "most recent resolution," never the source
+/// of truth for lifecycle state.
+model IssueMemory {
+  id                 String              @id @default(cuid())
+  userId             String              @map("user_id")
+  domain             String
+  fingerprint        String
+  fingerprintVersion String              @default("v1") @map("fingerprint_version")
+  module             String
+  type               String
+  severity           IssueSeverity
+  lifecycleState     IssueLifecycleState @map("lifecycle_state")
+  firstSeenAuditId   String              @map("first_seen_audit_id")
+  lastSeenAuditId    String              @map("last_seen_audit_id")
+  lastResolvedAuditId String?            @map("last_resolved_audit_id")
+  affectedPageCount  Int                 @default(0) @map("affected_page_count")
+  updatedAt          DateTime            @updatedAt @map("updated_at")
+  createdAt          DateTime            @default(now()) @map("created_at")
+
+  user             User                    @relation(fields: [userId], references: [id], onDelete: Restrict)
+  firstSeenAudit   Audit                   @relation("IssueMemoryFirstSeenAudit",   fields: [firstSeenAuditId],   references: [id], onDelete: Restrict)
+  lastSeenAudit    Audit                   @relation("IssueMemoryLastSeenAudit",    fields: [lastSeenAuditId],    references: [id], onDelete: Restrict)
+  lastResolvedAudit Audit?                 @relation("IssueMemoryLastResolvedAudit", fields: [lastResolvedAuditId], references: [id], onDelete: Restrict)
+  events           IssueLifecycleEvent[]
+  outcomes         RecommendationOutcome[]
+
+  @@unique([userId, domain, fingerprint])
+  @@index([userId, domain, lifecycleState])
+  @@map("issue_memories")
+}
+
+/// Append-only historical source of truth for lifecycle transitions — the
+/// only place "what happened, and when" is reconstructed from. The unique
+/// constraint makes writing an event idempotent: a retried/replayed audit
+/// processing run can safely re-emit the same (issueMemoryId, auditId,
+/// eventType) event as a no-op.
+model IssueLifecycleEvent {
+  id            String                   @id @default(cuid())
+  issueMemoryId String                   @map("issue_memory_id")
+  auditId       String                   @map("audit_id")
+  eventType     IssueLifecycleEventType  @map("event_type")
+  createdAt     DateTime                 @default(now()) @map("created_at")
+
+  issueMemory IssueMemory @relation(fields: [issueMemoryId], references: [id], onDelete: Restrict)
+  audit       Audit       @relation("IssueLifecycleEventAudit", fields: [auditId], references: [id], onDelete: Restrict)
+
+  @@unique([issueMemoryId, auditId, eventType])
+  @@index([issueMemoryId, createdAt])
+  @@map("issue_lifecycle_events")
+}
+
+/// One row per (issueMemoryId, recommendedAtAuditId) — confirmed sufficient
+/// identity: buildFixPlan (packages/analyzers/src/fix-plan/engine.ts) emits
+/// exactly one FixPlanItem per dedupe group, so no separate recommendation
+/// fingerprint is needed. Never claims causality — outcomeState is a
+/// conservative observation, not an attribution.
+model RecommendationOutcome {
+  id                   String                      @id @default(cuid())
+  issueMemoryId        String                      @map("issue_memory_id")
+  recommendedAtAuditId String                      @map("recommended_at_audit_id")
+  outcomeState         RecommendationOutcomeState  @map("outcome_state")
+  updatedAt            DateTime                    @updatedAt @map("updated_at")
+  createdAt            DateTime                    @default(now()) @map("created_at")
+
+  issueMemory        IssueMemory @relation(fields: [issueMemoryId], references: [id], onDelete: Restrict)
+  recommendedAtAudit Audit       @relation("RecommendationOutcomeAudit", fields: [recommendedAtAuditId], references: [id], onDelete: Restrict)
+
+  @@unique([issueMemoryId, recommendedAtAuditId])
+  @@map("recommendation_outcomes")
+}
+
+/// One row per audit — the atomic processing claim, mirroring
+/// claimReportGeneration (packages/db/src/queries/audit-intelligence-report.ts)
+/// exactly: an `updateMany` guarded by `status IN (pending, failed) OR
+/// (status = processing AND updatedAt < staleBefore)` is Postgres's own
+/// row-level UPDATE atomicity acting as a compare-and-swap claim. Same path
+/// serves normal processing, concurrent-call safety, crashed-run recovery
+/// (via the stale timeout), and bounded rebuild/backfill (reset status to
+/// pending for one audit, then reclaim).
+model SecondBrainProcessingRun {
+  id          String                       @id @default(cuid())
+  auditId     String                       @unique @map("audit_id")
+  status      SecondBrainProcessingStatus  @default(pending)
+  claimedAt   DateTime?                    @map("claimed_at")
+  completedAt DateTime?                    @map("completed_at")
+  lastError   String?                      @map("last_error")
+  createdAt   DateTime                     @default(now()) @map("created_at")
+  updatedAt   DateTime                     @updatedAt @map("updated_at")
+
+  audit Audit @relation(fields: [auditId], references: [id], onDelete: Restrict)
+
+  @@index([status])
+  @@map("second_brain_processing_runs")
 }
