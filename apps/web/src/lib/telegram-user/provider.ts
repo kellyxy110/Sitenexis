@@ -17,41 +17,10 @@ export function isUserBotConfigured(): boolean {
 }
 
 export function isValidUserBotWebhookSecret(headerValue: string | null): boolean {
-  const configured = env.TELEGRAM_USER_BOT_WEBHOOK_SECRET;
-  const configuredPresent = configured.length > 0;
-  const headerPresent = headerValue !== null && headerValue.length > 0;
-
-  // TEMP DIAGNOSTIC — remove once the production 401 mismatch is root-caused.
-  // Logs only presence/length/SHA-256 fingerprint (max 8 hex chars), never
-  // raw secret or header values.
-  if (!configuredPresent || !headerPresent) {
-    logger.warn({
-      diag: 'user-bot-webhook-secret',
-      configured: configuredPresent,
-      configuredLength: configured.length,
-      headerPresent,
-      headerLength: headerValue?.length ?? 0,
-      matches: false,
-    }, 'TEMP DIAGNOSTIC: user-bot webhook secret check (missing input)');
-    return false;
-  }
-
+  if (!env.TELEGRAM_USER_BOT_WEBHOOK_SECRET || !headerValue) return false;
   const a = createHash('sha256').update(headerValue).digest();
-  const b = createHash('sha256').update(configured).digest();
-  const matches = timingSafeEqual(a, b);
-
-  logger.warn({
-    diag: 'user-bot-webhook-secret',
-    configured: true,
-    configuredLength: configured.length,
-    configuredFingerprint: b.toString('hex').slice(0, 8),
-    headerPresent: true,
-    headerLength: headerValue.length,
-    headerFingerprint: a.toString('hex').slice(0, 8),
-    matches,
-  }, 'TEMP DIAGNOSTIC: user-bot webhook secret check');
-
-  return matches;
+  const b = createHash('sha256').update(env.TELEGRAM_USER_BOT_WEBHOOK_SECRET).digest();
+  return timingSafeEqual(a, b);
 }
 
 function redactedApiLabel(method: string): string {

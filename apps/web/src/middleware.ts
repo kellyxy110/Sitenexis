@@ -2,7 +2,12 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import type { ResponseCookie } from 'next/dist/compiled/@edge-runtime/cookies';
 
-const PROTECTED_PATHS = ['/dashboard', '/audit', '/api/audit', '/api/audits', '/api/usage', '/link-telegram', '/api/telegram-user'];
+// '/api/telegram-user' is deliberately absent: its one browser-session route
+// (link/confirm) enforces its own requireAuth() check directly, and its
+// webhook route authenticates via Telegram's x-telegram-bot-api-secret-token
+// header, never a Supabase session — gating it here would 401 every Telegram
+// update before the route body (and its header check) ever runs.
+const PROTECTED_PATHS = ['/dashboard', '/audit', '/api/audit', '/api/audits', '/api/usage', '/link-telegram'];
 
 // Public paths that never need auth checks (avoids unnecessary Supabase calls)
 const PUBLIC_PATHS = [
